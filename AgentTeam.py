@@ -1,4 +1,4 @@
-from PerpetualAgent import PerpetualAgent
+from AgentOperatingSystem.PerpetualAgent import PerpetualAgent
 from PurposeDrivenAgent.CoderAgent import CoderAgent
 
 from autogen_agentchat.teams import RoundRobinGroupChat
