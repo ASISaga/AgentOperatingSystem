@@ -2,6 +2,22 @@
 An operating system of agents
 Top level agents generate natural language actions from purpose, domain knowledge, and environmental inputs.
 
+---
+
+## Architecture Note: Domain-Agnostic Design
+
+The AgentOperatingSystem (AOS) is designed as a reusable, domain-agnostic orchestration and agent management layer. It provides the core infrastructure for agent coordination, resource management, and inter-agent communication, but does **not** include application-specific storage or environment managers.
+
+**Why?**
+- Keeping AOS generic allows it to be used as a foundation for many different domains and applications.
+- Storage, environment configuration, and persistent data management are handled by applications built on top of AOS (such as BusinessInfinity), according to their specific needs.
+
+**Separation of Concerns:**
+- AOS: Agent orchestration, resource allocation, agent lifecycle, and communication.
+- Application (e.g., BusinessInfinity): Business logic, user interface, storage, and environment management.
+
+This separation ensures AOS remains flexible and reusable, while applications maintain control over their own operational context.
+
 Down the line agents would take actions
 
 Prerequisites:

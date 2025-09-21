@@ -2,6 +2,14 @@
 
 AgentOperatingSystem is built using multiple domain specific, PurposeDrivenAgent(s), operating perpetually, just like daemons of a compute operating system.
 
+---
+
+## Architecture Note: Storage and Environment Managers
+
+The AgentOperatingSystem (AOS) is intentionally domain-agnostic. It does **not** include application-specific storage or environment managers. These responsibilities are delegated to applications built on top of AOS (such as BusinessInfinity), which manage their own configuration, secrets, and persistent data according to their needs.
+
+This separation of concerns ensures AOS remains reusable and flexible for a wide range of domains and applications.
+
 ## Architecture Overview
 
 The AgentOperatingSystem (AOS) provides a framework for managing and coordinating multiple AI agents to work together as a cohesive system. It mirrors traditional operating system concepts by implementing:
