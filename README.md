@@ -60,3 +60,108 @@ Perpetually running agents configured in Copilot Studio that orchestrate queries
 - Ensure agents reliably maintain context, correctly route queries, and handle high volumes of requests.
 - Collect feedback from testing and real-world usage to iteratively refine agent workflows, state management, and error recovery strategies.
 - Thoroughly document workflow configurations, state variables, and error-handling mechanisms to support ongoing maintenance and future enhancements.
+
+---
+
+## ML Pipeline Integration
+
+The AgentOperatingSystem (AOS) now supports direct operation of the ML pipeline (LoRA training, Azure ML orchestration, and inference) via the `PerpetualAgent` interface. This is achieved by integrating the refactored ML pipeline from the FineTunedLLM project as agent-callable operations.
+
+### How to Use
+
+- The `PerpetualAgent` class exposes an `act` method that supports the following ML pipeline actions:
+    - `trigger_lora_training`: Start LoRA adapter training with custom parameters
+    - `run_azure_ml_pipeline`: Run the full Azure ML LoRA pipeline (provision, train, register)
+    - `aml_infer`: Perform inference using UnifiedMLManager endpoints
+
+#### Example Usage
+
+```python
+from PerpetualAgent import PerpetualAgent
+import asyncio
+
+agent = PerpetualAgent()
+
+# Trigger LoRA training
+asyncio.run(agent.act("trigger_lora_training", {
+    "training_params": {"model_name": "meta-llama/Llama-3.1-8B-Instruct", "data_path": "./data/train.jsonl", "output_dir": "./outputs"},
+    "adapters": [
+        {"adapter_name": "lora_qv", "task_type": "causal_lm", "r": 16, "lora_alpha": 32, "target_modules": ["q_proj", "v_proj"]}
+    ]
+}))
+
+# Run the full Azure ML pipeline
+asyncio.run(agent.act("run_azure_ml_pipeline", {
+    "subscription_id": "...",
+    "resource_group": "...",
+    "workspace_name": "..."
+}))
+
+# Perform inference
+asyncio.run(agent.act("aml_infer", {
+    "agent_id": "cmo",
+    "prompt": "What is the Q2 marketing plan?"
+}))
+```
+
+See `ml_pipeline_ops.py` for more details on available operations.
+
+---
+
+## Multi-Agent ML Pipeline Sharing
+
+Multiple instances of `PerpetualAgent` (such as CEO, CFO, COO, etc.) can share the ML pipeline, each using a specific LoRA adapter. When you create a `PerpetualAgent`, pass its role or adapter name:
+
+```python
+from PerpetualAgent import PerpetualAgent
+
+ceo_agent = PerpetualAgent(adapter_name="ceo")
+cfo_agent = PerpetualAgent(adapter_name="cfo")
+coo_agent = PerpetualAgent(adapter_name="coo")
+```
+
+When these agents call ML pipeline actions (training or inference), their `adapter_name` is automatically used for the correct LoRA adapter and endpoint.
+
+- **Training:** The agent's adapter name is injected into the training config if not set.
+- **Inference:** The agent's adapter name is used as the `agent_id` for endpoint selection.
+
+This ensures each agent operates through its own LoRA adapter, while sharing the same ML pipeline infrastructure.
+
+---
+
+## Centralized ML Pipeline Management
+
+AOS provides a centralized `MLPipelineManager` class for overall management of the ML pipeline. This manager can:
+- Train adapters for any agent (CEO, CFO, COO, etc.)
+- Run the full Azure ML pipeline
+- Perform inference for any agent/adapter
+- List and inspect all registered adapters
+
+### Example Usage
+
+```python
+from MLPipelineManager import MLPipelineManager
+import asyncio
+
+ml_manager = MLPipelineManager()
+
+# Train a new adapter for the CEO agent
+asyncio.run(ml_manager.train_adapter(
+    agent_role="ceo",
+    training_params={"model_name": "meta-llama/Llama-3.1-8B-Instruct", "data_path": "./data/train.jsonl", "output_dir": "./outputs"},
+    adapter_config={"task_type": "causal_lm", "r": 16, "lora_alpha": 32, "target_modules": ["q_proj", "v_proj"]}
+))
+
+# List all adapters
+print(ml_manager.list_adapters())
+
+# Run the full pipeline
+asyncio.run(ml_manager.run_pipeline("...", "...", "..."))
+
+# Inference for CFO
+asyncio.run(ml_manager.infer("cfo", "What is the Q2 financial forecast?"))
+```
+
+This allows AOS to orchestrate, monitor, and control the ML pipeline for all agents in a unified way.
+
+---
