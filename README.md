@@ -165,3 +165,28 @@ asyncio.run(ml_manager.infer("cfo", "What is the Q2 financial forecast?"))
 This allows AOS to orchestrate, monitor, and control the ML pipeline for all agents in a unified way.
 
 ---
+
+## Unified Storage Management (AOS)
+
+AOS now provides a generic, reusable `UnifiedStorageManager` in `storage/manager.py` for agent-based systems. This manager supports:
+- Azure Tables (conversations, messages)
+- Azure Blob Storage (training data, profiles)
+- Azure Queue (agent events, requests)
+
+**How to use:**
+- Applications (e.g., BusinessInfinity) should import and instantiate `UnifiedStorageManager` for their own needs.
+- Boardroom-specific or domain-specific configuration should be provided by the application layer.
+
+**Separation of Concerns:**
+- AOS provides the storage manager as a generic utility.
+- Applications configure and use it for their own data, keeping AOS domain-agnostic.
+
+Example:
+```python
+from RealmOfAgents.AgentOperatingSystem.storage.manager import UnifiedStorageManager
+storage = UnifiedStorageManager()
+```
+
+See the `storage/manager.py` docstring for full API details.
+
+---
