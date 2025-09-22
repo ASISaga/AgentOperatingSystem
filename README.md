@@ -235,3 +235,16 @@ The AgentOperatingSystem (AOS) is now the single source for all Model Context Pr
 - **Service Bus Management:** Topic and subscription management utilities are provided in AOS.
 
 For migration details, see the BusinessInfinity documentation (`MCP_CLIENT_MIGRATION.md`).
+
+---
+
+## Unified Authentication & Authorization (2025)
+
+The AgentOperatingSystem (AOS) is now the single source for all authentication and authorization logic, including:
+- Azure B2C authentication
+- JWT validation and token management
+- LinkedIn OAuth integration
+
+All authentication endpoints and handlers in BusinessInfinity and other modules now import and use the unified handler from `aos_auth.py` in AOS. No authentication logic remains in BusinessInfinity; all logic is centralized here for maintainability and reuse.
+
+See `aos_auth.py` for implementation details.
