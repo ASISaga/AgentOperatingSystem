@@ -1,6 +1,41 @@
-# AgentOperatingSystem
-An operating system of agents
-Top level agents generate natural language actions from purpose, domain knowledge, and environmental inputs.
+
+# AgentOperatingSystem (AOS)
+The AgentOperatingSystem (AOS) is a reusable, domain-agnostic orchestration and agent management layer. It provides the core infrastructure for agent coordination, resource management, agent lifecycle, and inter-agent communication.
+
+---
+
+## Key Concepts
+- **LeadershipAgent Base Class:** All business and leadership agents (e.g., CEO, CFO, CMO, etc.) inherit from the generic `LeadershipAgent` defined in AOS. This enables a consistent interface and orchestration pattern for all agents, regardless of business domain.
+- **Modular Agent Repositories:** Each C-Suite and leadership agent is now implemented in its own repository under `RealmOfAgents/` (see below).
+- **Separation of Concerns:** AOS provides only generic OS-like functionality. All business logic, storage, and environment management are handled by applications (e.g., BusinessInfinity) and their agents.
+
+---
+
+## Modular Agent Repository Structure (2025)
+
+All C-Suite and leadership agents are now implemented in their own dedicated repositories under `RealmOfAgents/`:
+
+- CEO: `RealmOfAgents/CEO/ChiefExecutiveOfficer.py`
+- CFO: `RealmOfAgents/CFO/ChiefFinancialOfficer.py`
+- CMO: `RealmOfAgents/CMO/ChiefMarketingOfficer.py`
+- COO: `RealmOfAgents/COO/ChiefOperatingOfficer.py`
+- CTO: `RealmOfAgents/CTO/ChiefTechnologyOfficer.py`
+- CHRO: `RealmOfAgents/CHRO/ChiefHumanResourcesOfficer.py`
+- Founder: `RealmOfAgents/Founder/FounderAgent.py`
+- Investor: `RealmOfAgents/Investor/InvestorAgent.py`
+
+Each agent inherits from `LeadershipAgent` and implements domain-specific logic. This modular structure enables clean separation, easy extension, and reuse across multiple business domains.
+
+---
+
+## Example: Creating a New Agent
+
+To create a new business or leadership agent:
+1. Inherit from `LeadershipAgent` in your agent class.
+2. Place the agent in its own directory under `RealmOfAgents/<AgentName>/<AgentClass>.py`.
+3. Implement domain-specific logic and orchestration as needed.
+
+---
 
 ---
 
