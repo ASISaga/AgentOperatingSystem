@@ -1,4 +1,3 @@
-
 # AgentOperatingSystem (AOS)
 The AgentOperatingSystem (AOS) is a reusable, domain-agnostic orchestration and agent management layer. It provides the core infrastructure for agent coordination, resource management, agent lifecycle, and inter-agent communication.
 
@@ -225,3 +224,14 @@ storage = UnifiedStorageManager()
 See the `storage/manager.py` docstring for full API details.
 
 ---
+
+## MCP Protocol/Client Unification & Azure Service Bus Communication (2025)
+
+The AgentOperatingSystem (AOS) is now the single source for all Model Context Protocol (MCP) protocol/client logic. All MCP communication between BusinessInfinity and external MCP services (ERPNext-MCP, linkedin-mcp-server, mcp-reddit, etc.) is handled via the AOS MCP client and Azure Service Bus.
+
+- **MCP Client Location:** `mcp_servicebus_client.py` implements the unified client for sending/receiving MCP messages over Azure Service Bus.
+- **Protocol Models:** All MCP protocol models (MCPRequest, MCPResponse) are defined in `mcp_protocol/` within AOS.
+- **Migration:** All legacy MCP protocol/handler code has been removed from BusinessInfinity and other modules. Only the AOS MCP client should be used for MCP communication.
+- **Service Bus Management:** Topic and subscription management utilities are provided in AOS.
+
+For migration details, see the BusinessInfinity documentation (`MCP_CLIENT_MIGRATION.md`).
