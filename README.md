@@ -1,18 +1,19 @@
 # AgentOperatingSystem (AOS)
-The AgentOperatingSystem (AOS) is a reusable, domain-agnostic orchestration and agent management layer. It provides the core infrastructure for agent coordination, resource management, agent lifecycle, and inter-agent communication.
+The AgentOperatingSystem (AOS) is the single source of truth for all core agent orchestration, resource management, agent lifecycle, inter-agent communication, storage, environment, ML pipeline, Model Context Protocol (MCP), and authentication features. All business and leadership agents (e.g., CEO, CFO, CMO, etc.) inherit from the generic `LeadershipAgent` defined in AOS. All applications (including BusinessInfinity) must import these features from AOS.
 
 ---
 
 ## Key Concepts
-- **LeadershipAgent Base Class:** All business and leadership agents (e.g., CEO, CFO, CMO, etc.) inherit from the generic `LeadershipAgent` defined in AOS. This enables a consistent interface and orchestration pattern for all agents, regardless of business domain.
-- **Modular Agent Repositories:** Each C-Suite and leadership agent is now implemented in its own repository under `RealmOfAgents/` (see below).
-- **Separation of Concerns:** AOS provides only generic OS-like functionality. All business logic, storage, and environment management are handled by applications (e.g., BusinessInfinity) and their agents.
+- **Unified Core Features:** All agent orchestration, storage, environment, ML pipeline, MCP, and authentication logic are implemented and maintained in AOS. No application-specific or local implementations exist outside AOS.
+- **LeadershipAgent Base Class:** All business and leadership agents inherit from `LeadershipAgent` in AOS, ensuring a consistent interface and orchestration pattern.
+- **Modular Agent Repositories:** Each C-Suite and leadership agent is implemented in its own repository under `RealmOfAgents/` (see below).
+- **Separation of Concerns:** AOS provides all generic OS-like and infrastructure functionality. Applications (e.g., BusinessInfinity) only contain business-specific logic and orchestrate agents via AOS.
 
 ---
 
 ## Modular Agent Repository Structure (2025)
 
-All C-Suite and leadership agents are now implemented in their own dedicated repositories under `RealmOfAgents/`:
+All C-Suite and leadership agents are implemented in their own dedicated repositories under `RealmOfAgents/`:
 
 - CEO: `RealmOfAgents/CEO/ChiefExecutiveOfficer.py`
 - CFO: `RealmOfAgents/CFO/ChiefFinancialOfficer.py`
@@ -27,37 +28,43 @@ Each agent inherits from `LeadershipAgent` and implements domain-specific logic.
 
 ---
 
-## Example: Creating a New Agent
+## Unified Core Feature Imports
 
-To create a new business or leadership agent:
-1. Inherit from `LeadershipAgent` in your agent class.
-2. Place the agent in its own directory under `RealmOfAgents/<AgentName>/<AgentClass>.py`.
-3. Implement domain-specific logic and orchestration as needed.
+All applications must import core features from AOS. Example usage:
+```python
+from RealmOfAgents.AgentOperatingSystem.storage.manager import UnifiedStorageManager
+from RealmOfAgents.AgentOperatingSystem.environment import UnifiedEnvManager
+from RealmOfAgents.AgentOperatingSystem.ml_pipeline_ops import MLPipelineManager
+from RealmOfAgents.AgentOperatingSystem.mcp_servicebus_client import MCPServiceBusClient
+from RealmOfAgents.AgentOperatingSystem.aos_auth import UnifiedAuthHandler
+```
+
+See the docstrings and Implementation.md for full API details.
 
 ---
 
----
+## Architecture Note: Unified, Domain-Agnostic Design
 
-## Architecture Note: Domain-Agnostic Design
-
-The AgentOperatingSystem (AOS) is designed as a reusable, domain-agnostic orchestration and agent management layer. It provides the core infrastructure for agent coordination, resource management, and inter-agent communication, but does **not** include application-specific storage or environment managers.
-
-**Why?**
-- Keeping AOS generic allows it to be used as a foundation for many different domains and applications.
-- Storage, environment configuration, and persistent data management are handled by applications built on top of AOS (such as BusinessInfinity), according to their specific needs.
+AOS is designed as a reusable, domain-agnostic orchestration and agent management layer. All core infrastructure is implemented here. Applications built on top of AOS (such as BusinessInfinity) only contain business logic, user interface, and orchestration of agents via AOS.
 
 **Separation of Concerns:**
-- AOS: Agent orchestration, resource allocation, agent lifecycle, and communication.
-- Application (e.g., BusinessInfinity): Business logic, user interface, storage, and environment management.
+- AOS: All agent orchestration, resource management, storage, environment, ML pipeline, MCP, and authentication logic
+- Application (e.g., BusinessInfinity): Business logic, user interface, and orchestration of agents via AOS
 
-This separation ensures AOS remains flexible and reusable, while applications maintain control over their own operational context.
+**Note:** All legacy code and local implementations of these features in applications have been removed. Update your imports and integrations accordingly.
 
-Down the line agents would take actions
+---
 
-Prerequisites:
-  - Fine-tuned, domain-specific models exposed as API endpoints (see FineTunedLLM repo for details)
-  - Azure OpenAI Service subscription and access credentials
-  - Access to Copilot Studio
+## Migration Guidance
+
+If migrating from a previous version, remove all local implementations of storage, environment, ML pipeline, MCP, and authentication logic from your application. Import and use the unified managers and handlers from AOS as shown above.
+
+---
+
+## Prerequisites
+- Fine-tuned, domain-specific models exposed as API endpoints (see FineTunedLLM repo for details)
+- Azure OpenAI Service subscription and access credentials
+- Access to Copilot Studio
 
 -----------------------------------------------------------
 Configure Copilot Studio for Perpetually Running Agent Orchestration

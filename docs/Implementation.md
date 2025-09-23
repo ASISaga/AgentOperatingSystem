@@ -275,3 +275,27 @@ All agent operations utilize Python's `asyncio` for:
 - Principle of least privilege access
 - Secure communication channels
 - Data anonymization where appropriate
+
+---
+
+## Unified Core Features and Application Guidance
+
+The AgentOperatingSystem (AOS) is now the single source of truth for all core features: agent orchestration, storage, environment, ML pipeline, Model Context Protocol (MCP), and authentication. All applications (including BusinessInfinity) must import these features from AOS. No application-specific or local implementations exist outside AOS.
+
+**How to use core features:**
+Import all managers and core features from `RealmOfAgents.AgentOperatingSystem`. For example:
+```python
+from RealmOfAgents.AgentOperatingSystem.storage.manager import UnifiedStorageManager
+from RealmOfAgents.AgentOperatingSystem.environment import UnifiedEnvManager
+from RealmOfAgents.AgentOperatingSystem.ml_pipeline_ops import MLPipelineManager
+from RealmOfAgents.AgentOperatingSystem.mcp_servicebus_client import MCPServiceBusClient
+from RealmOfAgents.AgentOperatingSystem.aos_auth import UnifiedAuthHandler
+```
+
+See the docstrings and this documentation for full API details.
+
+**Separation of Concerns:**
+- AOS: All agent orchestration, resource management, storage, environment, ML pipeline, MCP, and authentication logic
+- Application (e.g., BusinessInfinity): Business logic, user interface, and orchestration of agents via AOS
+
+**Note:** All legacy code and local implementations of these features in applications have been removed. Update your imports and integrations accordingly.
