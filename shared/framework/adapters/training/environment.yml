@@ -1,0 +1,12 @@
+name: lora-train
+channels: [conda-forge, defaults]
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - transformers==4.43.3
+      - peft==0.12.0
+      - datasets==2.20.0
+      - accelerate==0.33.0
+      - torch
+      - azureml-mlflow

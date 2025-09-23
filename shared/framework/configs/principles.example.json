@@ -1,0 +1,15 @@
+{
+  "principles": [
+    {
+      "principle_id": "drucker-mbo-001",
+      "domain": "Ops",
+      "legend_source": "Peter Drucker",
+      "form": "decision_rubric",
+      "summary": "Set clear objectives and measure performance against them.",
+      "operational_mapping": ["node:ops:goal-setting", "node:ops:performance-review"],
+      "failure_modes": ["Objectives misaligned with strategy", "Metrics gamed"],
+      "success_metrics": ["okrs_alignment_score", "engagement_delta_qtr"],
+      "evidence_bindings": []
+    }
+  ]
+}

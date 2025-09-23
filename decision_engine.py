@@ -1,10 +1,68 @@
 """
-Business Decision Engine for AgentOperatingSystem (AOS)
-Provides generic decision engine functionality that can be used across domains.
+Decision Engine for AgentOperatingSystem (AOS)
+Provides generic, reusable decision engine functionality with integrated config loading and adapter routing.
+
+Config loading (principles, decision tree, adapters) is now handled by DecisionConfigLoader.
+Adapter routing is handled by DecisionAdapterRouter.
+Message models (Envelope, MessagesQuery, UiAction) are available in aos_message.py.
 """
 
-from typing import Any, Dict, List, Tuple
+
+import os
+import json
+from typing import Any, Dict, List, Tuple, Optional
+from jsonschema import validate
 from ..servicebus_manager import ServiceBusManager
+
+# --- Config Loader Integration ---
+class DecisionConfigLoader:
+    """Unified loader for principles, decision tree, and adapters config."""
+    BASE = os.getenv("AOS_CONFIG_BASE", os.path.join(os.path.dirname(__file__), "configs"))
+
+    @staticmethod
+    def load_json(path: str):
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    @staticmethod
+    def load_validated(data_path: str, schema_path: str):
+        data, schema = DecisionConfigLoader.load_json(data_path), DecisionConfigLoader.load_json(schema_path)
+        validate(instance=data, schema=schema)
+        return data
+
+    @classmethod
+    def load_principles(cls):
+        return cls.load_validated(os.path.join(cls.BASE, "principles.example.json"),
+                                  os.path.join(cls.BASE, "principles.schema.json"))
+
+    @classmethod
+    def load_decision_tree(cls):
+        return cls.load_validated(os.path.join(cls.BASE, "decision_tree.example.json"),
+                                  os.path.join(cls.BASE, "decision_tree.schema.json"))
+
+    @classmethod
+    def load_adapters(cls):
+        return cls.load_validated(os.path.join(cls.BASE, "adapters.example.json"),
+                                  os.path.join(cls.BASE, "adapters.schema.json"))
+
+# --- Adapter Router Integration ---
+class DecisionAdapterRouter:
+    def __init__(self, registry: Dict[str, Any], ml_adapter=None):
+        self.registry = registry
+        self.ml = ml_adapter
+
+    def endpoint_for(self, legend: str, role: str) -> str:
+        for a in self.registry["adapters"]:
+            if a["legend"] == legend and a["role"] == role:
+                return a["endpoint_name"]
+        raise ValueError(f"No adapter for legend={legend}, role={role}")
+
+    def score(self, legend: str, role: str, evidence: Dict[str, Any], principles: List[str]) -> Dict[str, Any]:
+        endpoint = self.endpoint_for(legend, role)
+        payload = {"legend": legend, "role": role, "principles": principles, "evidence": evidence}
+        if self.ml:
+            return self.ml.score(endpoint, payload)
+        return {"error": "ML adapter not configured"}
 
 
 class Governance:
@@ -42,14 +100,22 @@ class Governance:
             self.servicebus_manager.publish_message(event_type, payload)
 
 
+
 class DecisionEngine:
-    """Generic decision engine for multi-criteria decision making"""
-    
-    def __init__(self, tree: Dict[str, Any], adapters: Dict[str, Any], principles: Dict[str, Any]):
+    """Generic decision engine for multi-criteria decision making, with integrated config and adapter logic."""
+
+    def __init__(self, tree: Optional[Dict[str, Any]] = None, adapters: Optional[Dict[str, Any]] = None, principles: Optional[Dict[str, Any]] = None, ml_adapter=None):
+        # If not provided, load from config
+        if tree is None or adapters is None or principles is None:
+            config = DecisionConfigLoader
+            tree = tree or config.load_decision_tree()
+            adapters = adapters or config.load_adapters()
+            principles = principles or config.load_principles()
         self.tree = tree
         self.adapters = adapters
         self.governance = Governance()
         self.principles_map = {p["principle_id"]: p for p in principles.get("principles", [])}
+        self.adapter_router = DecisionAdapterRouter(self.adapters, ml_adapter=ml_adapter)
 
     def run_node(self, node: Dict[str, Any], evidence: Dict[str, Any]) -> Dict[str, Any]:
         """Run a single decision node"""

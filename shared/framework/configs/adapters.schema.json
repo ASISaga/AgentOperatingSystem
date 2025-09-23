@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LoRA Adapter Registry",
+  "type": "object",
+  "properties": {
+    "adapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["legend", "role", "endpoint_name", "version", "principles"],
+        "properties": {
+          "legend": { "type": "string" },
+          "role": { "type": "string" },
+          "endpoint_name": { "type": "string" },
+          "version": { "type": "string" },
+          "principles": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  },
+  "required": ["adapters"]
+}
