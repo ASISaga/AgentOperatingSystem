@@ -1,16 +1,47 @@
-# AgentOperatingSystem (AOS)
+# AgentOperatingSystem (AOS) - Infrastructure Foundation
 The AgentOperatingSystem (AOS) is the unified infrastructure foundation for all agent-based business applications in the ASISaga ecosystem. AOS provides core orchestration, resource management, agent lifecycle, inter-agent communication, storage, environment, ML pipeline, Model Context Protocol (MCP), and authentication features. 
 
-**All business applications (BusinessInfinity, etc.) must import and use these infrastructure features from AOS rather than implementing their own versions.**
+**AOS is pure infrastructure - it contains NO business-specific logic. All business applications (BusinessInfinity, etc.) must build on AOS infrastructure rather than duplicating it.**
 
 ---
 
-## Key Concepts
-- **Infrastructure Foundation:** AOS provides all generic, reusable infrastructure that business applications need
-- **Unified Core Features:** All agent orchestration, storage, environment, ML pipeline, MCP, and authentication logic are implemented and maintained in AOS
-- **LeadershipAgent Base Class:** All business and leadership agents inherit from `LeadershipAgent` in AOS, ensuring consistent interface and orchestration patterns
-- **Business Application Support:** Applications like BusinessInfinity focus on business logic while leveraging AOS infrastructure
-- **Separation of Concerns:** AOS provides all generic OS-like and infrastructure functionality; applications contain only business-specific logic
+## Refactored Architecture (2025)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  Business Applications                     │
+│           (BusinessInfinity, SalesForce, etc.)             │
+├─────────────────────────────────────────────────────────────┤
+│  • Business logic and domain-specific workflows           │
+│  • Business agents extending AOS base classes             │
+│  • Business analytics and KPIs                            │
+│  • Application-specific integrations                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ depends on
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│               Agent Operating System (AOS)                 │
+│                  Infrastructure Layer                       │
+├─────────────────────────────────────────────────────────────┤
+│  • Agent lifecycle management                             │
+│  • Message bus and communication                          │
+│  • Storage and persistence                                │
+│  • Environment and configuration                          │
+│  • Authentication and security                            │
+│  • ML pipeline and model management                       │
+│  • MCP server integrations                                │
+│  • System monitoring and telemetry                        │
+│  • Base agent classes (LeadershipAgent, BaseAgent)        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Key Principles
+- **Pure Infrastructure:** AOS provides only generic, reusable infrastructure
+- **No Business Logic:** All business-specific code belongs in applications, not AOS
+- **Extensible Base Classes:** LeadershipAgent and BaseAgent for business applications to extend
+- **Service-Oriented:** Clean service interfaces for storage, messaging, authentication, etc.
+- **Foundation Layer:** AOS is the foundation that business applications build upon
 
 ---
 
