@@ -1,13 +1,21 @@
 """
-Agent Operating System (AOS) Package
+Agent Operating System (AOS)
 
-Enhanced AOS with MCP Client integration for Business Infinity autonomous boardroom.
-Provides the foundational agent infrastructure with business data integration capabilities.
+The foundational operating system for agent-based applications.
+Refactored architecture with proper package structure.
 """
 
-from .AgentOperatingSystem import AOS
-from .AgentTeam import AgentTeam
-from .aos_auth import AOSAuth
+# Import from the new aos package structure  
+from .aos import *
+
+# Legacy imports for backward compatibility
+try:
+    from .AgentOperatingSystem import AOS
+    from .AgentTeam import AgentTeam
+    from .aos_auth import AOSAuth
+except ImportError:
+    # Legacy files may not exist after refactoring
+    pass
 from .aos_message import AOSMessage
 from .mcp_client_manager import MCPClientManager, MCPServerConfig, MCPServerType
 

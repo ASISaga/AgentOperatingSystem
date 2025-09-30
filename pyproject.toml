@@ -1,22 +1,64 @@
 [project]
 name = "AgentOperatingSystem"
-version = "0.1.0"
+version = "1.0.0"
+description = "Agent Operating System (AOS) - Foundational infrastructure for agent-based applications"
+authors = [
+    { name = "ASISaga" }
+]
+requires-python = ">=3.8"
 dependencies = [
-    "semantic-kernel",
     "asyncio",
-    "python-dotenv",
-    "azure-search-documents",
-    "fastapi",
-    "pandas",
-    "uvicorn",
-    "streamlit",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "psutil>=5.9.0",
+    "PyJWT>=2.8.0",
+    "cryptography>=41.0.0",
+    "httpx>=0.24.1",
+    "jsonschema>=4.0.0",
     "opentelemetry-api",
     "opentelemetry-sdk",
     "opentelemetry-exporter-otlp-proto-grpc",
-    "opentelemetry-instrumentation-fastapi",
-    "PurposeDrivenAgent @ git+https://github.com/ASISaga/PurposeDrivenAgent.git",
-    "FineTunedLLM @ git+https://github.com/ASISaga/FineTunedLLM.git"
+    "opentelemetry-instrumentation-fastapi"
 ]
+
+[project.optional-dependencies]
+azure = [
+    "azure-identity>=1.15.0",
+    "azure-storage-blob>=12.17.0",
+    "azure-storage-queue>=12.7.0",
+    "azure-data-tables>=12.4.0",
+    "azure-servicebus>=7.11.0",
+    "azure-keyvault-secrets>=4.7.0"
+]
+ml = [
+    "transformers>=4.30.0",
+    "torch>=2.0.0",
+    "scikit-learn>=1.3.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0"
+]
+mcp = [
+    "mcp",
+    "websockets>=11.0.0"
+]
+full = [
+    "AgentOperatingSystem[azure,ml,mcp]"
+]
+
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["aos*"]
+
+[tool.setuptools.package-data]
+"aos" = ["py.typed"]
+
+[project.urls]
+Homepage = "https://github.com/ASISaga/AgentOperatingSystem"
+Repository = "https://github.com/ASISaga/AgentOperatingSystem"
+Documentation = "https://github.com/ASISaga/AgentOperatingSystem/docs"
