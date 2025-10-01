@@ -14,6 +14,7 @@ aos/agents/leadership.py
 aos/auth/__init__.py
 aos/auth/manager.py
 aos/core/__init__.py
+aos/core/boardroom.py
 aos/core/config.py
 aos/core/system.py
 aos/environment/__init__.py
@@ -22,11 +23,15 @@ aos/mcp/__init__.py
 aos/mcp/client.py
 aos/messaging/__init__.py
 aos/messaging/bus.py
+aos/messaging/conversation_system.py
+aos/messaging/network_protocol.py
 aos/messaging/router.py
 aos/messaging/types.py
 aos/ml/__init__.py
 aos/ml/pipeline.py
+aos/ml/self_learning_system.py
 aos/monitoring/__init__.py
+aos/monitoring/audit_trail.py
 aos/monitoring/monitor.py
 aos/orchestration/__init__.py
 aos/orchestration/engine.py
