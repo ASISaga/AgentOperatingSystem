@@ -1,0 +1,68 @@
+{
+    "orchestrator": {
+        "type": "consolidated",
+        "version": "1.0.0",
+        "description": "Consolidated orchestrator configuration for all agent types"
+    },
+    "azure_function": {
+        "ml_endpoint_url": "${MLENDPOINTURL}",
+        "ml_endpoint_key": "${MLENDPOINTKEY}",
+        "storage_connection": "${AzureWebJobsStorage}",
+        "agent_context_blob": "agent_context.json",
+        "domain_knowledge_blob": "domain_knowledge.json",
+        "agent_directives_blob": "agent_directives.json"
+    },
+    "self_learning": {
+        "github_mcp": {
+            "uri": "${GITHUB_MCP_URI}",
+            "api_key": "${GITHUB_MCP_APIKEY}"
+        },
+        "domain_mcp_servers": {
+            "erp": {
+                "uri": "${ERP_MCP_URI}",
+                "api_key": "${ERP_MCP_APIKEY}"
+            },
+            "crm": {
+                "uri": "${CRM_MCP_URI}",
+                "api_key": "${CRM_MCP_APIKEY}"
+            }
+        },
+        "repositories": {
+            "erp": {
+                "owner": "ASISaga",
+                "name": "ERPNext-MCP",
+                "coding_agent": "github-coding-agent"
+            },
+            "crm": {
+                "owner": "ASISaga", 
+                "name": "CRM-MCP",
+                "coding_agent": "github-coding-agent"
+            }
+        }
+    },
+    "generic_orchestrator": {
+        "vllm_server_url": "${VLLM_SERVER_URL}",
+        "experience_db": "experience.db",
+        "adapters_config": "adapters_config.json",
+        "domain_context_config": "domain_context_config.json",
+        "mentor_mode_config": "mentor_mode_config.json"
+    },
+    "multi_agent": {
+        "default_domains": ["leadership", "sales", "hr", "marketing"],
+        "agent_timeout": 30,
+        "max_concurrent_agents": 10
+    },
+    "a2a_communication": {
+        "enabled": true,
+        "message_queue_size": 1000,
+        "message_timeout": 60,
+        "retry_attempts": 3
+    },
+    "logging": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "qa_logging_enabled": true,
+        "qa_container": "qa",
+        "qa_blob": "qabatch.jsonl"
+    }
+}
