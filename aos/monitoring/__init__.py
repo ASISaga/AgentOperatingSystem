@@ -6,7 +6,22 @@ System monitoring and metrics collection.
 
 from .monitor import SystemMonitor, MetricsCollector
 
+try:
+    from .audit_trail import (
+        AuditTrailManager, AuditEvent, AuditEventType, AuditSeverity, 
+        audit_log, get_audit_manager, audit_context
+    )
+    AUDIT_AVAILABLE = True
+except ImportError:
+    AUDIT_AVAILABLE = False
+
 __all__ = [
-    "SystemMonitor",
+    "SystemMonitor",  
     "MetricsCollector"
 ]
+
+if AUDIT_AVAILABLE:
+    __all__.extend([
+        "AuditTrailManager", "AuditEvent", "AuditEventType", "AuditSeverity",
+        "audit_log", "get_audit_manager", "audit_context"
+    ])
