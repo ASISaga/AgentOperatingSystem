@@ -8,10 +8,11 @@ Provides common leadership functionality and decision-making frameworks.
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
-from .base import BaseAgent
+from .base import Agent
+from ..learning.self_learning_mixin import SelfLearningMixin
 
 
-class LeadershipAgent(BaseAgent):
+class LeadershipAgent(SelfLearningMixin, Agent):
     """
     Base class for all leadership agents in the Agent Operating System.
     
@@ -25,9 +26,13 @@ class LeadershipAgent(BaseAgent):
     Specific leadership roles (CEO, CFO, etc.) should inherit from this class.
     """
     
-    def __init__(self, agent_id: str, name: str, role: str, config: Dict[str, Any] = None):
-        super().__init__(agent_id, config)
-        self.name = name
+    def __init__(self, agent_id: str, name: str, role: str, config: Dict[str, Any] = None, learning_config: Dict[str, Any] = None):
+        # Set learning properties for leadership domain
+        self.domains = ['leadership', role.lower()]
+        self.default_domain = 'leadership'
+        self.learning_config = learning_config or {}
+        
+        super().__init__(agent_id, name, config)
         self.role = role
         
         # Leadership-specific attributes
@@ -47,6 +52,10 @@ class LeadershipAgent(BaseAgent):
     async def start(self):
         """Start the leadership agent"""
         await super().start()
+        
+        # Initialize learning components if AOS context is available
+        if self.aos_context:
+            await self._initialize_learning_components(self.aos_context)
         
         # Initialize leadership context
         await self.develop_leadership_context()

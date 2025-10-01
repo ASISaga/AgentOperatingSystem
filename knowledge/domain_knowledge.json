@@ -1,0 +1,40 @@
+{
+  "sales": [
+    {
+      "content": "Effective sales qualification involves understanding customer pain points, budget, timeline, and decision-making authority.",
+      "type": "best_practice",
+      "source": "sales_training"
+    },
+    {
+      "content": "Building trust with prospects requires active listening, demonstrating expertise, and providing value before asking for commitment.",
+      "type": "strategy",
+      "source": "sales_methodology"
+    }
+  ],
+  "leadership": [
+    {
+      "content": "Strategic planning should align short-term actions with long-term vision while remaining adaptable to market changes.",
+      "type": "principle",
+      "source": "leadership_framework"
+    },
+    {
+      "content": "Effective team development requires clear communication, regular feedback, and empowerment through delegation.",
+      "type": "best_practice",
+      "source": "management_training"
+    }
+  ],
+  "erp": [
+    {
+      "content": "Data integrity in ERP systems requires standardized input processes, regular validation, and automated error checking.",
+      "type": "technical_requirement",
+      "source": "erp_standards"
+    }
+  ],
+  "crm": [
+    {
+      "content": "Customer satisfaction improves through personalized interactions, timely responses, and proactive problem resolution.",
+      "type": "service_standard",
+      "source": "customer_service_guide"
+    }
+  ]
+}

@@ -30,6 +30,10 @@ from ..ml.pipeline import MLPipelineManager
 from ..auth.manager import AuthManager
 from ..environment.manager import EnvironmentManager
 from ..mcp.client import MCPClientManager
+from ..learning.knowledge_manager import KnowledgeManager
+from ..learning.rag_engine import RAGEngine
+from ..learning.interaction_learner import InteractionLearner
+from ..learning.learning_pipeline import LearningPipeline
 from .config import AOSConfig
 
 logger = logging.getLogger(__name__)
@@ -94,11 +98,48 @@ class AgentOperatingSystem:
             # MCP client manager
             self.mcp_manager = MCPClientManager()
             
+            # Learning system components
+            self._initialize_learning_system()
+            
             self.logger.info("AOS core components initialized successfully")
             
         except Exception as e:
             self.logger.error(f"Failed to initialize AOS core components: {e}")
             raise
+    
+    def _initialize_learning_system(self):
+        """Initialize the learning system components"""
+        try:
+            # Knowledge manager for domain knowledge
+            self.knowledge_manager = KnowledgeManager(
+                storage_manager=self.storage_manager,
+                config=self.config.learning_config.knowledge
+            )
+            
+            # RAG engine for vector-based retrieval
+            self.rag_engine = RAGEngine(
+                config=self.config.learning_config.rag
+            )
+            
+            # Interaction learner for learning from feedback
+            self.interaction_learner = InteractionLearner(
+                storage_manager=self.storage_manager,
+                config=self.config.learning_config.interaction
+            )
+            
+            # Learning pipeline for orchestrating learning processes
+            self.learning_pipeline = LearningPipeline(
+                knowledge_manager=self.knowledge_manager,
+                rag_engine=self.rag_engine,
+                interaction_learner=self.interaction_learner,
+                config=self.config.learning_config.pipeline
+            )
+            
+            self.logger.info("Learning system components initialized")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to initialize learning system: {e}")
+            # Don't raise - allow AOS to continue without learning system
     
     async def start(self):
         """Start the Agent Operating System"""
@@ -113,6 +154,9 @@ class AgentOperatingSystem:
             await self.message_bus.start()
             await self.orchestration_engine.start()
             await self.system_monitor.start()
+            
+            # Start learning system
+            await self._start_learning_system()
             
             # Register system message handlers
             await self._register_system_handlers()
@@ -135,6 +179,9 @@ class AgentOperatingSystem:
                 await self.unregister_agent(agent_id)
             
             # Stop core services
+            # Stop learning system
+            await self._stop_learning_system()
+            
             await self.system_monitor.stop()
             await self.orchestration_engine.stop()
             await self.message_bus.stop()
@@ -145,6 +192,40 @@ class AgentOperatingSystem:
             
         except Exception as e:
             self.logger.error(f"Error stopping AOS: {e}")
+    
+    async def _start_learning_system(self):
+        """Start the learning system components"""
+        try:
+            if hasattr(self, 'knowledge_manager'):
+                await self.knowledge_manager.initialize()
+            
+            if hasattr(self, 'rag_engine'):
+                await self.rag_engine.initialize()
+            
+            if hasattr(self, 'interaction_learner'):
+                await self.interaction_learner.initialize()
+            
+            if hasattr(self, 'learning_pipeline'):
+                await self.learning_pipeline.initialize()
+            
+            self.logger.info("Learning system started successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to start learning system: {e}")
+    
+    async def _stop_learning_system(self):
+        """Stop the learning system components"""
+        try:
+            if hasattr(self, 'learning_pipeline'):
+                await self.learning_pipeline.cleanup()
+            
+            if hasattr(self, 'rag_engine'):
+                await self.rag_engine.cleanup()
+            
+            self.logger.info("Learning system stopped successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Error stopping learning system: {e}")
     
     async def register_agent(self, agent: 'BaseAgent') -> bool:
         """
@@ -166,6 +247,10 @@ class AgentOperatingSystem:
             
             # Initialize agent with AOS context
             await agent._set_aos_context(self)
+            
+            # Initialize learning components for self-learning agents
+            if hasattr(agent, '_initialize_learning_components'):
+                await agent._initialize_learning_components(self)
             
             # Start agent if AOS is running
             if self.is_running:

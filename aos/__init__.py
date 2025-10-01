@@ -9,6 +9,7 @@ from .core.system import AgentOperatingSystem
 from .core.config import AOSConfig, default_config
 from .agents.base import BaseAgent, Agent, StatefulAgent
 from .agents.leadership import LeadershipAgent
+from .agents.self_learning import SelfLearningAgent, SelfLearningStatefulAgent
 from .messaging.types import Message, MessageType, MessagePriority
 from .messaging.bus import MessageBus
 from .messaging.router import MessageRouter
@@ -20,6 +21,7 @@ from .ml.pipeline import MLPipelineManager
 from .auth.manager import AuthManager
 from .environment.manager import EnvironmentManager, env_manager
 from .mcp.client import MCPClient, MCPClientManager
+from .learning import KnowledgeManager, RAGEngine, InteractionLearner, SelfLearningMixin, DomainExpert, LearningPipeline
 
 __version__ = "1.0.0"
 __author__ = "ASISaga"
@@ -36,6 +38,8 @@ __all__ = [
     "Agent", 
     "StatefulAgent",
     "LeadershipAgent",
+    "SelfLearningAgent",
+    "SelfLearningStatefulAgent",
     
     # Messaging
     "Message",
@@ -67,4 +71,12 @@ __all__ = [
     # MCP
     "MCPClient",
     "MCPClientManager",
+    
+    # Learning System
+    "KnowledgeManager",
+    "RAGEngine",
+    "InteractionLearner",
+    "SelfLearningMixin",
+    "DomainExpert",
+    "LearningPipeline",
 ]

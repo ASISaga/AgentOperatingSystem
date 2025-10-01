@@ -197,6 +197,14 @@ class StorageManager:
         """Check if key exists in storage"""
         return await self.backend.exists(key)
     
+    async def write_json(self, key: str, data: Dict[str, Any]) -> bool:
+        """Write JSON data to storage"""
+        return await self.backend.write(key, data)
+    
+    async def read_json(self, key: str) -> Optional[Dict[str, Any]]:
+        """Read JSON data from storage"""
+        return await self.backend.read(key)
+    
     async def get_storage_stats(self) -> Dict[str, Any]:
         """Get storage statistics"""
         try:
