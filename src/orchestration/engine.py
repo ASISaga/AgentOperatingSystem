@@ -10,7 +10,7 @@ import json
 import os
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from ..core.config import DecisionConfig
+from ..config.decision import DecisionConfig
 
 
 class DecisionEngine:

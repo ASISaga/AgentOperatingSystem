@@ -7,6 +7,7 @@ Messaging infrastructure for inter-agent communication.
 from .types import Message, MessageType, MessagePriority
 from .bus import MessageBus
 from .router import MessageRouter
+from .servicebus_manager import ServiceBusManager
 
 try:
     from .conversation_system import (
@@ -23,7 +24,8 @@ __all__ = [
     "MessageType", 
     "MessagePriority",
     "MessageBus",
-    "MessageRouter"
+    "MessageRouter",
+    "ServiceBusManager"
 ]
 
 if ADVANCED_MESSAGING_AVAILABLE:

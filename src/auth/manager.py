@@ -9,7 +9,7 @@ import os
 import jwt
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
-from ..core.config import AuthConfig
+from ..config.auth import AuthConfig
 
 
 class AuthenticationError(Exception):
@@ -244,6 +244,87 @@ class AuthManager:
             "user": user
         }
     
+    def get_linkedin_auth_url(self, state: str = None) -> str:
+        """
+        Generate LinkedIn OAuth authorization URL.
+        Enhanced from old aos_auth.py functionality.
+        """
+        linkedin_config = self.providers["oauth"]["linkedin"]
+        
+        if not linkedin_config["client_id"] or not linkedin_config["redirect_uri"]:
+            raise AuthenticationError("LinkedIn configuration missing")
+        
+        base_url = "https://www.linkedin.com/oauth/v2/authorization"
+        params = {
+            "response_type": "code",
+            "client_id": linkedin_config["client_id"],
+            "redirect_uri": linkedin_config["redirect_uri"],
+            "scope": "openid profile email"
+        }
+        
+        if state:
+            params["state"] = state
+        
+        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+        return f"{base_url}?{query_string}"
+    
+    async def exchange_linkedin_code(self, code: str) -> Dict[str, Any]:
+        """
+        Exchange LinkedIn OAuth code for access token and user profile.
+        Enhanced from old aos_auth.py functionality.
+        """
+        linkedin_config = self.providers["oauth"]["linkedin"]
+        
+        if not linkedin_config["client_id"] or not linkedin_config["client_secret"]:
+            raise AuthenticationError("LinkedIn configuration missing")
+        
+        try:
+            import requests
+            
+            # Exchange code for access token
+            token_url = "https://www.linkedin.com/oauth/v2/accessToken"
+            data = {
+                "grant_type": "authorization_code",
+                "code": code,
+                "client_id": linkedin_config["client_id"],
+                "client_secret": linkedin_config["client_secret"],
+                "redirect_uri": linkedin_config["redirect_uri"]
+            }
+            
+            response = requests.post(token_url, data=data)
+            response.raise_for_status()
+            token_data = response.json()
+            
+            # Get user profile
+            profile_url = "https://api.linkedin.com/v2/userinfo"
+            headers = {"Authorization": f"Bearer {token_data['access_token']}"}
+            profile_response = requests.get(profile_url, headers=headers)
+            profile_response.raise_for_status()
+            profile_data = profile_response.json()
+            
+            # Create user session
+            user = {
+                "id": profile_data.get("sub"),
+                "email": profile_data.get("email"),
+                "name": profile_data.get("name"),
+                "provider": "linkedin",
+                "role": "user"
+            }
+            
+            session_token = await self.create_session(user)
+            
+            return {
+                "success": True,
+                "access_token": token_data["access_token"],
+                "session_token": session_token,
+                "user": user,
+                "profile": profile_data
+            }
+            
+        except Exception as e:
+            self.logger.error(f"LinkedIn authentication failed: {e}")
+            raise AuthenticationError(f"LinkedIn authentication failed: {str(e)}")
+
     async def _authenticate_oauth(self, credentials: Dict[str, Any]) -> Dict[str, Any]:
         """Authenticate using OAuth provider"""
         provider = credentials.get("provider", "linkedin")
@@ -252,7 +333,11 @@ class AuthManager:
         if not code:
             raise AuthenticationError("OAuth code required")
         
-        # Simulate OAuth authentication
+        # Use LinkedIn-specific authentication
+        if provider == "linkedin":
+            return await self.exchange_linkedin_code(code)
+        
+        # Fallback for other providers
         user = {
             "id": f"{provider}_user",
             "provider": provider,

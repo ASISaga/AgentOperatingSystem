@@ -4,11 +4,11 @@ import asyncio
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
-from aos.messaging.bus import MessageBus
-from aos.monitoring.audit_trail import AuditTrailManager, AuditEventType, AuditSeverity, audit_log
-from aos.orchestration.orchestrator import Orchestrator
-from aos.storage.manager import StorageManager
-from aos.ml.pipeline import MLPipelineManager
+from ..messaging.bus import MessageBus
+from ..monitoring.audit_trail import AuditTrailManager, AuditEventType, AuditSeverity, audit_log
+from .orchestrator import OrchestrationEngine
+from ..storage.manager import StorageManager
+from ..ml.pipeline import MLPipelineManager
 from .state import State
 from .role import Role
 from .member import Member
@@ -26,7 +26,7 @@ class Orchestration():
         self.decision_history: List[Decision] = []
         self.message_bus = MessageBus()
         self.audit_manager = AuditTrailManager()
-        self.orchestrator = Orchestrator()
+        self.orchestrator = OrchestrationEngine()
         self.storage_manager = StorageManager()
         self.ml_pipeline = MLPipelineManager()
         self.config = self._load_config()

@@ -11,7 +11,7 @@ import uuid
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from enum import Enum
-from ..core.config import OrchestrationConfig
+from ..config.orchestration import OrchestrationConfig
 
 
 class WorkflowStatus(Enum):

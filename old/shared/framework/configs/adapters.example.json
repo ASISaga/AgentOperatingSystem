@@ -1,8 +1,0 @@
-{
-  "adapters": [
-    { "legend": "jobs", "role": "Founder", "endpoint_name": "lora-jobs-founder", "version": "1.0.0", "principles": ["product_taste", "narrative_leadership"] },
-    { "legend": "hoffman", "role": "Founder", "endpoint_name": "lora-hoffman-founder", "version": "1.0.0", "principles": ["network_effects", "speed_learning"] },
-    { "legend": "buffett", "role": "Investor", "endpoint_name": "lora-buffett-investor", "version": "1.0.0", "principles": ["moat", "margin_of_safety"] },
-    { "legend": "thiel", "role": "Investor", "endpoint_name": "lora-thiel-investor", "version": "1.0.0", "principles": ["contrarian_truth", "power_law"] }
-  ]
-}

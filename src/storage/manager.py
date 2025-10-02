@@ -8,7 +8,7 @@ Provides high-level storage operations with backend abstraction.
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from ..core.config import StorageConfig
+from ..config.storage import StorageConfig
 from .file_backend import FileStorageBackend
 
 

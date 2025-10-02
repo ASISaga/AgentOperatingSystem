@@ -8,7 +8,7 @@ Handles message routing, queuing, delivery, and persistence.
 import asyncio
 import logging
 from typing import Dict, Any, List, Set
-from ..core.config import MessageBusConfig
+from ..config.messagebus import MessageBusConfig
 from .types import Message, MessageType, MessagePriority
 
 

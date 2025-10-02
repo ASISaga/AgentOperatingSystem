@@ -7,7 +7,8 @@ Manages machine learning operations including training, inference, and model man
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from ..core.config import MLConfig
+from ..config.ml import MLConfig
+from .pipeline_ops import trigger_lora_training, run_azure_ml_pipeline, aml_infer
 
 
 class MLPipelineManager:
@@ -196,6 +197,74 @@ class MLPipelineManager:
         adapter_info = self.active_adapters.get(agent_role, {})
         return adapter_info.get("config", {})
     
+    async def run_azure_ml_pipeline_full(self, subscription_id: str, resource_group: str, workspace_name: str) -> str:
+        """
+        Run the full Azure ML pipeline (provision, train, register).
+        Enhanced from old MLPipelineManager functionality.
+        """
+        try:
+            result = await run_azure_ml_pipeline(subscription_id, resource_group, workspace_name)
+            self.logger.info(f"Azure ML pipeline executed successfully")
+            return result
+        except Exception as e:
+            self.logger.error(f"Azure ML pipeline failed: {e}")
+            raise
+    
+    async def infer_with_adapter(self, agent_role: str, prompt: str) -> Any:
+        """
+        Perform inference for a specific agent role using its adapter.
+        Enhanced from old MLPipelineManager functionality.
+        """
+        try:
+            # Check if adapter exists and is ready
+            if agent_role not in self.active_adapters:
+                return {"error": f"No adapter found for agent role: {agent_role}"}
+            
+            adapter_info = self.active_adapters[agent_role]
+            if adapter_info.get("status") != "ready":
+                return {"error": f"Adapter for {agent_role} is not ready. Status: {adapter_info.get('status', 'unknown')}"}
+            
+            # Use the pipeline ops for inference
+            result = await aml_infer(agent_role, prompt)
+            
+            self.logger.debug(f"Inference completed for {agent_role}")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Inference failed for {agent_role}: {e}")
+            return {"error": str(e)}
+    
+    async def train_adapter_with_pipeline_ops(self, agent_role: str, training_params: Dict[str, Any], adapter_config: Dict[str, Any]) -> str:
+        """
+        Train a LoRA adapter for a specific agent role using pipeline operations.
+        Enhanced from old MLPipelineManager functionality.
+        """
+        try:
+            # Prepare adapter config
+            adapter_config = dict(adapter_config)
+            adapter_config["adapter_name"] = agent_role
+            
+            # Use pipeline ops for training
+            result = await trigger_lora_training(training_params, [adapter_config])
+            
+            # Register the adapter
+            self.active_adapters[agent_role] = {
+                "config": adapter_config,
+                "status": "ready",
+                "training_params": training_params,
+                "created_at": datetime.utcnow().isoformat()
+            }
+            
+            self.logger.info(f"LoRA adapter training completed for {agent_role}")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Adapter training failed for {agent_role}: {e}")
+            # Update adapter status
+            if agent_role in self.active_adapters:
+                self.active_adapters[agent_role]["status"] = "failed"
+            raise
+
     def get_ml_status(self) -> Dict[str, Any]:
         """Get comprehensive ML pipeline status"""
         active_training_jobs = sum(1 for job in self.training_jobs.values() 
@@ -208,6 +277,7 @@ class MLPipelineManager:
             "total_training_jobs": len(self.training_jobs),
             "active_training_jobs": active_training_jobs,
             "inference_cache_size": len(self.inference_cache),
+            "adapter_status": {role: info.get("status", "unknown") for role, info in self.active_adapters.items()},
             "config": {
                 "max_training_jobs": self.config.max_training_jobs,
                 "model_storage_path": self.config.model_storage_path,

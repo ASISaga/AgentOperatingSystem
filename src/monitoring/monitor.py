@@ -10,7 +10,7 @@ import time
 import psutil
 from typing import Dict, Any, List
 from datetime import datetime, timezone
-from ..core.config import MonitoringConfig
+from ..config.monitoring import MonitoringConfig
 
 
 class SystemMonitor:

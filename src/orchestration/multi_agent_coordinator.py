@@ -11,7 +11,7 @@ from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime, timedelta
 from enum import Enum
 
-from LeadershipAgent import LeadershipAgent
+from ..agents.leadership import LeadershipAgent
 
 class CoordinationMode(Enum):
     """Different coordination modes for multi-agent scenarios"""

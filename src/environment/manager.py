@@ -263,6 +263,135 @@ class EnvironmentManager:
                 os.environ[key] = value
                 self.logger.debug(f"Set default environment variable: {key}")
     
+    def get_ml_config(self) -> Dict[str, Any]:
+        """
+        Get Azure ML configuration.
+        Enhanced from old environment.py functionality.
+        """
+        return {
+            "subscription_id": self.get("AZURESUBSCRIPTION_ID"),
+            "resource_group": self.get("AZURERESOURCEGROUP"),
+            "workspace": self.get("AZUREML_WORKSPACE"),
+            "pipeline_name": self.get("PIPELINEENDPOINT_NAME"),
+            "ml_url": self.get("MLENDPOINT_URL"),
+            "ml_key": self.get("MLENDPOINT_KEY")
+        }
+    
+    def get_agent_endpoints(self) -> Dict[str, Dict[str, str]]:
+        """
+        Get agent endpoint configurations.
+        Enhanced from old environment.py functionality.
+        """
+        return {
+            "cmo": {
+                "scoring_uri": self.get("AML_CMO_SCORING_URI", ""),
+                "key": self.get("AML_CMO_KEY", "")
+            },
+            "cfo": {
+                "scoring_uri": self.get("AML_CFO_SCORING_URI", ""),
+                "key": self.get("AML_CFO_KEY", "")
+            },
+            "cto": {
+                "scoring_uri": self.get("AML_CTO_SCORING_URI", ""),
+                "key": self.get("AML_CTO_KEY", "")
+            },
+            "ceo": {
+                "scoring_uri": self.get("AML_CEO_SCORING_URI", ""),
+                "key": self.get("AML_CEO_KEY", "")
+            },
+            "coo": {
+                "scoring_uri": self.get("AML_COO_SCORING_URI", ""),
+                "key": self.get("AML_COO_KEY", "")
+            },
+            "chro": {
+                "scoring_uri": self.get("AML_CHRO_SCORING_URI", ""),
+                "key": self.get("AML_CHRO_KEY", "")
+            }
+        }
+    
+    def get_list(self, key: str, separator: str = ",", default: List[str] = None) -> List[str]:
+        """
+        Get environment variable as a list.
+        Enhanced from old environment.py functionality.
+        """
+        value = self.get(key)
+        if value is None:
+            return default or []
+        return [item.strip() for item in value.split(separator) if item.strip()]
+    
+    def get_json(self, key: str, default: Any = None) -> Any:
+        """
+        Get environment variable as JSON.
+        Enhanced from old environment.py functionality.
+        """
+        import json
+        value = self.get(key)
+        if value is None:
+            return default
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError as e:
+            self.logger.warning(f"Failed to parse JSON from {key}: {e}")
+            return default
+    
+    def get_env_vars_by_prefix(self, prefix: str) -> Dict[str, str]:
+        """
+        Get environment variables with a specific prefix.
+        Enhanced from old environment.py functionality.
+        """
+        return {k: v for k, v in os.environ.items() if k.startswith(prefix)}
+    
+    def validate_environment(self) -> Dict[str, Any]:
+        """
+        Validate environment configuration comprehensively.
+        Enhanced from old environment.py functionality.
+        """
+        issues = []
+        warnings = []
+        
+        # Check Azure Storage connection
+        try:
+            self.get_azure_connection_string("storage")
+        except EnvironmentError:
+            issues.append("Missing Azure Storage connection string")
+        
+        # Check ML configuration
+        ml_config = self.get_ml_config()
+        missing_ml = [k for k, v in ml_config.items() if not v]
+        if missing_ml:
+            warnings.append(f"Missing ML configuration: {', '.join(missing_ml)}")
+        
+        # Check agent endpoints
+        agent_endpoints = self.get_agent_endpoints()
+        configured_agents = [
+            agent for agent, config in agent_endpoints.items()
+            if config["scoring_uri"] and config["key"]
+        ]
+        
+        if not configured_agents:
+            warnings.append("No agent endpoints configured")
+        
+        # Check authentication configuration
+        auth_config = self.get_auth_config()
+        missing_auth = []
+        if not auth_config.get("jwt_secret"):
+            missing_auth.append("JWT_SECRET")
+        if not all([auth_config.get("azure_b2c_tenant"), auth_config.get("azure_b2c_client_id")]):
+            missing_auth.append("Azure B2C configuration incomplete")
+        
+        if missing_auth:
+            warnings.append(f"Authentication configuration issues: {', '.join(missing_auth)}")
+        
+        return {
+            "valid": len(issues) == 0,
+            "issues": issues,
+            "warnings": warnings,
+            "configured_agents": configured_agents,
+            "ml_configured": all(ml_config.values()),
+            "storage_configured": len([i for i in issues if "storage" in i.lower()]) == 0,
+            "auth_configured": len(missing_auth) == 0
+        }
+
     def clear_cache(self):
         """Clear the environment variable cache"""
         self._cache.clear()
