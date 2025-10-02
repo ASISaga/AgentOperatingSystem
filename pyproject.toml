@@ -20,7 +20,10 @@ dependencies = [
     "opentelemetry-api",
     "opentelemetry-sdk",
     "opentelemetry-exporter-otlp-proto-grpc",
-    "opentelemetry-instrumentation-fastapi"
+    "opentelemetry-instrumentation-fastapi",
+    "LeadershipAgent @ git+https://github.com/ASISaga/LeadershipAgent",
+    "PurposeDrivenAgent @ git+https://github.com/ASISaga/PurposeDrivenAgent.git",
+
 ]
 
 [project.optional-dependencies]
