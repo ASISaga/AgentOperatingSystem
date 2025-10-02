@@ -12,9 +12,6 @@ from datetime import datetime, timedelta
 import json
 from pathlib import Path
 
-from ...messaging.types import Message, MessageType, MessagePriority
-
-
 class MCPClientManager:
     """
     Enhanced MCP client management system that provides advanced

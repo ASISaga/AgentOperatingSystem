@@ -5,8 +5,8 @@ The foundational operating system for all agent-based applications.
 Provides core infrastructure including messaging, orchestration, storage, and monitoring.
 """
 
-from .core.system import AgentOperatingSystem
-from .core.config import AOSConfig, default_config
+from .agent_operating_system import AgentOperatingSystem
+from .config import AOSConfig, default_config
 from .agents.base import BaseAgent, Agent, StatefulAgent
 from .agents.leadership import LeadershipAgent
 from .agents.self_learning import SelfLearningAgent, SelfLearningStatefulAgent

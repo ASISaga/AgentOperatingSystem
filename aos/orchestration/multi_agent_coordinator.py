@@ -11,9 +11,7 @@ from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime, timedelta
 from enum import Enum
 
-from ...agents.base import BaseAgent
-from ...messaging.types import Message, MessageType, MessagePriority
-
+from LeadershipAgent import LeadershipAgent
 
 class CoordinationMode(Enum):
     """Different coordination modes for multi-agent scenarios"""
@@ -31,7 +29,7 @@ class MultiAgentCoordinator:
     
     def __init__(self, logger: Optional[logging.Logger] = None, 
                  send_message_func: Optional[Callable] = None,
-                 registered_agents: Optional[Dict[str, BaseAgent]] = None):
+                 registered_agents: Optional[Dict[str, LeadershipAgent]] = None):
         self.logger = logger or logging.getLogger("AOS.MultiAgentCoordinator")
         self.send_message_func = send_message_func
         self.registered_agents = registered_agents or {}

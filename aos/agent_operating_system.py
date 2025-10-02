@@ -18,22 +18,22 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
-    from ..agents.base import BaseAgent
+    from .agents.base import BaseAgent
 
-from ..messaging.bus import MessageBus
-from ..messaging.router import MessageRouter
-from ..orchestration.engine import DecisionEngine
-from ..orchestration.orchestrator import OrchestrationEngine, WorkflowStatus
-from ..storage.manager import StorageManager
-from ..monitoring.monitor import SystemMonitor
-from ..ml.pipeline import MLPipelineManager
-from ..auth.manager import AuthManager
-from ..environment.manager import EnvironmentManager
-from ..mcp.client import MCPClientManager
-from ..learning.knowledge_manager import KnowledgeManager
-from ..learning.rag_engine import RAGEngine
-from ..learning.interaction_learner import InteractionLearner
-from ..learning.learning_pipeline import LearningPipeline
+from .messaging.bus import MessageBus
+from .messaging.router import MessageRouter
+from .orchestration.engine import DecisionEngine
+from .orchestration.orchestrator import OrchestrationEngine, WorkflowStatus
+from .storage.manager import StorageManager
+from .monitoring.monitor import SystemMonitor
+from .ml.pipeline import MLPipelineManager
+from .auth.manager import AuthManager
+from .environment.manager import EnvironmentManager
+from .mcp.client import MCPClientManager
+from .learning.knowledge_manager import KnowledgeManager
+from .learning.rag_engine import RAGEngine
+from .learning.interaction_learner import InteractionLearner
+from .learning.learning_pipeline import LearningPipeline
 from .config import AOSConfig
 
 logger = logging.getLogger(__name__)

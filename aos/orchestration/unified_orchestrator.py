@@ -12,8 +12,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 import json
 
-from ...agents.base import BaseAgent
-from ...messaging.types import Message, MessageType, MessagePriority
+from LeadershipAgent import LeadershipAgent
 from .multi_agent_coordinator import MultiAgentCoordinator, CoordinationMode
 from .agent_registry import AgentRegistry
 
@@ -49,7 +48,7 @@ class UnifiedOrchestrator:
     def __init__(self, 
                  logger: Optional[logging.Logger] = None,
                  send_message_func: Optional[Callable] = None,
-                 registered_agents: Optional[Dict[str, BaseAgent]] = None,
+                 registered_agents: Optional[Dict[str, LeadershipAgent]] = None,
                  mcp_clients: Optional[Dict[str, Any]] = None,
                  azure_clients: Optional[Dict[str, Any]] = None):
         

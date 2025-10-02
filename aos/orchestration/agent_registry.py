@@ -10,7 +10,7 @@ import logging
 from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 
-from ...agents.base import BaseAgent
+from LeadershipAgent import LeadershipAgent
 
 
 class AgentRegistry:
@@ -23,7 +23,7 @@ class AgentRegistry:
         self.logger = logger or logging.getLogger("AOS.AgentRegistry")
         
         # Agent management
-        self.domain_agents: Dict[str, BaseAgent] = {}
+        self.domain_agents: Dict[str, LeadershipAgent] = {}
         self.agent_functions: Dict[str, Callable] = {}
         self.agent_capabilities: Dict[str, List[str]] = {}
         
@@ -35,7 +35,7 @@ class AgentRegistry:
         self.agent_status: Dict[str, Dict[str, Any]] = {}
         self.last_activity: Dict[str, datetime] = {}
     
-    async def register_domain_agent(self, domain: str, agent: BaseAgent, capabilities: List[str] = None) -> Dict[str, Any]:
+    async def register_domain_agent(self, domain: str, agent: LeadershipAgent, capabilities: List[str] = None) -> Dict[str, Any]:
         """Register a domain-specific agent with optional capabilities"""
         self.domain_agents[domain] = agent
         self.agent_capabilities[domain] = capabilities or []
@@ -74,7 +74,7 @@ class AgentRegistry:
         
         self.logger.debug(f"Registered function {function_name} for domain {domain}")
     
-    async def get_domain_agent(self, domain: str) -> Optional[BaseAgent]:
+    async def get_domain_agent(self, domain: str) -> Optional[LeadershipAgent]:
         """Get the agent for a specific domain"""
         return self.domain_agents.get(domain)
     
