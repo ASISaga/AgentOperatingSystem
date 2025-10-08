@@ -29,6 +29,7 @@ from .unified_orchestrator import UnifiedOrchestrator, ExecutionMode, RequestTyp
 from .azure_integration import AzureIntegration, AzureServiceType
 from .mcp_integration import MCPClientManager
 from .model_orchestration import ModelOrchestrator, ModelType
+from .workflow_step import WorkflowStep
 
 __all__ = [
     "State",
@@ -49,5 +50,6 @@ __all__ = [
     "AzureServiceType",
     "MCPClientManager",
     "ModelOrchestrator",
-    "ModelType"
+    "ModelType",
+    "WorkflowStep"
 ]
