@@ -30,6 +30,7 @@ from .azure_integration import AzureIntegration, AzureServiceType
 from .mcp_integration import MCPClientManager
 from .model_orchestration import ModelOrchestrator, ModelType
 from .workflow_step import WorkflowStep
+from .workflow_orchestrator import WorkflowOrchestrator, WorkflowOrchestratorFactory
 
 __all__ = [
     "State",
@@ -51,5 +52,7 @@ __all__ = [
     "MCPClientManager",
     "ModelOrchestrator",
     "ModelType",
-    "WorkflowStep"
+    "WorkflowStep",
+    "WorkflowOrchestrator",
+    "WorkflowOrchestratorFactory"
 ]

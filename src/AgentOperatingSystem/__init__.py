@@ -11,6 +11,7 @@ from .agents import (
     BaseAgent, Agent, StatefulAgent, LeadershipAgent, PerpetualAgent,
     MultiAgentSystem, BusinessAnalystAgent, SoftwareEngineerAgent, ProductOwnerAgent
 )
+from .agents.agent_framework_system import AgentFrameworkSystem
 from .agents.self_learning import SelfLearningAgent, SelfLearningStatefulAgent
 from .messaging.types import Message, MessageType, MessagePriority
 from .messaging.bus import MessageBus
@@ -20,6 +21,7 @@ from .orchestration.engine import DecisionEngine
 from .orchestration.orchestrator import OrchestrationEngine
 from .orchestration.workflow import Workflow
 from .orchestration.workflow_step import WorkflowStep
+from .orchestration.workflow_orchestrator import WorkflowOrchestrator, WorkflowOrchestratorFactory
 from .storage.manager import StorageManager
 from .monitoring.monitor import SystemMonitor
 from .ml.pipeline import MLPipelineManager
@@ -51,6 +53,7 @@ __all__ = [
     "SelfLearningStatefulAgent",
     "PerpetualAgent",
     "MultiAgentSystem",
+    "AgentFrameworkSystem",
     "BusinessAnalystAgent",
     "SoftwareEngineerAgent", 
     "ProductOwnerAgent",
@@ -68,6 +71,8 @@ __all__ = [
     "OrchestrationEngine",
     "Workflow",
     "WorkflowStep",
+    "WorkflowOrchestrator",
+    "WorkflowOrchestratorFactory",
     
     # Storage
     "StorageManager",

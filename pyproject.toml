@@ -21,6 +21,7 @@ dependencies = [
     "opentelemetry-sdk",
     "opentelemetry-exporter-otlp-proto-grpc",
     "opentelemetry-instrumentation-fastapi",
+    "agent-framework>=1.0.0b251001",
     "LeadershipAgent @ git+https://github.com/ASISaga/LeadershipAgent",
     "PurposeDrivenAgent @ git+https://github.com/ASISaga/PurposeDrivenAgent.git",
 

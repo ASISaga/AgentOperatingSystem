@@ -25,12 +25,12 @@ try:
 except ImportError:
     AZURE_ML_AVAILABLE = False
 
-# Optional Semantic Kernel imports
+# Optional Agent Framework imports
 try:
-    from semantic_kernel import Kernel
-    SK_AVAILABLE = True
+    from agent_framework import ChatAgent, WorkflowBuilder
+    AGENT_FRAMEWORK_AVAILABLE = True
 except ImportError:
-    SK_AVAILABLE = False
+    AGENT_FRAMEWORK_AVAILABLE = False
 
 
 class ModelType(Enum):
@@ -38,7 +38,7 @@ class ModelType(Enum):
     VLLM = "vllm"
     AZURE_ML = "azure_ml"
     OPENAI = "openai"
-    SEMANTIC_KERNEL = "semantic_kernel"
+    AGENT_FRAMEWORK = "agent_framework"
     LOCAL_MODEL = "local_model"
 
 
@@ -74,7 +74,7 @@ class ModelOrchestrator:
         }
         
         # Semantic Kernel
-        self.semantic_kernel: Optional['Kernel'] = None
+        self.agent_framework_client: Optional['ChatAgent'] = None
         
         # Performance tracking
         self.request_metrics: Dict[str, Dict[str, Any]] = {}
@@ -85,12 +85,22 @@ class ModelOrchestrator:
         self.default_timeout = 60
         self.retry_attempts = 3
         
+        # Store config_dir for deferred initialization
+        self._config_dir = config_dir
+        self._initialized = False
+    
+    async def initialize(self) -> None:
+        """Initialize the orchestrator asynchronously"""
+        if self._initialized:
+            return
+            
         # Load configuration if provided
-        if config_dir:
-            asyncio.create_task(self._load_configuration(config_dir))
+        if self._config_dir:
+            await self._load_configuration(self._config_dir)
         
         # Initialize services
-        asyncio.create_task(self._initialize_services())
+        await self._initialize_services()
+        self._initialized = True
     
     async def _initialize_services(self) -> None:
         """Initialize available model services"""
@@ -101,8 +111,8 @@ class ModelOrchestrator:
                 await self._initialize_azure_ml()
             
             # Initialize Semantic Kernel if available
-            if SK_AVAILABLE:
-                await self._initialize_semantic_kernel()
+            if AGENT_FRAMEWORK_AVAILABLE:
+                await self._initialize_agent_framework()
             
             # Perform initial health check
             await self._perform_health_check()
@@ -163,17 +173,20 @@ class ModelOrchestrator:
             self.logger.error(f"Failed to initialize Azure ML: {e}")
             self.azure_ml_client = None
     
-    async def _initialize_semantic_kernel(self) -> None:
-        """Initialize Semantic Kernel"""
+    async def _initialize_agent_framework(self) -> None:
+        """Initialize Agent Framework"""
         
         try:
-            self.semantic_kernel = Kernel()
-            # Additional SK configuration would go here
-            self.logger.info("Semantic Kernel initialized")
+            # Create a generic chat agent for model orchestration
+            self.agent_framework_client = ChatAgent(
+                instructions="You are a model orchestration agent responsible for managing AI model requests.",
+                name="ModelOrchestrator"
+            )
+            self.logger.info("Agent Framework initialized")
             
         except Exception as e:
-            self.logger.error(f"Failed to initialize Semantic Kernel: {e}")
-            self.semantic_kernel = None
+            self.logger.error(f"Failed to initialize Agent Framework: {e}")
+            self.agent_framework_client = None
     
     async def process_model_request(self, model_type: ModelType, domain: str, 
                                   user_input: str, conversation_id: str,
@@ -188,8 +201,8 @@ class ModelOrchestrator:
                 result = await self._handle_vllm_request(domain, user_input, conversation_id, **kwargs)
             elif model_type == ModelType.AZURE_ML:
                 result = await self._handle_azure_ml_request(domain, user_input, conversation_id, **kwargs)
-            elif model_type == ModelType.SEMANTIC_KERNEL:
-                result = await self._handle_semantic_kernel_request(domain, user_input, conversation_id, **kwargs)
+            elif model_type == ModelType.AGENT_FRAMEWORK:
+                result = await self._handle_agent_framework_request(domain, user_input, conversation_id, **kwargs)
             elif model_type == ModelType.OPENAI:
                 result = await self._handle_openai_request(domain, user_input, conversation_id, **kwargs)
             else:
@@ -282,28 +295,33 @@ class ModelOrchestrator:
             self.logger.error(f"Azure ML request failed: {e}")
             raise
     
-    async def _handle_semantic_kernel_request(self, domain: str, user_input: str, 
+    async def _handle_agent_framework_request(self, domain: str, user_input: str, 
                                             conversation_id: str, **kwargs) -> Dict[str, Any]:
-        """Handle Semantic Kernel request"""
+        """Handle Agent Framework request"""
         
-        if not self.semantic_kernel:
-            raise ValueError("Semantic Kernel not initialized")
+        if not self.agent_framework_client:
+            raise ValueError("Agent Framework not initialized")
         
         try:
-            # Use Semantic Kernel for processing
-            # This is a placeholder - actual SK implementation would depend on specific use case
-            response = f"Processed by Semantic Kernel - Domain: {domain}, Input: {user_input}"
+            # Use Agent Framework for processing
+            # Format input for the agent
+            formatted_input = f"Domain: {domain}\nRequest: {user_input}"
+            
+            # Process through Agent Framework
+            # Note: This is a simplified implementation
+            # In practice, you would use the agent's complete() method or similar
+            response = f"Processed by Agent Framework - Domain: {domain}, Input: {user_input}"
             
             return {
                 "conversationId": conversation_id,
                 "domain": domain,
                 "reply": response,
                 "success": True,
-                "source": "semantic_kernel"
+                "source": "agent_framework"
             }
             
         except Exception as e:
-            self.logger.error(f"Semantic Kernel request failed: {e}")
+            self.logger.error(f"Agent Framework request failed: {e}")
             raise
     
     async def _handle_openai_request(self, domain: str, user_input: str, 
@@ -563,6 +581,15 @@ class ModelOrchestrator:
         metrics["total_requests"] += 1
         metrics["failed_requests"] += 1
     
+    def get_service_availability(self) -> Dict[str, Any]:
+        """Get service availability status"""
+        return {
+            "azure_ml": AZURE_ML_AVAILABLE,
+            "agent_framework": AGENT_FRAMEWORK_AVAILABLE,
+            "vllm_configured": bool(self.vllm_config["server_url"]),
+            "azure_ml_configured": bool(self.azure_ml_config["endpoint_url"])
+        }
+    
     async def get_orchestrator_status(self) -> Dict[str, Any]:
         """Get comprehensive model orchestrator status"""
         
@@ -573,7 +600,7 @@ class ModelOrchestrator:
             "request_metrics": self.request_metrics,
             "service_availability": {
                 "azure_ml": AZURE_ML_AVAILABLE,
-                "semantic_kernel": SK_AVAILABLE,
+                "agent_framework": AGENT_FRAMEWORK_AVAILABLE,
                 "vllm_configured": bool(self.vllm_config["server_url"]),
                 "azure_ml_configured": bool(self.azure_ml_config["endpoint_url"])
             },

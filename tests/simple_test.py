@@ -22,21 +22,21 @@ async def simple_test():
         print("📦 Testing imports...")
         
         # Test configuration
-        from src.config.aos import AOSConfig
+        from AgentOperatingSystem.config.aos import AOSConfig
         config = AOSConfig()
         print("✅ Configuration: SUCCESS")
         
         # Test base agent
-        from src.agents.base import BaseAgent, Agent
+        from AgentOperatingSystem.agents.base import BaseAgent, Agent
         agent = Agent(agent_id="test", name="Test Agent")
         print("✅ Base Agent: SUCCESS")
         
         # Test message types
-        from src.messaging.types import Message, MessageType
+        from AgentOperatingSystem.messaging.types import Message, MessageType
         print("✅ Message Types: SUCCESS")
         
         # Test storage config
-        from src.config.storage import StorageConfig
+        from AgentOperatingSystem.config.storage import StorageConfig
         storage_config = StorageConfig()
         print("✅ Storage Config: SUCCESS")
         

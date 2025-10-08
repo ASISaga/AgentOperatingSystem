@@ -1,8 +1,8 @@
 """
 AOS Multi-Agent System
 
-Provides multi-agent orchestration capabilities using various frameworks.
-Supports agent collaboration, workflow execution, and termination strategies.
+Provides multi-agent orchestration capabilities using Microsoft Agent Framework.
+Supports agent collaboration, workflow execution, and advanced orchestration patterns.
 """
 
 import os
@@ -12,21 +12,13 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 try:
-    from semantic_kernel.agents import AgentGroupChat, ChatCompletionAgent
-    from semantic_kernel.agents.strategies.termination.termination_strategy import TerminationStrategy
-    from semantic_kernel.agents.strategies.selection.kernel_function_selection_strategy import (
-        KernelFunctionSelectionStrategy,
-    )
-    from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
-    from semantic_kernel.connectors.ai.open_ai.services.azure_chat_completion import AzureChatCompletion
-    from semantic_kernel.contents.chat_message_content import ChatMessageContent
-    from semantic_kernel.contents.utils.author_role import AuthorRole
-    from semantic_kernel.kernel import Kernel
-    SEMANTIC_KERNEL_AVAILABLE = True
+    from agent_framework import ChatAgent, WorkflowBuilder
+    AGENT_FRAMEWORK_AVAILABLE = True
 except ImportError:
-    SEMANTIC_KERNEL_AVAILABLE = False
-    logging.warning("Semantic Kernel not available")
+    AGENT_FRAMEWORK_AVAILABLE = False
+    logging.warning("Agent Framework not available")
 
+from .agent_framework_system import AgentFrameworkSystem
 from .base import BaseAgent
 
 # Agent role definitions
@@ -48,24 +40,42 @@ to the SoftwareEngineer or BusinessAnalyst with details of the defect. To approv
 class ApprovalTerminationStrategy:
     """A strategy for determining when an agent should terminate based on approval token."""
     
+    def __init__(self, token: str = "%APPR%"):
+        self.token = token
+        
     async def should_agent_terminate(self, agent, history):
         """Check if the agent should terminate based on approval token."""
-        if not SEMANTIC_KERNEL_AVAILABLE:
+        if not history:
             return False
         
-        return any("%APPR%" in message.content for message in history)
+        # Check last few messages for approval token
+        recent_messages = history[-3:] if len(history) > 3 else history
+        for message in recent_messages:
+            content = getattr(message, 'content', str(message))
+            if self.token in content:
+                return True
+        
+        return False
+    
+    def should_terminate(self, messages: List[Any]) -> bool:
+        """Check if the conversation should terminate based on approval token."""
+        if not messages:
+            return False
+            
+        last_message = messages[-1]
+        content = getattr(last_message, 'content', str(last_message))
+        return self.token in content
 
 
 class MultiAgentSystem:
     """
     Multi-agent system for AOS supporting various agent collaboration patterns.
+    Uses Microsoft Agent Framework for modern multi-agent orchestration.
     """
     
     def __init__(self):
         self.logger = logging.getLogger("AOS.MultiAgentSystem")
         self.agents: Dict[str, BaseAgent] = {}
-        self.kernel = None
-        self.group_chat = None
         self.is_initialized = False
         
         # Statistics
@@ -75,14 +85,17 @@ class MultiAgentSystem:
             "failed_completions": 0,
             "average_conversation_length": 0
         }
+        
+        # Initialize Agent Framework system
+        self.agent_framework_system = AgentFrameworkSystem()
     
     async def initialize(self):
         """Initialize the multi-agent system"""
         try:
             self.logger.info("Initializing Multi-Agent System...")
             
-            if SEMANTIC_KERNEL_AVAILABLE:
-                await self._initialize_semantic_kernel()
+            # Initialize Agent Framework system
+            await self.agent_framework_system.initialize()
             
             # Initialize default agent roles
             await self._initialize_default_agents()
@@ -92,24 +105,6 @@ class MultiAgentSystem:
             
         except Exception as e:
             self.logger.error(f"Failed to initialize Multi-Agent System: {e}")
-            raise
-    
-    async def _initialize_semantic_kernel(self):
-        """Initialize Semantic Kernel components"""
-        try:
-            service_id = "agent"
-            self.kernel = Kernel()
-            
-            # Add Azure Chat Completion service if configured
-            if os.getenv("AZURE_OPENAI_ENDPOINT"):
-                self.kernel.add_service(AzureChatCompletion(service_id=service_id))
-                settings = self.kernel.get_prompt_execution_settings_from_service_id(service_id=service_id)
-                settings.function_choice_behavior = FunctionChoiceBehavior.Auto()
-            
-            self.logger.info("Semantic Kernel initialized")
-            
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Semantic Kernel: {e}")
             raise
     
     async def _initialize_default_agents(self):
@@ -137,7 +132,7 @@ class MultiAgentSystem:
     
     async def run_multi_agent_conversation(self, input_message: str, agent_roles: List[str] = None) -> Dict[str, Any]:
         """
-        Run a multi-agent conversation to solve a problem.
+        Run a multi-agent conversation to solve a problem using Agent Framework.
         
         Args:
             input_message: The initial user input/problem statement
@@ -153,20 +148,10 @@ class MultiAgentSystem:
             conversation_id = f"conversation_{datetime.now().timestamp()}"
             self.logger.info(f"Starting multi-agent conversation: {conversation_id}")
             
-            # Select agents for this conversation
-            if agent_roles is None:
-                selected_agents = list(self.agents.values())
-            else:
-                selected_agents = [self.agents[role] for role in agent_roles if role in self.agents]
-            
-            if not selected_agents:
-                raise ValueError("No valid agents selected for conversation")
-            
-            # Run conversation
-            if SEMANTIC_KERNEL_AVAILABLE and self.kernel:
-                result = await self._run_semantic_kernel_conversation(input_message, selected_agents)
-            else:
-                result = await self._run_basic_conversation(input_message, selected_agents)
+            # Use Agent Framework system for conversation
+            result = await self.agent_framework_system.run_multi_agent_conversation(
+                input_message, agent_roles
+            )
             
             # Update statistics
             self.stats["total_conversations"] += 1
@@ -175,6 +160,8 @@ class MultiAgentSystem:
             else:
                 self.stats["failed_completions"] += 1
             
+            # Add conversation ID to result
+            result["conversation_id"] = conversation_id
             return result
             
         except Exception as e:
@@ -186,58 +173,9 @@ class MultiAgentSystem:
                 "conversation_id": conversation_id
             }
     
-    async def _run_semantic_kernel_conversation(self, input_message: str, agents: List[BaseAgent]) -> Dict[str, Any]:
-        """Run conversation using Semantic Kernel framework"""
-        try:
-            # Create Semantic Kernel agents
-            sk_agents = []
-            for agent in agents:
-                if hasattr(agent, 'to_semantic_kernel_agent'):
-                    sk_agent = agent.to_semantic_kernel_agent(self.kernel)
-                    sk_agents.append(sk_agent)
-            
-            if not sk_agents:
-                # Fallback to basic conversation
-                return await self._run_basic_conversation(input_message, agents)
-            
-            # Create group chat with termination strategy
-            termination_strategy = ApprovalTerminationStrategy()
-            selection_strategy = KernelFunctionSelectionStrategy()
-            
-            group_chat = AgentGroupChat(
-                agents=sk_agents,
-                termination_strategy=termination_strategy,
-                selection_strategy=selection_strategy
-            )
-            
-            # Start conversation
-            initial_message = ChatMessageContent(
-                role=AuthorRole.USER,
-                content=input_message
-            )
-            
-            messages = []
-            async for message in group_chat.invoke(initial_message):
-                messages.append({
-                    "role": message.role.value,
-                    "content": message.content,
-                    "timestamp": datetime.now().isoformat()
-                })
-            
-            # Check if conversation was approved
-            approved = any("%APPR%" in msg["content"] for msg in messages)
-            
-            return {
-                "success": True,
-                "approved": approved,
-                "messages": messages,
-                "agent_count": len(sk_agents),
-                "framework": "semantic_kernel"
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Semantic Kernel conversation failed: {e}")
-            raise
+    async def create_agent(self, name: str, instructions: str, capabilities: List[str] = None) -> ChatAgent:
+        """Create a new agent with specified capabilities"""
+        return await self.agent_framework_system.create_agent(name, instructions, capabilities)
     
     async def _run_basic_conversation(self, input_message: str, agents: List[BaseAgent]) -> Dict[str, Any]:
         """Run basic conversation without Semantic Kernel"""
@@ -294,13 +232,58 @@ class MultiAgentSystem:
         return {
             **self.stats,
             "total_agents": len(self.agents),
-            "semantic_kernel_available": SEMANTIC_KERNEL_AVAILABLE,
-            "is_initialized": self.is_initialized
+            "agent_framework_available": AGENT_FRAMEWORK_AVAILABLE,
+            "is_initialized": self.is_initialized,
+            "framework_stats": self.agent_framework_system.get_statistics() if self.agent_framework_system else None
         }
     
     def list_agents(self) -> List[str]:
         """List all available agent roles"""
-        return list(self.agents.keys())
+        framework_agents = self.agent_framework_system.list_agents() if self.agent_framework_system else []
+        return list(self.agents.keys()) + framework_agents
+    
+    async def remove_agent(self, name: str) -> bool:
+        """Remove an agent from the system"""
+        # Remove from legacy agents
+        removed_legacy = False
+        if name in self.agents:
+            del self.agents[name]
+            removed_legacy = True
+        
+        # Remove from Agent Framework system
+        removed_framework = False
+        if self.agent_framework_system:
+            removed_framework = await self.agent_framework_system.remove_agent(name)
+        
+        return removed_legacy or removed_framework
+    
+    def get_agent(self, name: str):
+        """Get an agent by name"""
+        # Check legacy agents first
+        if name in self.agents:
+            return self.agents[name]
+        
+        # Check Agent Framework agents
+        if self.agent_framework_system:
+            return self.agent_framework_system.get_agent(name)
+        
+        return None
+    
+    async def shutdown(self):
+        """Shutdown the multi-agent system"""
+        try:
+            # Shutdown Agent Framework system
+            if self.agent_framework_system:
+                await self.agent_framework_system.shutdown()
+            
+            # Clear legacy agents
+            self.agents.clear()
+            self.is_initialized = False
+            
+            self.logger.info("Multi-Agent System shutdown completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error during shutdown: {e}")
 
 
 class BusinessAnalystAgent(BaseAgent):
