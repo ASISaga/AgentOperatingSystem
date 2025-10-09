@@ -26,7 +26,7 @@ from .orchestrator import OrchestrationEngine
 from .agent_registry import AgentRegistry
 from .multi_agent_coordinator import MultiAgentCoordinator, CoordinationMode
 from .unified_orchestrator import UnifiedOrchestrator, ExecutionMode, RequestType
-from .azure_integration import AzureIntegration, AzureServiceType
+# from .azure_integration import AzureIntegration, AzureServiceType  # Temporarily disabled
 from .mcp_integration import MCPClientManager
 from .model_orchestration import ModelOrchestrator, ModelType
 from .workflow_step import WorkflowStep
@@ -47,8 +47,8 @@ __all__ = [
     "UnifiedOrchestrator",
     "ExecutionMode",
     "RequestType", 
-    "AzureIntegration",
-    "AzureServiceType",
+    # "AzureIntegration",  # Temporarily disabled  
+    # "AzureServiceType",  # Temporarily disabled
     "MCPClientManager",
     "ModelOrchestrator",
     "ModelType",

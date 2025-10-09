@@ -32,10 +32,13 @@ class StorageManager:
         """Create storage backend based on configuration"""
         if self.config.storage_type == "file":
             return FileStorageBackend(self.config.base_path)
+        elif self.config.storage_type == "azure":
+            from .azure_backend import AzureStorageBackend
+            return AzureStorageBackend(getattr(self.config, 'connection_string', None))
         elif self.config.storage_type == "azure_blob":
-            # TODO: Implement Azure Blob Storage backend
-            self.logger.warning("Azure Blob Storage not implemented, falling back to file storage")
-            return FileStorageBackend(self.config.base_path)
+            # Legacy support - use azure backend
+            from .azure_backend import AzureStorageBackend
+            return AzureStorageBackend(getattr(self.config, 'connection_string', None))
         elif self.config.storage_type == "s3":
             # TODO: Implement S3 storage backend
             self.logger.warning("S3 Storage not implemented, falling back to file storage")
@@ -214,16 +217,64 @@ class StorageManager:
             decision_keys = await self.backend.list_keys("decisions/")
             message_keys = await self.backend.list_keys("messages/")
             
-            return {
+            stats = {
                 "total_agents": len(agent_keys),
                 "total_workflows": len(workflow_keys),
                 "total_configs": len(config_keys),
                 "total_decisions": len(decision_keys),
                 "total_messages": len(message_keys),
                 "storage_type": self.config.storage_type,
-                "base_path": self.config.base_path,
-                "encryption_enabled": self.config.enable_encryption
+                "base_path": getattr(self.config, 'base_path', ''),
+                "encryption_enabled": getattr(self.config, 'enable_encryption', False)
             }
+            
+            # Add Azure-specific health status if using Azure backend
+            if hasattr(self.backend, 'get_health_status'):
+                stats["azure_health"] = self.backend.get_health_status()
+            
+            return stats
         except Exception as e:
             self.logger.error(f"Error getting storage stats: {e}")
             return {"error": str(e)}
+    
+    # === Azure-specific operations (when using Azure backend) ===
+    
+    async def store_table_entity(self, table_name: str, entity: Dict[str, Any]) -> bool:
+        """Store entity in Azure Tables (Azure backend only)"""
+        if hasattr(self.backend, 'store_table_entity'):
+            return await self.backend.store_table_entity(table_name, entity)
+        else:
+            self.logger.warning("Table entity storage not supported by current backend")
+            return False
+    
+    async def get_table_entity(self, table_name: str, partition_key: str, row_key: str) -> Optional[Dict[str, Any]]:
+        """Get entity from Azure Tables (Azure backend only)"""
+        if hasattr(self.backend, 'get_table_entity'):
+            return await self.backend.get_table_entity(table_name, partition_key, row_key)
+        else:
+            self.logger.warning("Table entity retrieval not supported by current backend")
+            return None
+    
+    async def query_table_entities(self, table_name: str, filter_query: str = None, select: List[str] = None) -> List[Dict[str, Any]]:
+        """Query entities from Azure Tables (Azure backend only)"""
+        if hasattr(self.backend, 'query_table_entities'):
+            return await self.backend.query_table_entities(table_name, filter_query, select)
+        else:
+            self.logger.warning("Table entity querying not supported by current backend")
+            return []
+    
+    async def send_queue_message(self, queue_name: str, message: str) -> bool:
+        """Send message to queue (Azure backend only)"""
+        if hasattr(self.backend, 'send_queue_message'):
+            return await self.backend.send_queue_message(queue_name, message)
+        else:
+            self.logger.warning("Queue messaging not supported by current backend")
+            return False
+    
+    async def receive_queue_messages(self, queue_name: str, max_messages: int = 1) -> List[Dict[str, Any]]:
+        """Receive messages from queue (Azure backend only)"""
+        if hasattr(self.backend, 'receive_queue_messages'):
+            return await self.backend.receive_queue_messages(queue_name, max_messages)
+        else:
+            self.logger.warning("Queue message receiving not supported by current backend")
+            return []
