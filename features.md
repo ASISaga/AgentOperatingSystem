@@ -173,16 +173,16 @@ Platform guarantees
 - [x] **Indexing Contracts**: Implemented in `knowledge/indexing.py` - Content ingestion, normalization, enrichment, searchable field definitions
 - [x] **Precedent Query System**: Implemented in `knowledge/precedent.py` - Similarity and graph-based traversal for analogous decisions and outcomes
 
-#### Testing Infrastructure (Priority: P2 - Important) - TODO for External Development
-- [ ] **Contract Tests**: Message schema and topic envelope validation across versions
-- [ ] **Integration Test Framework**: End-to-end flows, cross-agent interactions, persistence validation
-- [ ] **Chaos Testing**: Simulate bus delays, storage outages, policy engine failures, verify graceful degradation
-- [ ] **Audit Completeness Tests**: Verify every decision path produces required artifacts and evidence
+#### Testing Infrastructure (Priority: P2 - Important) ✅
+- [x] **Contract Tests**: Implemented in `testing/contract_tests.py` - Message schema and topic envelope validation across versions with backward compatibility checking
+- [x] **Integration Test Framework**: Implemented in `testing/integration_tests.py` - End-to-end flows, cross-agent interactions, persistence validation with TestScenario and EndToEndTestRunner
+- [x] **Chaos Testing**: Implemented in `testing/chaos_tests.py` - Simulate bus delays, storage outages, policy engine failures with FailureSimulator and verify graceful degradation
+- [x] **Audit Completeness Tests**: Implemented in `testing/audit_tests.py` - Verify every decision path produces required artifacts and evidence with DecisionPathTester and AuditCompletenessValidator
 
-#### Platform Extensibility (Priority: P3 - Nice to Have) - TODO for External Development
-- [ ] **Plugin Framework**: Register new policies, connectors, message types with hot-swappable adapters
-- [ ] **Schema Registry**: Central governance for message and model versions with migration guidance
-- [ ] **Agent Registry Enhancement**: Advanced capability discovery, dependency mapping, health status, upgrade orchestration (beyond existing `orchestration/agent_registry.py`)
+#### Platform Extensibility (Priority: P3 - Nice to Have) ✅
+- [x] **Plugin Framework**: Implemented in `extensibility/plugin_framework.py` - Register new policies, connectors, message types with hot-swappable adapters via PluginRegistry
+- [x] **Schema Registry**: Implemented in `extensibility/schema_registry.py` - Central governance for message and model versions with migration guidance, compatibility checking, and lifecycle management
+- [x] **Agent Registry Enhancement**: Implemented in `extensibility/enhanced_agent_registry.py` - Advanced capability discovery, dependency mapping, health status monitoring, and upgrade orchestration (complements existing `orchestration/agent_registry.py`)
 
 ---
 
