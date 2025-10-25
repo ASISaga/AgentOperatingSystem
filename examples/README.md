@@ -42,8 +42,6 @@ Demonstrates a complete decision workflow using all major platform components:
 
 ```bash
 # From the repository root
-cd /home/runner/work/AgentOperatingSystem/AgentOperatingSystem
-
 # Set PYTHONPATH to include src directory
 export PYTHONPATH="${PYTHONPATH}:${PWD}/src"
 
