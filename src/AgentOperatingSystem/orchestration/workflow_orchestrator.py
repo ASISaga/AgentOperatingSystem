@@ -60,8 +60,8 @@ class WorkflowOrchestrator:
             raise RuntimeError("Workflow orchestrator not initialized")
         
         self.agents[name] = agent
-        # Add agent as executor to workflow builder
-        node_id = self.workflow_builder.add_executor(agent)
+        # Register agent with workflow builder (replaces deprecated add_executor)
+        node_id = self.workflow_builder.register_agent(agent)
         self.executors[name] = node_id
         
         self.logger.info(f"Added agent '{name}' to workflow")
@@ -72,7 +72,8 @@ class WorkflowOrchestrator:
         if not self.is_initialized:
             raise RuntimeError("Workflow orchestrator not initialized")
         
-        node_id = self.workflow_builder.add_executor(executor)
+        # Register executor with workflow builder (replaces deprecated add_executor)
+        node_id = self.workflow_builder.register_executor(executor)
         self.executors[name] = node_id
         
         self.logger.info(f"Added executor '{name}' to workflow")
