@@ -51,13 +51,45 @@ setup_logging(
   - `src/AgentOperatingSystem/agents/agent_framework_system.py`
 - **Applications Impact:**
   - Any application code that uses `setup_telemetry` must be updated
-  - The OTLP endpoint is no longer directly configurable via this function
+  - **IMPORTANT**: The OTLP endpoint is no longer directly configurable via this function
   - Telemetry configuration is now managed through environment variables and OpenTelemetry SDK
+  - Custom OTLP endpoints require alternative configuration
 
 ### Action Required for Downstream Applications
 1. Replace all imports of `agent_framework.telemetry.setup_telemetry` with `agent_framework.setup_logging`
 2. Update function calls to use the new signature
-3. Configure OpenTelemetry through environment variables or the OpenTelemetry SDK directly
+3. **Configure OpenTelemetry through environment variables or the OpenTelemetry SDK directly**
+
+#### Alternative OTLP Configuration
+If you need to configure a custom OTLP endpoint (previously done via `setup_telemetry(otlp_endpoint=...)`), use the OpenTelemetry SDK directly:
+
+```python
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
+# Configure OTLP exporter
+otlp_exporter = OTLPSpanExporter(
+    endpoint="http://localhost:4317",  # Your custom OTLP endpoint
+    insecure=True  # Use False in production with proper TLS
+)
+
+# Set up tracer provider
+trace_provider = TracerProvider()
+trace_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+trace.set_tracer_provider(trace_provider)
+
+# Now call agent-framework setup_logging
+from agent_framework import setup_logging
+setup_logging(level=logging.INFO, enable_sensitive_data=True)
+```
+
+Or use environment variables:
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+```
 
 ---
 

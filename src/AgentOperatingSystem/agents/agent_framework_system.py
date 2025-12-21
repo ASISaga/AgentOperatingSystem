@@ -86,7 +86,21 @@ class AgentFrameworkSystem:
             raise
     
     async def _setup_telemetry(self):
-        """Setup OpenTelemetry tracing for Agent Framework"""
+        """
+        Setup OpenTelemetry tracing for Agent Framework
+        
+        Note: In agent-framework >= 1.0.0b251218, setup_telemetry has been replaced with setup_logging.
+        Custom OTLP endpoints are no longer configurable through this function.
+        
+        To configure a custom OTLP endpoint, use the OpenTelemetry SDK directly before calling this method:
+        
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        otlp_exporter = OTLPSpanExporter(endpoint="http://localhost:4317")
+        # Configure tracer provider with the exporter...
+        
+        Or set environment variables:
+        export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+        """
         try:
             # Use AI Toolkit's OTLP endpoint for tracing
             # Note: setup_telemetry has been replaced with setup_logging in agent-framework >= 1.0.0b251218
