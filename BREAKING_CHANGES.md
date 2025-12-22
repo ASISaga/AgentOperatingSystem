@@ -4,18 +4,27 @@
 
 This document details the breaking changes introduced when upgrading to the latest version of Microsoft's `agent-framework` package.
 
+**Release Date:** October 1, 2024 → December 18, 2024  
+**Version Span:** 7 intermediate releases  
+**Official Release Notes:** See [RELEASE_NOTES.md](./RELEASE_NOTES.md) for complete changelog
+
 ---
 
 ## Summary of Breaking Changes
 
 The upgrade from `agent-framework>=1.0.0b251001` to `agent-framework>=1.0.0b251218` introduces several breaking changes that affect the AOS codebase and any applications built on top of it (e.g., BusinessInfinity).
 
-### Critical Breaking Changes
+### Critical Breaking Changes (AOS-Specific)
 
-1. **Telemetry/Logging API Changes**
-2. **WorkflowBuilder API Changes**
-3. **ChatAgent Constructor Requirements**
-4. **Model Type Naming Updates**
+1. **Telemetry/Logging API Changes** - Addressed in this upgrade
+2. **WorkflowBuilder API Changes** - Addressed in this upgrade
+3. **ChatAgent Constructor Requirements** - No changes needed (already compatible)
+4. **Model Type Naming Updates** - Addressed in this upgrade
+
+### Additional Breaking Changes (Upstream)
+
+5. **Observability Updates** (v1.0.0b251216) - May affect custom telemetry
+6. **Azure AI Component Renaming** (v1.0.0b251209) - May affect Azure AI integrations
 
 ---
 
@@ -280,6 +289,76 @@ from agent_framework import (
 
 ---
 
+## 5. Upstream Breaking Changes (May Affect Advanced Use Cases)
+
+These breaking changes were introduced in intermediate releases and may affect applications with custom implementations:
+
+### 5.1. Observability Updates (v1.0.0b251216)
+
+**What Changed:**  
+Major refactoring of observability components in agent-framework-core.
+
+**Potential Impact:**
+- Custom telemetry implementations may need updates
+- Tracing and monitoring integrations may require adjustments
+- Observability middleware may need modifications
+
+**Who This Affects:**
+- Applications with custom observability solutions
+- Applications directly using observability APIs
+- Custom monitoring/tracing implementations
+
+**Action Required:**
+- Review your custom observability code if you have any
+- Test telemetry and tracing after upgrade
+- Consult [agent-framework PR #2782](https://github.com/microsoft/agent-framework/pull/2782) for details
+
+### 5.2. Azure AI Component Renaming (v1.0.0b251209)
+
+**What Changed:**  
+Specific Azure AI Foundry components were renamed.
+
+**Potential Impact:**
+- Direct imports of Azure AI components may break
+- Azure AI Foundry integrations may need updates
+
+**Who This Affects:**
+- Applications using Azure AI Foundry Agents directly
+- Code importing specific Azure AI components
+
+**Action Required:**
+- Check for any direct Azure AI component imports
+- Update component names as needed
+- Refer to v1.0.0b251209 release notes for specific renamings
+
+**Note:** AOS does not directly use these components in the current implementation, so this is primarily a concern for applications building on AOS.
+
+---
+
+## 6. New Features Available (Non-Breaking)
+
+While not breaking changes, the new version includes several enhancements worth noting:
+
+### New Orchestration Patterns
+- **Autonomous Handoff Flow** - Support for automatic agent-to-agent handoffs
+- **Factory Patterns** - Sequential and Concurrent builders with factory support
+- **Extended HITL** - Human-in-the-loop support across all orchestration patterns
+
+### Enhanced Integrations
+- **Ollama Connector** - Full support for Ollama models (new in v1.0.0b251216)
+- **Azure Managed Redis** - Support with credential provider
+- **Bing Grounding Citations** - Integration for grounded responses
+
+### Developer Experience Improvements
+- **Workflow Visualization** - Visualize internal executors
+- **Workflow Cancellation** - Proper cancellation support
+- **Checkpointing** - State persistence for WorkflowAgent
+- **Better Error Handling** - Fixed Pydantic model issues
+
+See [RELEASE_NOTES.md](./RELEASE_NOTES.md) for complete details on all new features.
+
+---
+
 ## Migration Checklist for Applications Using AOS
 
 ### For Application Developers (BusinessInfinity, etc.)
@@ -383,14 +462,32 @@ For issues with agent-framework itself:
 
 ## Version History
 
-- **1.0.0b251218** (Latest) - December 2024
-  - Breaking changes to telemetry/logging API
-  - Breaking changes to WorkflowBuilder API
-  - Enhanced orchestration patterns
-  - MCP integration
+### Release Timeline
+
+- **1.0.0b251218** (December 18, 2024) - Current Version
+  - Breaking: Telemetry/logging API changes (addressed in this upgrade)
+  - Breaking: WorkflowBuilder API changes (addressed in this upgrade)
+  - Added: Azure Managed Redis, Bing citations, workflow visualization
+  - Fixed: Pydantic errors, MCP image conversion, workflow event handling
   
-- **1.0.0b251001** (Previous) - October 2024
-  - Initial integration in AOS
+- **1.0.0b251216** (December 16, 2024)
+  - Breaking: Major observability updates ([#2782](https://github.com/microsoft/agent-framework/pull/2782))
+  - Added: Ollama connector, WorkflowAgent checkpointing
+  - Added: Custom args for ai_function
+  
+- **1.0.0b251211** (December 11, 2024)
+  - Added: Extended HITL support, factory patterns for orchestration builders
+  - Changed: DurableAIAgent return type
+  
+- **1.0.0b251209** (December 9, 2024)
+  - Breaking: Azure AI component renaming
+  - Added: Autonomous handoff flow, WorkflowBuilder registry, A2A timeout config
+  
+- **1.0.0b251001** (October 1, 2024) - Previous Version
+  - Initial release of Agent Framework for Python
+  - Core packages: core, azure-ai, copilotstudio, a2a, devui, mem0, redis
+
+For complete changelog details, see [RELEASE_NOTES.md](./RELEASE_NOTES.md)
 
 ---
 

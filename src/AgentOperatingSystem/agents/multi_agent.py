@@ -8,7 +8,7 @@ Supports agent collaboration, workflow execution, and advanced orchestration pat
 import os
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from datetime import datetime
 
 try:
@@ -17,6 +17,9 @@ try:
 except ImportError:
     AGENT_FRAMEWORK_AVAILABLE = False
     logging.warning("Agent Framework not available")
+
+if TYPE_CHECKING:
+    from agent_framework import ChatAgent
 
 from .agent_framework_system import AgentFrameworkSystem
 from .base import BaseAgent
@@ -173,7 +176,7 @@ class MultiAgentSystem:
                 "conversation_id": conversation_id
             }
     
-    async def create_agent(self, name: str, instructions: str, capabilities: List[str] = None) -> ChatAgent:
+    async def create_agent(self, name: str, instructions: str, capabilities: List[str] = None) -> 'ChatAgent':
         """Create a new agent with specified capabilities"""
         return await self.agent_framework_system.create_agent(name, instructions, capabilities)
     

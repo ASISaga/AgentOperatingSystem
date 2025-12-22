@@ -1,7 +1,8 @@
 # Agent Framework Upgrade Summary
 
-**Date:** December 21, 2024  
-**Version:** 1.0.0b251001 → 1.0.0b251218
+**Date:** December 22, 2024  
+**Version:** 1.0.0b251001 → 1.0.0b251218  
+**Release Span:** October 1, 2024 → December 18, 2024 (7 intermediate releases)
 
 ---
 
@@ -9,13 +10,16 @@
 
 Successfully upgraded Microsoft's `agent-framework` package to the latest version (1.0.0b251218), incorporating new features and addressing breaking API changes. All existing functionality has been preserved while modernizing the codebase to align with the latest framework patterns.
 
+**See [RELEASE_NOTES.md](./RELEASE_NOTES.md) for complete official changelog from Microsoft.**
+
 ---
 
 ## What Changed
 
 ### Package Version
-- **Before:** `agent-framework>=1.0.0b251001` (October 2024)
-- **After:** `agent-framework>=1.0.0b251218` (December 2024)
+- **Before:** `agent-framework>=1.0.0b251001` (October 1, 2024)
+- **After:** `agent-framework>=1.0.0b251218` (December 18, 2024)
+- **Intermediate Versions:** 6 releases with incremental improvements and fixes
 
 ### Breaking Changes Addressed
 
@@ -174,6 +178,8 @@ OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 - [Agent Framework Repository](https://github.com/microsoft/agent-framework)
 - [Python Package Documentation](https://github.com/microsoft/agent-framework/tree/main/python)
 - [Getting Started Samples](https://github.com/microsoft/agent-framework/tree/main/python/samples/getting_started)
+- [RELEASE_NOTES.md](./RELEASE_NOTES.md) - Official changelog for all versions (NEW)
+- [QUICK_MIGRATION.md](./QUICK_MIGRATION.md) - Quick reference guide (NEW)
 
 ### Support
 - **AOS Issues:** File in AgentOperatingSystem repository

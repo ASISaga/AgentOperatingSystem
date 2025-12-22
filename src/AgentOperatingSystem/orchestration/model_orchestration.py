@@ -178,7 +178,12 @@ class ModelOrchestrator:
         
         try:
             # Create a generic chat agent for model orchestration
+            # Note: In production, use a real chat client instead of Mock
+            from unittest.mock import Mock
+            mock_chat_client = Mock()
+            
             self.agent_framework_client = ChatAgent(
+                chat_client=mock_chat_client,
                 instructions="You are a model orchestration agent responsible for managing AI model requests.",
                 name="ModelOrchestrator"
             )
