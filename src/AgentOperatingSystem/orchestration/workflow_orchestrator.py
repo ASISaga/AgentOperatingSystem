@@ -7,7 +7,7 @@ Provides Agent Framework-based workflow building and execution for any domain.
 
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Union, Callable
+from typing import Dict, Any, List, Optional, Union, Callable, TYPE_CHECKING
 from datetime import datetime
 
 try:
@@ -16,6 +16,9 @@ try:
 except ImportError:
     AGENT_FRAMEWORK_AVAILABLE = False
     logging.warning("Agent Framework not available for workflow orchestration")
+
+if TYPE_CHECKING:
+    from agent_framework import ChatAgent
 
 
 class WorkflowOrchestrator:
@@ -27,7 +30,7 @@ class WorkflowOrchestrator:
     def __init__(self, name: str = "GenericWorkflow"):
         self.name = name
         self.logger = logging.getLogger(f"AOS.WorkflowOrchestrator.{name}")
-        self.agents: Dict[str, ChatAgent] = {}
+        self.agents: Dict[str, 'ChatAgent'] = {}
         self.executors: Dict[str, Any] = {}
         self.workflow = None
         self.workflow_builder = None
@@ -54,14 +57,14 @@ class WorkflowOrchestrator:
             self.logger.error(f"Failed to initialize workflow orchestrator: {e}")
             raise
     
-    def add_agent(self, name: str, agent: ChatAgent) -> str:
+    def add_agent(self, name: str, agent: 'ChatAgent') -> str:
         """Add an agent to the workflow"""
         if not self.is_initialized:
             raise RuntimeError("Workflow orchestrator not initialized")
         
         self.agents[name] = agent
-        # Add agent as executor to workflow builder
-        node_id = self.workflow_builder.add_executor(agent)
+        # Register agent with workflow builder (replaces deprecated add_executor)
+        node_id = self.workflow_builder.register_agent(agent)
         self.executors[name] = node_id
         
         self.logger.info(f"Added agent '{name}' to workflow")
@@ -72,7 +75,8 @@ class WorkflowOrchestrator:
         if not self.is_initialized:
             raise RuntimeError("Workflow orchestrator not initialized")
         
-        node_id = self.workflow_builder.add_executor(executor)
+        # Register executor with workflow builder (replaces deprecated add_executor)
+        node_id = self.workflow_builder.register_executor(executor)
         self.executors[name] = node_id
         
         self.logger.info(f"Added executor '{name}' to workflow")
@@ -158,7 +162,7 @@ class WorkflowOrchestrator:
             self.logger.error(f"Workflow execution failed after {execution_time:.2f}s: {e}")
             raise
     
-    def create_sequential_workflow(self, agents: List[ChatAgent], agent_names: List[str] = None) -> 'WorkflowOrchestrator':
+    def create_sequential_workflow(self, agents: List['ChatAgent'], agent_names: List[str] = None) -> 'WorkflowOrchestrator':
         """Create a simple sequential workflow from a list of agents"""
         if not agent_names:
             agent_names = [f"agent_{i}" for i in range(len(agents))]
@@ -184,8 +188,8 @@ class WorkflowOrchestrator:
         
         return self
     
-    def create_parallel_workflow(self, agents: List[ChatAgent], agent_names: List[str] = None, 
-                                aggregator_agent: ChatAgent = None) -> 'WorkflowOrchestrator':
+    def create_parallel_workflow(self, agents: List['ChatAgent'], agent_names: List[str] = None, 
+                                aggregator_agent: 'ChatAgent' = None) -> 'WorkflowOrchestrator':
         """Create a parallel workflow where all agents process simultaneously"""
         if not agent_names:
             agent_names = [f"agent_{i}" for i in range(len(agents))]
@@ -230,7 +234,7 @@ class WorkflowOrchestrator:
         """List all executors in the workflow"""
         return list(self.executors.keys())
     
-    def get_agent(self, name: str) -> Optional[ChatAgent]:
+    def get_agent(self, name: str) -> Optional['ChatAgent']:
         """Get an agent by name"""
         return self.agents.get(name)
     
@@ -253,7 +257,7 @@ class WorkflowOrchestratorFactory:
     """Factory for creating common workflow patterns"""
     
     @staticmethod
-    def create_boardroom_workflow(agents: Dict[str, ChatAgent], decision_integrator: Any = None) -> WorkflowOrchestrator:
+    def create_boardroom_workflow(agents: Dict[str, 'ChatAgent'], decision_integrator: Any = None) -> WorkflowOrchestrator:
         """
         Create a boardroom-style workflow pattern.
         Moved from BusinessInfinity as a reusable pattern.
@@ -292,15 +296,15 @@ class WorkflowOrchestratorFactory:
         return orchestrator
     
     @staticmethod
-    def create_simple_sequential(agents: List[ChatAgent], names: List[str] = None) -> WorkflowOrchestrator:
+    def create_simple_sequential(agents: List['ChatAgent'], names: List[str] = None) -> WorkflowOrchestrator:
         """Create a simple sequential workflow"""
         orchestrator = WorkflowOrchestrator("SequentialWorkflow")
         orchestrator.initialize()
         return orchestrator.create_sequential_workflow(agents, names)
     
     @staticmethod
-    def create_simple_parallel(agents: List[ChatAgent], names: List[str] = None, 
-                              aggregator: ChatAgent = None) -> WorkflowOrchestrator:
+    def create_simple_parallel(agents: List['ChatAgent'], names: List[str] = None, 
+                              aggregator: 'ChatAgent' = None) -> WorkflowOrchestrator:
         """Create a simple parallel workflow"""
         orchestrator = WorkflowOrchestrator("ParallelWorkflow")
         orchestrator.initialize()

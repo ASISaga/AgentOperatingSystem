@@ -15,15 +15,15 @@ try:
     from agent_framework import ChatAgent, WorkflowBuilder
     AGENT_FRAMEWORK_AVAILABLE = True
     
-    # Try to import telemetry if available
+    # Try to import logging setup if available (replaces deprecated setup_telemetry)
     try:
-        from agent_framework.telemetry import setup_telemetry
-        TELEMETRY_AVAILABLE = True
+        from agent_framework import setup_logging
+        LOGGING_AVAILABLE = True
     except ImportError:
-        TELEMETRY_AVAILABLE = False
-        def setup_telemetry(*args, **kwargs):
-            """Fallback telemetry setup"""
-            logging.info("Telemetry setup called (fallback implementation)")
+        LOGGING_AVAILABLE = False
+        def setup_logging(*args, **kwargs):
+            """Fallback logging setup"""
+            logging.info("Logging setup called (fallback implementation)")
             pass
 except ImportError:
     AGENT_FRAMEWORK_AVAILABLE = False
@@ -39,8 +39,8 @@ except ImportError:
         def __init__(self, *args, **kwargs):
             pass
     
-    def setup_telemetry(*args, **kwargs):
-        """Fallback telemetry setup"""
+    def setup_logging(*args, **kwargs):
+        """Fallback logging setup"""
         pass
 
 from .base import BaseAgent
@@ -86,16 +86,31 @@ class AgentFrameworkSystem:
             raise
     
     async def _setup_telemetry(self):
-        """Setup OpenTelemetry tracing for Agent Framework"""
+        """
+        Setup OpenTelemetry tracing for Agent Framework
+        
+        Note: In agent-framework >= 1.0.0b251218, setup_telemetry has been replaced with setup_logging.
+        Custom OTLP endpoints are no longer configurable through this function.
+        
+        To configure a custom OTLP endpoint, use the OpenTelemetry SDK directly before calling this method:
+        
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        otlp_exporter = OTLPSpanExporter(endpoint="http://localhost:4317")
+        # Configure tracer provider with the exporter...
+        
+        Or set environment variables:
+        export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+        """
         try:
             # Use AI Toolkit's OTLP endpoint for tracing
-            setup_telemetry(
-                otlp_endpoint="http://localhost:4317",  # AI Toolkit gRPC endpoint
+            # Note: setup_telemetry has been replaced with setup_logging in agent-framework >= 1.0.0b251218
+            setup_logging(
+                level=logging.INFO,
                 enable_sensitive_data=True  # Enable capturing prompts and completions
             )
-            self.logger.info("Telemetry setup completed")
+            self.logger.info("Logging setup completed")
         except Exception as e:
-            self.logger.warning(f"Could not setup telemetry: {e}")
+            self.logger.warning(f"Could not setup logging: {e}")
     
     async def _initialize_default_agents(self):
         """Initialize default agent roles using Agent Framework"""

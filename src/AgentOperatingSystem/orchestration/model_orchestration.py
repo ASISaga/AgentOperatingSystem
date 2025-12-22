@@ -73,7 +73,7 @@ class ModelOrchestrator:
             "timeout": 30
         }
         
-        # Semantic Kernel
+        # Semantic Kernel is now Agent Framework
         self.agent_framework_client: Optional['ChatAgent'] = None
         
         # Performance tracking
@@ -110,7 +110,7 @@ class ModelOrchestrator:
             if AZURE_ML_AVAILABLE and self.azure_ml_config["subscription_id"]:
                 await self._initialize_azure_ml()
             
-            # Initialize Semantic Kernel if available
+            # Initialize Agent Framework if available (replaces Semantic Kernel)
             if AGENT_FRAMEWORK_AVAILABLE:
                 await self._initialize_agent_framework()
             
@@ -178,7 +178,12 @@ class ModelOrchestrator:
         
         try:
             # Create a generic chat agent for model orchestration
+            # Note: In production, use a real chat client instead of Mock
+            from unittest.mock import Mock
+            mock_chat_client = Mock()
+            
             self.agent_framework_client = ChatAgent(
+                chat_client=mock_chat_client,
                 instructions="You are a model orchestration agent responsible for managing AI model requests.",
                 name="ModelOrchestrator"
             )
@@ -427,7 +432,7 @@ class ModelOrchestrator:
         
         # Simple model selection logic (can be enhanced with ML)
         model_preferences = {
-            "leadership": [ModelType.SEMANTIC_KERNEL, ModelType.VLLM, ModelType.AZURE_ML],
+            "leadership": [ModelType.AGENT_FRAMEWORK, ModelType.VLLM, ModelType.AZURE_ML],
             "sales": [ModelType.AZURE_ML, ModelType.VLLM, ModelType.OPENAI],
             "erp": [ModelType.AZURE_ML, ModelType.VLLM],
             "general": [ModelType.VLLM, ModelType.OPENAI, ModelType.AZURE_ML]
@@ -452,8 +457,8 @@ class ModelOrchestrator:
             return bool(self.vllm_config["server_url"])
         elif model_type == ModelType.AZURE_ML:
             return bool(self.azure_ml_config["endpoint_url"])
-        elif model_type == ModelType.SEMANTIC_KERNEL:
-            return self.semantic_kernel is not None
+        elif model_type == ModelType.AGENT_FRAMEWORK:
+            return self.agent_framework_client is not None
         elif model_type == ModelType.OPENAI:
             return bool(os.getenv("OPENAI_API_KEY"))
         
@@ -532,9 +537,9 @@ class ModelOrchestrator:
                 "note": "Health check requires actual endpoint test"
             }
         
-        # Check Semantic Kernel
-        if self.semantic_kernel:
-            health_results[ModelType.SEMANTIC_KERNEL.value] = {
+        # Check Agent Framework
+        if self.agent_framework_client:
+            health_results[ModelType.AGENT_FRAMEWORK.value] = {
                 "status": "initialized",
                 "last_check": datetime.utcnow().isoformat()
             }

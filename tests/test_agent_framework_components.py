@@ -292,7 +292,7 @@ class TestAOSWorkflowOrchestrator:
             
             mock_workflow = Mock()
             mock_builder = Mock()
-            mock_builder.add_executor.return_value = "node_123"
+            mock_builder.register_agent.return_value = "node_123"  # Updated to use register_agent
             mock_builder.build.return_value = mock_workflow
             
             orchestrator.workflow_builder = mock_builder
@@ -306,7 +306,7 @@ class TestAOSWorkflowOrchestrator:
             orchestrator.build_workflow()
             assert orchestrator.workflow == mock_workflow
             
-            mock_builder.add_executor.assert_called_once_with(mock_agent)
+            mock_builder.register_agent.assert_called_once_with(mock_agent)  # Updated to use register_agent
             mock_builder.build.assert_called_once()
     
     @pytest.mark.asyncio
