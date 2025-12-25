@@ -51,3 +51,41 @@ From a governance perspective, the integration of **MLflow and the Azure ML Mode
 The production environment in **Azure AI Foundry** utilizes a Serverless (Model-as-a-Service) model, where costs are calculated strictly on token consumption. With an estimated rate of $0.30 per 1 million input tokens, the primary benefit is the elimination of "zombie" costs; if the system is not actively processing requests, the inference cost remains at $0.00.
 
 Finally, the system is backed by Microsoft’s managed service guarantees, providing **99.9% availability**. This high level of reliability is maintained through the MaaS (Model-as-a-Service) SLA, ensuring that the modular multi-LoRA architecture remains stable and accessible for enterprise applications without requiring manual intervention or hardware maintenance.
+
+## 5. Implementation Workflow
+
+### Phase I: Preparation & Training (Azure ML + MLflow)
+1.  **Environment Setup:** Provision an Azure ML Workspace and link it to an Azure AI Foundry project for unified governance.
+2.  **Fine-Tuning:** Launch fine-tuning jobs on **Low-Priority (Spot) Compute clusters** to reduce hardware costs.
+3.  **Governance with MLflow:** Use the MLflow SDK to track hyperparameters and package the resulting 10 LoRA adapters as standardized artifacts.
+4.  **Registration:** Register each specialized adapter in the **Azure ML Model Registry** with descriptive version tags (e.g., `v2025.12.production`).
+
+### Phase II: Deployment & Routing (Azure AI Foundry)
+1.  **Serverless Deployment:** Navigate to the 
+
+
+ and select the base **Llama-3.1-8B-Instruct** model from the catalog.
+2.  **MaaS Activation:** Choose **Deploy > Serverless API** to enable pay-per-token inference with no management overhead.
+3.  **Multi-Adapter Routing:** Configure the deployment to pull the 10 adapters from the registry. Users can dynamically toggle between adapters by including an `extra_body` parameter with the specific `adapter_id` in their API requests.
+4.  **Endpoint Security:** Front the serverless endpoint with **Azure API Management** to enforce rate limits and enterprise-wide authentication.
+
+### Phase III: Monitoring & Auditing (Azure Monitor)
+1.  **Usage Analytics:** Integrate with **Azure Monitor** to track real-time token consumption and latency across all 10 adapters.
+2.  **Lineage Auditing:** Utilize the **MLflow dashboard** to audit the lineage of any adapter if performance drift or hallunications are detected in production.
+
+---
+
+## 6. Security and Compliance
+
+*   **Identity & Access:** Secure all training and inference workflows using **Microsoft Entra ID** (RBAC), ensuring that only authorized developers can modify production adapters.
+*   **Data Privacy:** All data processed via serverless APIs remains within the secure bounds of the customer’s Azure tenant, ensuring compliance with internal privacy standards.
+*   **Content Safety Guardrails:** Integrate with **Azure AI Content Safety** to apply custom filters. These filters monitor inputs and outputs for violence, hate, sexual content, and self-harm across all 10 adapters.
+*   **Threat Mitigation:** Deploy **Prompt Shields** within Azure AI Foundry to safeguard against prompt injection attacks and ensure the model remains grounded in provided data.
+
+---
+
+**Approval:**  
+*   **Date:** December 25, 2025  
+*   **System Architect:** [User-Defined]  
+*   **Platform:** Microsoft Azure (Cloud Native)
+
