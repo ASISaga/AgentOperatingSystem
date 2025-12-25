@@ -110,6 +110,7 @@ class DPOTrainer:
             from peft import LoraConfig, get_peft_model, PeftModel
             self.trl_available = True
             
+            # Store class references for use in methods (enables lazy loading and optional dependencies)
             self.TRLDPOTrainer = TRLDPOTrainer
             self.AutoModelForCausalLM = AutoModelForCausalLM
             self.AutoTokenizer = AutoTokenizer
@@ -341,7 +342,8 @@ class DPOTrainer:
                 mlflow.log_metrics(metrics)
                 mlflow.log_artifact(output_dir)
                 mlflow.end_run()
-            except:
+            except Exception as e:
+                self.logger.warning(f"MLflow logging failed: {e}")
                 pass
         
         self.training_state["status"] = "completed"
