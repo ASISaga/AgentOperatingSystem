@@ -2,6 +2,7 @@
 AOS ML Pipeline Manager
 
 Manages machine learning operations including training, inference, and model management.
+Includes DPO (Direct Preference Optimization) support for cost-effective reinforcement learning.
 """
 
 import logging
@@ -333,3 +334,280 @@ class MLPipelineManager:
                 self.active_adapters[agent_role]["status"] = "failed"
             
             self.logger.error(f"Training job failed: {job_id}, error: {e}")
+    
+    async def train_dpo_adapter(
+        self,
+        agent_role: str,
+        base_adapter_path: str,
+        preference_data_path: str,
+        output_dir: Optional[str] = None,
+        config_override: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """
+        Train a DPO (Direct Preference Optimization) adapter for an agent.
+        
+        This applies reinforcement learning from human feedback using the cost-effective
+        DPO approach, which reduces computational overhead by 30-50% compared to PPO.
+        
+        Args:
+            agent_role: Agent role (e.g., "CEO", "CFO")
+            base_adapter_path: Path to existing LoRA adapter to build upon
+            preference_data_path: Path to preference data (JSONL format)
+            output_dir: Optional output directory for DPO adapter
+            config_override: Optional configuration overrides
+            
+        Returns:
+            Training job ID
+        """
+        if not self.config.enable_training or not self.config.enable_dpo:
+            raise RuntimeError("DPO training is disabled in configuration")
+        
+        # Check if we can start new training job
+        active_jobs = sum(1 for job in self.training_jobs.values() 
+                         if job["status"] in ["running", "pending"])
+        
+        if active_jobs >= self.config.max_training_jobs:
+            raise RuntimeError(f"Maximum training jobs ({self.config.max_training_jobs}) reached")
+        
+        # Create DPO training job
+        job_id = f"dpo_job_{self.job_counter}"
+        self.job_counter += 1
+        
+        if output_dir is None:
+            output_dir = f"{self.config.model_storage_path}/{agent_role}_dpo_adapter"
+        
+        dpo_config = {
+            "type": "dpo",
+            "agent_role": agent_role,
+            "base_adapter_path": base_adapter_path,
+            "preference_data_path": preference_data_path,
+            "output_dir": output_dir,
+            "beta": config_override.get("beta", self.config.dpo_beta) if config_override else self.config.dpo_beta,
+            "learning_rate": config_override.get("learning_rate", self.config.dpo_learning_rate) if config_override else self.config.dpo_learning_rate,
+            "batch_size": config_override.get("batch_size", self.config.dpo_batch_size) if config_override else self.config.dpo_batch_size,
+            "num_epochs": config_override.get("num_epochs", self.config.dpo_epochs) if config_override else self.config.dpo_epochs,
+        }
+        
+        training_job = {
+            "job_id": job_id,
+            "config": dpo_config,
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat(),
+            "started_at": None,
+            "completed_at": None,
+            "model_path": None,
+            "metrics": {}
+        }
+        
+        self.training_jobs[job_id] = training_job
+        
+        # Start DPO training asynchronously
+        import asyncio
+        asyncio.create_task(self._execute_dpo_training(job_id))
+        
+        # Update adapter status
+        adapter_key = f"{agent_role}_dpo"
+        self.active_adapters[adapter_key] = {
+            "job_id": job_id,
+            "config": dpo_config,
+            "status": "training",
+            "type": "dpo"
+        }
+        
+        self.logger.info(f"Started DPO training job: {job_id} for {agent_role}")
+        return job_id
+    
+    async def _execute_dpo_training(self, job_id: str):
+        """Execute a DPO training job"""
+        job = self.training_jobs[job_id]
+        
+        try:
+            job["status"] = "running"
+            job["started_at"] = datetime.utcnow().isoformat()
+            
+            self.logger.info(f"Starting DPO training job: {job_id}")
+            
+            # Import DPO trainer
+            try:
+                from .dpo_trainer import DPOTrainer, DPOConfig, PreferenceDataCollector
+            except ImportError as e:
+                raise RuntimeError(f"DPO trainer not available: {e}")
+            
+            # Load preference data
+            collector = PreferenceDataCollector()
+            collector.load_preferences(job["config"]["preference_data_path"])
+            preference_data = collector.get_preferences()
+            
+            if not preference_data:
+                raise ValueError(f"No preference data loaded from {job['config']['preference_data_path']}")
+            
+            # Setup DPO configuration
+            dpo_config = DPOConfig(
+                base_model="meta-llama/Llama-3.1-8B-Instruct",
+                lora_adapter_path=job["config"]["base_adapter_path"],
+                beta=job["config"]["beta"],
+                learning_rate=job["config"]["learning_rate"],
+                batch_size=job["config"]["batch_size"],
+                num_epochs=job["config"]["num_epochs"]
+            )
+            
+            # Initialize trainer
+            trainer = DPOTrainer(dpo_config)
+            
+            # Setup MLflow experiment name if enabled
+            mlflow_experiment = None
+            if self.config.enable_mlflow:
+                mlflow_experiment = f"{self.config.mlflow_experiment_prefix}_{job['config']['agent_role']}"
+            
+            # Train
+            result = trainer.train(
+                preference_data=preference_data,
+                output_dir=job["config"]["output_dir"],
+                mlflow_experiment_name=mlflow_experiment
+            )
+            
+            # Update job status
+            job["status"] = "completed"
+            job["completed_at"] = datetime.utcnow().isoformat()
+            job["model_path"] = result["output_dir"]
+            job["metrics"] = result["metrics"]
+            
+            # Register DPO adapter
+            agent_role = job["config"]["agent_role"]
+            adapter_key = f"{agent_role}_dpo"
+            
+            self.models[adapter_key] = {
+                "job_id": job_id,
+                "path": job["model_path"],
+                "config": job["config"],
+                "metrics": job["metrics"],
+                "type": "dpo"
+            }
+            
+            # Update adapter status
+            if adapter_key in self.active_adapters:
+                self.active_adapters[adapter_key]["status"] = "ready"
+                self.active_adapters[adapter_key]["model_path"] = job["model_path"]
+            
+            self.logger.info(f"DPO training job completed: {job_id}, metrics: {job['metrics']}")
+            
+        except Exception as e:
+            job["status"] = "failed"
+            job["completed_at"] = datetime.utcnow().isoformat()
+            job["error"] = str(e)
+            
+            # Update adapter status
+            agent_role = job["config"].get("agent_role")
+            if agent_role:
+                adapter_key = f"{agent_role}_dpo"
+                if adapter_key in self.active_adapters:
+                    self.active_adapters[adapter_key]["status"] = "failed"
+            
+            self.logger.error(f"DPO training job failed: {job_id}, error: {e}")
+    
+    def collect_preference_data(
+        self,
+        agent_role: str,
+        prompt: str,
+        response_a: str,
+        response_b: str,
+        preference: str,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Collect preference data for DPO training.
+        
+        This method allows agents or human reviewers to provide pairwise preferences
+        that will be used for DPO alignment training.
+        
+        Args:
+            agent_role: Agent role this preference is for
+            prompt: The input prompt
+            response_a: First response option
+            response_b: Second response option
+            preference: Which response is preferred ('a' or 'b')
+            metadata: Optional metadata (rater info, confidence, etc.)
+        """
+        try:
+            from .dpo_trainer import PreferenceDataCollector
+        except ImportError:
+            self.logger.error("DPO trainer module not available")
+            return
+        
+        # Get or create collector for this agent
+        storage_path = f"{self.config.preference_data_path}/{agent_role}_preferences.jsonl"
+        collector = PreferenceDataCollector(storage_path)
+        
+        # Load existing preferences
+        try:
+            collector.load_preferences()
+        except:
+            pass  # No existing preferences
+        
+        # Add new preference
+        collector.add_human_preference(
+            prompt=prompt,
+            response_a=response_a,
+            response_b=response_b,
+            preference=preference,
+            metadata={
+                **(metadata or {}),
+                "agent_role": agent_role
+            }
+        )
+        
+        # Save updated preferences
+        collector.save_preferences()
+        
+        self.logger.info(f"Collected preference data for {agent_role}. Total: {len(collector.preferences)}")
+    
+    def get_dpo_status(self, agent_role: str) -> Dict[str, Any]:
+        """
+        Get DPO training status for an agent.
+        
+        Args:
+            agent_role: Agent role
+            
+        Returns:
+            DPO status information
+        """
+        adapter_key = f"{agent_role}_dpo"
+        
+        if adapter_key not in self.active_adapters:
+            return {
+                "status": "not_started",
+                "agent_role": agent_role,
+                "has_dpo_adapter": False
+            }
+        
+        adapter_info = self.active_adapters[adapter_key]
+        job_id = adapter_info.get("job_id")
+        job_info = self.training_jobs.get(job_id, {}) if job_id else {}
+        
+        # Check preference data availability
+        from pathlib import Path
+        pref_path = Path(f"{self.config.preference_data_path}/{agent_role}_preferences.jsonl")
+        has_preference_data = pref_path.exists()
+        
+        # Count preferences if file exists
+        preference_count = 0
+        if has_preference_data:
+            try:
+                with open(pref_path, 'r') as f:
+                    preference_count = sum(1 for _ in f)
+            except:
+                pass
+        
+        return {
+            "status": adapter_info.get("status", "unknown"),
+            "agent_role": agent_role,
+            "has_dpo_adapter": adapter_info.get("status") == "ready",
+            "job_id": job_id,
+            "model_path": adapter_info.get("model_path"),
+            "has_preference_data": has_preference_data,
+            "preference_count": preference_count,
+            "config": adapter_info.get("config", {}),
+            "metrics": job_info.get("metrics", {}),
+            "created_at": job_info.get("created_at"),
+            "completed_at": job_info.get("completed_at")
+        }
