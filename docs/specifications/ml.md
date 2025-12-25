@@ -42,10 +42,12 @@ This layer ensures that the 10 adapters are manageable, traceable, and ready for
 
 ---
 
-## 4. Cost and Performance Analysis (FY2025)
+# Section 4: Cost and Performance Analysis (FY2025)
 
- Metric	Specification	Cost Benefit
-Training Unit Cost	Hourly (Spot VM)	~80% discount vs. Standard Dedicated
-Governance Overhead	MLflow / Registry	Minimal; included in Azure ML workspace
-Inference Unit Cost	$0.30 / 1M Input Tokens	No monthly minimums; $0.00 when idle
-SLA/Reliability	99.9% Availability	Managed by Microsoft (MaaS SLA)
+The financial strategy for this deployment focuses on maximizing resource utilization during training and eliminating idle expenses during inference. By utilizing **Low-Priority (Spot) VMs** for the training phase within Azure Machine Learning, the infrastructure cost is reduced by approximately 80% compared to standard dedicated instances. This allows for the high-compute requirement of fine-tuning 10 separate adapters without significant capital expenditure.
+
+From a governance perspective, the integration of **MLflow and the Azure ML Model Registry** introduces minimal cost overhead. These services are included within the standard Azure ML workspace pricing, providing enterprise-grade tracking and versioning without the need for additional third-party licenses or dedicated storage hardware.
+
+The production environment in **Azure AI Foundry** utilizes a Serverless (Model-as-a-Service) model, where costs are calculated strictly on token consumption. With an estimated rate of $0.30 per 1 million input tokens, the primary benefit is the elimination of "zombie" costs; if the system is not actively processing requests, the inference cost remains at $0.00.
+
+Finally, the system is backed by Microsoft’s managed service guarantees, providing **99.9% availability**. This high level of reliability is maintained through the MaaS (Model-as-a-Service) SLA, ensuring that the modular multi-LoRA architecture remains stable and accessible for enterprise applications without requiring manual intervention or hardware maintenance.
