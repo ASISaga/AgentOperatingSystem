@@ -31,6 +31,11 @@ from .mcp_integration import MCPClientManager
 from .model_orchestration import ModelOrchestrator, ModelType
 from .workflow_step import WorkflowStep
 from .workflow_orchestrator import WorkflowOrchestrator, WorkflowOrchestratorFactory
+# Advanced orchestration features
+from .dynamic import DynamicWorkflowComposer
+from .scheduler import IntelligentScheduler, WorkflowPriority, ResourcePredictor
+from .events import EventDrivenOrchestrator, EventPattern
+from .optimization import WorkflowOptimizer, LearningEngine
 
 __all__ = [
     "State",
@@ -54,5 +59,14 @@ __all__ = [
     "ModelType",
     "WorkflowStep",
     "WorkflowOrchestrator",
-    "WorkflowOrchestratorFactory"
+    "WorkflowOrchestratorFactory",
+    # Advanced orchestration
+    "DynamicWorkflowComposer",
+    "IntelligentScheduler",
+    "WorkflowPriority",
+    "ResourcePredictor",
+    "EventDrivenOrchestrator",
+    "EventPattern",
+    "WorkflowOptimizer",
+    "LearningEngine"
 ]
