@@ -1,15 +1,28 @@
-# Technical Specification: Enterprise Azure Deployment for Llama-3.1-8B (Multi-LoRA)
+# Technical Specification: ML Pipeline and Self-Learning System
 
 **Document Version:** 2025.1.2  
-**Status:** Implementation Ready  
+**Status:** Implemented  
 **Date:** December 25, 2025  
 **Primary Cloud Provider:** Microsoft Azure  
-**Architecture Pattern:** Hybrid Training-Inference (Azure ML + AI Foundry)
+**Architecture Pattern:** Hybrid Training-Inference (Azure ML + AI Foundry)  
+**Module:** AgentOperatingSystem ML (`src/AgentOperatingSystem/ml/`)
+
+> **Implementation Note:** This specification describes both the Azure deployment infrastructure for enterprise-grade ML operations AND the implemented AOS ML Pipeline and Self-Learning System that manages training, inference, and continuous agent optimization.
 
 ---
 
 ## 1. System Overview
-This specification details a cost-optimized, enterprise-grade deployment of the **Llama-3.1-8B-Instruct** model. The system architecture is designed to support **10 distinct LoRA adapters** while minimizing infrastructure overhead and ensuring high service availability. By leveraging **MLflow** for governance and **Azure AI Foundry** for serverless delivery, the architecture eliminates the high costs associated with idle GPU hardware.
+
+This specification details both:
+
+1. **Azure ML Infrastructure**: A cost-optimized, enterprise-grade deployment of the **Llama-3.1-8B-Instruct** model supporting **10+ distinct LoRA adapters** while minimizing infrastructure overhead and ensuring high service availability. By leveraging **MLflow** for governance and **Azure AI Foundry** for serverless delivery, the architecture eliminates the high costs associated with idle GPU hardware.
+
+2. **AOS ML Pipeline Implementation**: The implemented ML Pipeline Manager (`pipeline.py`), Pipeline Operations (`pipeline_ops.py`), and Self-Learning System (`self_learning_system.py`) that provide:
+   - Centralized ML operations management
+   - LoRA adapter training and inference
+   - Agent-specific model fine-tuning
+   - Continuous self-learning and agent optimization
+   - Performance monitoring and adaptation
 
 ---
 
@@ -87,3 +100,257 @@ Azure AI Foundry portal and select the base **Llama-3.1-8B-Instruct** model from
 *   **System Architect:** [User-Defined]  
 *   **Platform:** Microsoft Azure (Cloud Native)
 
+---
+
+## 7. AOS ML Pipeline Implementation
+
+### 7.1 MLPipelineManager (`pipeline.py`)
+
+The `MLPipelineManager` is the central coordinator for all ML operations in AOS. It manages:
+
+**Core Responsibilities:**
+- Model training and fine-tuning orchestration
+- Inference operations with caching
+- Model deployment and versioning
+- LoRA adapter lifecycle management
+- Performance monitoring and job tracking
+
+**Key Features:**
+- **Multi-Adapter Support**: Manages 10+ specialized LoRA adapters for different agent roles (CEO, CFO, COO, etc.)
+- **Training Job Queue**: Concurrent training job management with configurable limits
+- **Inference Cache**: Intelligent caching to reduce redundant inference calls
+- **Status Monitoring**: Comprehensive status tracking for models, adapters, and training jobs
+
+**API Overview:**
+```python
+# Initialize ML Pipeline Manager
+from AgentOperatingSystem.ml.pipeline import MLPipelineManager
+from AgentOperatingSystem.config.ml import MLConfig
+
+ml_manager = MLPipelineManager(config=MLConfig())
+
+# Train LoRA adapter for an agent role
+job_id = await ml_manager.train_lora_adapter(
+    agent_role="CEO",
+    training_params={
+        "base_model": "meta-llama/Llama-3.1-8B-Instruct",
+        "training_data": "./data/ceo_training.jsonl",
+        "hyperparameters": {"r": 16, "lora_alpha": 32}
+    }
+)
+
+# Get inference for specific agent
+result = await ml_manager.get_agent_inference(
+    agent_role="CEO",
+    prompt="What is the strategic vision for Q2?"
+)
+
+# Check training status
+status = ml_manager.get_training_status(job_id)
+
+# Get ML pipeline status
+ml_status = ml_manager.get_ml_status()
+```
+
+**Configuration (`config.ml.MLConfig`):**
+- `enable_training`: Enable/disable training operations
+- `max_training_jobs`: Maximum concurrent training jobs
+- `model_storage_path`: Path for storing trained models
+- `default_model_type`: Default model architecture
+
+### 7.2 Pipeline Operations (`pipeline_ops.py`)
+
+Provides high-level wrappers for ML pipeline actions, integrating with Azure ML and the FineTunedLLM project:
+
+**Available Operations:**
+
+1. **`trigger_lora_training(training_params, adapters)`**
+   - Triggers LoRA adapter training with custom parameters
+   - Supports multiple adapters in a single training run
+   - Returns status message upon completion
+
+2. **`run_azure_ml_pipeline(subscription_id, resource_group, workspace_name)`**
+   - Executes the full Azure ML pipeline (provision, train, register)
+   - Provisions compute resources
+   - Runs training jobs
+   - Registers models in Azure ML Model Registry
+
+3. **`aml_infer(agent_id, prompt)`**
+   - Performs inference using UnifiedMLManager endpoints
+   - Routes requests to agent-specific LoRA adapters
+   - Returns inference results
+
+**Integration with Azure ML:**
+- Imports from `azure_ml_lora` package: `MLManager`, `LoRATrainer`, `LoRAPipeline`, `UnifiedMLManager`
+- Graceful fallback when Azure ML components are not available
+- Supports both cloud and local development environments
+
+### 7.3 Self-Learning System (`self_learning_system.py`)
+
+Implements the continuous learning loop that improves agents over time through feedback collection, performance analysis, and model adaptation.
+
+**Key Components:**
+
+**1. Learning Phases:**
+- `MONITORING`: Continuous agent performance tracking
+- `ANALYSIS`: Performance data analysis and pattern identification
+- `FEEDBACK_COLLECTION`: User and system feedback aggregation
+- `PATTERN_IDENTIFICATION`: Behavioral pattern recognition
+- `MODEL_ADAPTATION`: Model and parameter updates based on insights
+- `VALIDATION`: Adaptation validation before deployment
+- `DEPLOYMENT`: Safe deployment of improved models
+
+**2. Learning Focus Areas:**
+- Agent behavior optimization
+- Communication pattern improvement
+- Decision-making enhancement
+- Task execution efficiency
+- Resource utilization optimization
+- Error handling refinement
+- Performance optimization
+
+**3. Data Structures:**
+
+**`LearningEpisode`**: Captures complete agent performance data
+- Input context and environmental factors
+- Agent actions and decision processes
+- Communication patterns and resource usage
+- Task results and performance metrics
+- Feedback scores and improvement suggestions
+
+**`LearningPattern`**: Identified patterns from analysis
+- Pattern characteristics and frequency
+- Trigger conditions and behavioral indicators
+- Performance correlations
+- Optimization potential and recommended actions
+
+**`AdaptationPlan`**: Plans for agent behavior adaptation
+- Target agent and focus areas
+- Behavioral adjustments and parameter updates
+- Deployment strategy and rollback criteria
+- Success metrics for validation
+
+**4. Self-Learning Loop Process:**
+1. Monitor agent performance during task execution
+2. Collect feedback from users and system observations
+3. Analyze performance data to identify patterns
+4. Generate adaptation plans based on insights
+5. Validate proposed changes in sandbox environment
+6. Deploy improvements to production agents
+7. Track effectiveness and iterate
+
+**5. Feedback Types:**
+- Performance metrics (latency, accuracy, success rate)
+- User ratings and comments
+- System observations (errors, resource usage)
+- Error analysis and efficiency measures
+- Outcome evaluations
+
+**Integration Points:**
+- `aos.monitoring.audit_trail`: Audit logging for learning events
+- `aos.storage.manager`: Persistent storage for episodes and patterns
+- `MLPipelineManager`: Model training and deployment
+
+### 7.4 Multi-Agent Adapter Sharing
+
+Multiple agents can share the ML pipeline infrastructure while using role-specific LoRA adapters:
+
+```python
+# Each agent has its own adapter
+ceo_agent = Agent(role="CEO", adapter_name="ceo")
+cfo_agent = Agent(role="CFO", adapter_name="cfo")
+coo_agent = Agent(role="COO", adapter_name="coo")
+
+# Agents automatically use their specific adapters for inference
+ceo_response = await ml_manager.get_agent_inference("CEO", prompt)
+cfo_response = await ml_manager.get_agent_inference("CFO", prompt)
+```
+
+**Benefits:**
+- Shared infrastructure reduces costs
+- Role-specific expertise through specialized adapters
+- Centralized management and monitoring
+- Consistent training and deployment pipelines
+
+### 7.5 Performance Monitoring and Metrics
+
+The ML pipeline tracks comprehensive metrics:
+
+**Training Metrics:**
+- Total training jobs (pending, running, completed, failed)
+- Training job duration and resource usage
+- Model accuracy and loss metrics
+- Adapter-specific performance indicators
+
+**Inference Metrics:**
+- Inference latency (p50, p95, p99)
+- Cache hit rates
+- Model utilization by agent
+- Error rates and failure patterns
+
+**System Health:**
+- Active adapters and their status
+- Model registry size
+- Resource utilization
+- Queue depths and throughput
+
+**Status Endpoint:**
+```python
+status = ml_manager.get_ml_status()
+# Returns:
+# {
+#   "training_enabled": true,
+#   "total_models": 15,
+#   "total_adapters": 10,
+#   "active_training_jobs": 2,
+#   "adapter_status": {"CEO": "ready", "CFO": "training", ...},
+#   "config": {...}
+# }
+```
+
+### 7.6 Error Handling and Resilience
+
+**Training Resilience:**
+- Automatic retry for transient failures
+- Job status tracking with detailed error information
+- Adapter status management (pending, training, ready, failed)
+- Graceful degradation when training is disabled
+
+**Inference Resilience:**
+- Fallback responses when adapters are unavailable
+- Cache-first strategy to reduce load
+- Error propagation with detailed context
+- Timeout protection for long-running inference
+
+### 7.7 Security and Compliance
+
+**Model Security:**
+- Secure storage of model weights and adapters
+- Access control for training and inference operations
+- Audit logging for all ML operations
+- Tamper-evident model registry
+
+**Data Privacy:**
+- Training data isolation by agent role
+- No cross-contamination between adapters
+- Compliance with data retention policies
+- PII protection in training datasets
+
+### 7.8 Integration with Other AOS Components
+
+**Storage Integration:**
+- Model storage via `StorageManager`
+- Training data persistence
+- Episode and pattern storage for self-learning
+
+**Monitoring Integration:**
+- Audit trail logging for ML operations
+- Performance metrics collection
+- Health status reporting
+
+**Orchestration Integration:**
+- ML operations as workflow steps
+- Agent-triggered training jobs
+- Coordinated multi-agent inference
+
+---
