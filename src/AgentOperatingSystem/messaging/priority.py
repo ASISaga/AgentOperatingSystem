@@ -263,10 +263,17 @@ class PriorityQueueManager:
             config = self.priority_config.get(priority)
             
             if queue:
-                latencies = [
-                    (datetime.utcnow() - e["enqueued_at"]).total_seconds() * 1000
-                    for _, e in queue
-                ]
+                # Calculate latencies in one pass
+                sla_max = config.max_latency_ms if config else None
+                latencies = []
+                sla_violations = 0
+                
+                for _, e in queue:
+                    latency = (datetime.utcnow() - e["enqueued_at"]).total_seconds() * 1000
+                    latencies.append(latency)
+                    if sla_max and latency > sla_max:
+                        sla_violations += 1
+                
                 avg_latency = sum(latencies) / len(latencies)
                 max_latency = max(latencies)
             else:
@@ -278,7 +285,7 @@ class PriorityQueueManager:
                 "avg_latency_ms": avg_latency,
                 "max_latency_ms": max_latency,
                 "sla_max_latency_ms": config.max_latency_ms if config else None,
-                "sla_violations": sum(1 for l in latencies if l > config.max_latency_ms) if config and latencies else 0
+                "sla_violations": sla_violations if queue else 0
             }
         
         return stats

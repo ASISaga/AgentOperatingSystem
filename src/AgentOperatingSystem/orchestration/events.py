@@ -201,9 +201,8 @@ class EventDrivenOrchestrator:
                 if "threshold" in value:
                     if event[key] < value["threshold"]:
                         return False
-                if "increase" in value:
-                    # Would need historical comparison
-                    pass
+                # For 'increase' we would need historical comparison
+                # Skip for now as it requires more context
             else:
                 # Exact match
                 if event[key] != value:

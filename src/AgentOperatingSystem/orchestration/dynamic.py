@@ -56,16 +56,15 @@ class DynamicWorkflowComposer:
             assigned_steps, constraints
         )
         
-        workflow = Workflow(
+        workflow = Workflow.from_steps(
             workflow_id=f"dynamic_{datetime.utcnow().timestamp()}",
-            name=f"Dynamic: {goal}",
-            steps=optimized_workflow,
-            metadata={
-                "goal": goal,
-                "constraints": constraints,
-                "generated_at": datetime.utcnow().isoformat()
-            }
+            steps=optimized_workflow
         )
+        workflow.metadata = {
+            "goal": goal,
+            "constraints": constraints,
+            "generated_at": datetime.utcnow().isoformat()
+        }
         
         self.logger.info(f"Generated workflow with {len(optimized_workflow)} steps")
         return workflow
@@ -94,11 +93,7 @@ class DynamicWorkflowComposer:
         steps.append(WorkflowStep(
             step_id="plan",
             agent_id=stakeholders[0] if stakeholders else "planner",
-            task={
-                "action": "create_plan",
-                "objective": objective,
-                "timeline": timeline
-            },
+            task=f"create_plan: {objective} (timeline: {timeline})",
             depends_on=[]
         ))
         
@@ -107,11 +102,7 @@ class DynamicWorkflowComposer:
             steps.append(WorkflowStep(
                 step_id=f"execute_{i}",
                 agent_id=stakeholder,
-                task={
-                    "action": "execute_phase",
-                    "objective": objective,
-                    "metrics": success_metrics
-                },
+                task=f"execute_phase: {objective} (metrics: {', '.join(success_metrics)})",
                 depends_on=["plan"] + [f"execute_{j}" for j in range(1, i)]
             ))
         
@@ -119,19 +110,16 @@ class DynamicWorkflowComposer:
         steps.append(WorkflowStep(
             step_id="review",
             agent_id=stakeholders[0] if stakeholders else "reviewer",
-            task={
-                "action": "review_results",
-                "metrics": success_metrics
-            },
+            task=f"review_results: {', '.join(success_metrics)}",
             depends_on=[f"execute_{i}" for i in range(1, len(stakeholders))]
         ))
         
-        return Workflow(
+        workflow = Workflow.from_steps(
             workflow_id=f"intent_{datetime.utcnow().timestamp()}",
-            name=f"Intent-Based: {objective}",
-            steps=steps,
-            metadata={"intent": intent}
+            steps=steps
         )
+        workflow.metadata = {"intent": intent}
+        return workflow
     
     async def _decompose_goal(
         self,
@@ -188,10 +176,7 @@ class DynamicWorkflowComposer:
             workflow_step = WorkflowStep(
                 step_id=f"step_{i}",
                 agent_id=agent_id,
-                task={
-                    "type": step["type"],
-                    "description": step["description"]
-                },
+                task=f"{step['type']}: {step['description']}",
                 depends_on=step.get("depends_on", [])
             )
             assigned_steps.append(workflow_step)

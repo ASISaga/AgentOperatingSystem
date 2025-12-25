@@ -221,8 +221,13 @@ class PredictiveAlerter:
         sum_xy = sum(xi * yi for xi, yi in zip(x, y))
         sum_x2 = sum(xi ** 2 for xi in x)
         
+        # Check for division by zero
+        denominator = (n * sum_x2) - (sum_x ** 2)
+        if denominator == 0:
+            return 0.0
+        
         # Slope = (n*sum_xy - sum_x*sum_y) / (n*sum_x2 - sum_x^2)
-        slope = ((n * sum_xy) - (sum_x * sum_y)) / ((n * sum_x2) - (sum_x ** 2))
+        slope = ((n * sum_xy) - (sum_x * sum_y)) / denominator
         
         return slope
     

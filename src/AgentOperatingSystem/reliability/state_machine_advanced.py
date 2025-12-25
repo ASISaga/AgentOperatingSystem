@@ -5,6 +5,7 @@ Provides distributed state machine capabilities for workflow management.
 """
 
 import logging
+import asyncio
 from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 from enum import Enum
@@ -270,6 +271,3 @@ class DistributedStateMachine:
             ],
             "event_count": len(self.event_log)
         }
-
-
-import asyncio  # Add import at top of file
