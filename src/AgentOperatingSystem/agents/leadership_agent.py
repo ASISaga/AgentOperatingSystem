@@ -91,5 +91,5 @@ class LeadershipAgent(BaseAgent):
         Returns:
             List of stakeholder responses
         """
-        # To be implemented with message bus integration
-        return []
+        # TODO: Implement with message bus integration
+        raise NotImplementedError("Stakeholder consultation requires message bus integration")
