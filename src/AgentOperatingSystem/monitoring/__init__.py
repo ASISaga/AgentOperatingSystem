@@ -5,6 +5,8 @@ System monitoring and metrics collection.
 """
 
 from .monitor import SystemMonitor, MetricsCollector
+# New refactored classes
+from .observability import StructuredLogger, MetricsCollector as MetricsCollectorNew
 
 try:
     from .audit_trail import (
@@ -17,7 +19,10 @@ except ImportError:
 
 __all__ = [
     "SystemMonitor",  
-    "MetricsCollector"
+    "MetricsCollector",
+    # New refactored classes
+    "StructuredLogger",
+    "MetricsCollectorNew"
 ]
 
 if AUDIT_AVAILABLE:

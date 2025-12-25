@@ -49,17 +49,50 @@ class BaseAgent(ABC):
         
     @abstractmethod
     async def initialize(self) -> bool:
-        """Initialize agent resources and connections."""
+        """
+        Initialize agent resources and connections.
+        
+        This method should be called before the agent starts processing.
+        Use this to set up any required resources, connections, or initial state.
+        
+        Returns:
+            True if initialization was successful, False otherwise
+            
+        Raises:
+            Exception: If initialization fails critically
+        """
         pass
     
     @abstractmethod
     async def start(self) -> bool:
-        """Start agent operations."""
+        """
+        Start agent operations.
+        
+        This method begins the agent's main processing loop or activates
+        its message handling capabilities.
+        
+        Returns:
+            True if started successfully, False otherwise
+            
+        Raises:
+            Exception: If the agent cannot start
+        """
         pass
     
     @abstractmethod
     async def stop(self) -> bool:
-        """Stop agent operations gracefully."""
+        """
+        Stop agent operations gracefully.
+        
+        This method should cleanly shut down the agent, releasing resources
+        and completing any in-flight operations.
+        
+        Returns:
+            True if stopped successfully, False otherwise
+            
+        Raises:
+            Exception: If shutdown encounters critical errors
+        """
         pass
     
     @abstractmethod
@@ -67,11 +100,18 @@ class BaseAgent(ABC):
         """
         Handle incoming message.
         
+        Process a message and return a response. This is the main entry point
+        for agent communication.
+        
         Args:
             message: Message payload with type, data, metadata
             
         Returns:
-            Response dictionary
+            Response dictionary with processing results
+            
+        Raises:
+            ValueError: If message format is invalid
+            Exception: If message processing fails
         """
         pass
     

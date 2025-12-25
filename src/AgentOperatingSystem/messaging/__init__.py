@@ -8,6 +8,9 @@ from .types import Message, MessageType, MessagePriority
 from .bus import MessageBus
 from .router import MessageRouter
 from .servicebus_manager import ServiceBusManager
+# New refactored classes
+from .envelope import MessageEnvelope
+from .reliability import RetryPolicy, CircuitBreaker
 
 try:
     from .conversation_system import (
@@ -25,7 +28,11 @@ __all__ = [
     "MessagePriority",
     "MessageBus",
     "MessageRouter",
-    "ServiceBusManager"
+    "ServiceBusManager",
+    # New refactored classes
+    "MessageEnvelope",
+    "RetryPolicy",
+    "CircuitBreaker"
 ]
 
 if ADVANCED_MESSAGING_AVAILABLE:

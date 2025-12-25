@@ -14,6 +14,10 @@ from .multi_agent import (
     ProductOwnerAgent,
     ApprovalTerminationStrategy
 )
+# New refactored classes
+from .base_agent import BaseAgent as BaseAgentNew
+from .leadership_agent import LeadershipAgent as LeadershipAgentNew
+from .manager import UnifiedAgentManager
 
 __all__ = [
     "BaseAgent",
@@ -25,5 +29,9 @@ __all__ = [
     "BusinessAnalystAgent",
     "SoftwareEngineerAgent", 
     "ProductOwnerAgent",
-    "ApprovalTerminationStrategy"
+    "ApprovalTerminationStrategy",
+    # New refactored classes
+    "BaseAgentNew",
+    "LeadershipAgentNew",
+    "UnifiedAgentManager"
 ]
