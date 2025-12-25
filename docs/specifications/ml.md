@@ -353,9 +353,446 @@ status = ml_manager.get_ml_status()
 - Agent-triggered training jobs
 - Coordinated multi-agent inference
 
----## 8. Advanced ML Pipeline Capabilities
+---
 
-### 8.1 Federated Learning for Multi-Agent Systems
+## 8. Reinforcement Learning Layer: Direct Preference Optimization (DPO)
+
+**Status:** Implemented  
+**Document Version:** 2025.1.3  
+**Updated:** December 25, 2025
+
+### 8.1 Overview: Cost-Effective Reinforcement Learning
+
+AOS implements **Direct Preference Optimization (DPO)** as the industry standard for low-cost alignment of Llama-3.1-8B-Instruct models. DPO eliminates the need to train or host a separate Reward Model, making it the most cost-effective approach for Reinforcement Learning from Human Feedback (RLHF).
+
+**Key Benefits:**
+- **30-50% Cost Reduction**: Compared to traditional PPO (Proximal Policy Optimization)
+- **Increased Stability**: More stable training compared to reward-model-based RLHF
+- **Azure Native**: Fully supported in Azure AI Foundry and Azure ML via Hugging Face TRL library
+- **LoRA Compatible**: Works seamlessly with existing LoRA adapters as a secondary alignment layer
+
+**Mechanism:**
+DPO treats the language model itself as the reward model, optimizing directly on paired preference data (e.g., "Preferred" vs. "Rejected" responses). This direct optimization approach bypasses the computational overhead of training and maintaining a separate reward model.
+
+### 8.2 DPO Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     DPO Training Pipeline                   │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Step 1: Preference Data Collection                        │
+│  - Human rankings (A vs B responses)                       │
+│  - Teacher model rankings (e.g., Llama 4)                  │
+│  - Automated heuristics (optional bootstrapping)           │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Step 2: DPO Training (Azure ML)                           │
+│  - Low-Priority NC-Series VM for cost optimization         │
+│  - TRL DPOTrainer with existing LoRA adapter               │
+│  - Implicit reward computation from preference pairs       │
+│  - MLflow tracking for convergence monitoring              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Step 3: Model Registry & Deployment                       │
+│  - DPO-aligned LoRA adapter registration                   │
+│  - Version management in Azure ML Model Registry           │
+│  - Serverless deployment via AI Foundry                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 8.3 Preference Data Collection
+
+DPO requires pairwise preference data where each example contains:
+1. **Prompt**: The input query or instruction
+2. **Chosen Response**: The preferred/better response
+3. **Rejected Response**: The non-preferred/worse response
+
+**Collection Methods:**
+
+**1. Human Feedback:**
+```python
+from AgentOperatingSystem.ml.pipeline import MLPipelineManager
+from AgentOperatingSystem.config.ml import MLConfig
+
+ml_manager = MLPipelineManager(MLConfig())
+
+# Collect human preference
+ml_manager.collect_preference_data(
+    agent_role="CEO",
+    prompt="What is our Q2 strategy?",
+    response_a="We should focus on market expansion...",
+    response_b="Let me think about that...",
+    preference="a",  # Response A is preferred
+    metadata={
+        "rater": "human_reviewer_1",
+        "confidence": "high",
+        "domain": "strategy"
+    }
+)
+```
+
+**2. Teacher Model Ranking:**
+```python
+from AgentOperatingSystem.ml.dpo_trainer import PreferenceDataCollector
+
+collector = PreferenceDataCollector(
+    storage_path="preference_data/ceo_preferences.jsonl"
+)
+
+# Use Llama 4 or other advanced model to rank responses
+await collector.add_teacher_model_preference(
+    prompt="Analyze Q2 market trends",
+    response_a=model_a_output,
+    response_b=model_b_output,
+    teacher_model="llama-4",
+    metadata={"domain": "analysis"}
+)
+```
+
+**3. Automated Heuristics (Bootstrap):**
+```python
+# Use heuristics for initial data collection
+collector.add_heuristic_preference(
+    prompt="Explain revenue forecasting",
+    response_a=short_response,
+    response_b=detailed_response,
+    heuristic="length",  # Prefer more detailed responses
+    metadata={"source": "bootstrap"}
+)
+```
+
+### 8.4 DPO Training Implementation
+
+**Core API:**
+
+```python
+from AgentOperatingSystem.ml.pipeline import MLPipelineManager
+from AgentOperatingSystem.config.ml import MLConfig
+
+# Initialize ML pipeline
+ml_manager = MLPipelineManager(MLConfig())
+
+# Train DPO adapter on top of existing LoRA
+job_id = await ml_manager.train_dpo_adapter(
+    agent_role="CEO",
+    base_adapter_path="models/ceo_lora_adapter",
+    preference_data_path="preference_data/ceo_preferences.jsonl",
+    output_dir="models/ceo_dpo_adapter",
+    config_override={
+        "beta": 0.1,           # DPO temperature parameter
+        "learning_rate": 5e-5,
+        "batch_size": 4,
+        "num_epochs": 3
+    }
+)
+
+# Monitor training
+status = ml_manager.get_training_status(job_id)
+print(f"Status: {status['status']}, Metrics: {status.get('metrics', {})}")
+```
+
+**Advanced DPO Configuration:**
+
+```python
+from AgentOperatingSystem.ml.dpo_trainer import DPOTrainer, DPOConfig, PreferenceData
+
+# Load preference data
+from AgentOperatingSystem.ml.dpo_trainer import PreferenceDataCollector
+collector = PreferenceDataCollector()
+collector.load_preferences("preference_data/ceo_preferences.jsonl")
+preferences = collector.get_preferences()
+
+# Configure DPO training
+dpo_config = DPOConfig(
+    base_model="meta-llama/Llama-3.1-8B-Instruct",
+    lora_adapter_path="models/ceo_lora_adapter",  # Existing LoRA to build on
+    
+    # DPO-specific hyperparameters
+    beta=0.1,                    # Temperature (higher = more conservative)
+    learning_rate=5e-5,
+    num_epochs=3,
+    batch_size=4,
+    gradient_accumulation_steps=4,
+    
+    # LoRA configuration for DPO layer
+    lora_r=16,
+    lora_alpha=32,
+    lora_dropout=0.05,
+    lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+    
+    # Azure ML infrastructure
+    compute_target="Low-Priority-NC-Series",
+    max_length=2048,
+    max_prompt_length=1024
+)
+
+# Initialize and train
+trainer = DPOTrainer(dpo_config)
+result = trainer.train(
+    preference_data=preferences,
+    output_dir="models/ceo_dpo_adapter",
+    mlflow_experiment_name="aos_dpo_ceo"
+)
+
+print(f"Training completed: {result['metrics']}")
+```
+
+### 8.5 Governance: MLflow Tracking
+
+DPO training integrates with MLflow to track "Implicit Reward" metrics, ensuring the model converges toward human preferences.
+
+**Tracked Metrics:**
+- **Train Loss**: Overall DPO loss (should decrease)
+- **Implicit Reward**: Computed from preference pairs
+- **Accuracy**: Preference prediction accuracy
+- **Convergence**: Gradient norms and learning curves
+
+**MLflow Integration:**
+
+```python
+# MLflow is automatically enabled when training
+ml_config = MLConfig()
+ml_config.enable_mlflow = True
+ml_config.mlflow_tracking_uri = "azureml://..."
+ml_config.mlflow_experiment_prefix = "aos_dpo"
+
+ml_manager = MLPipelineManager(ml_config)
+
+# Training automatically logs to MLflow
+job_id = await ml_manager.train_dpo_adapter(
+    agent_role="CEO",
+    base_adapter_path="models/ceo_lora_adapter",
+    preference_data_path="preference_data/ceo_preferences.jsonl"
+)
+
+# View metrics in MLflow UI or via API
+```
+
+**MLflow Experiment Structure:**
+```
+aos_dpo_CEO/
+├── Run 1 (2025-12-25)
+│   ├── Parameters: beta=0.1, lr=5e-5, batch_size=4
+│   ├── Metrics: train_loss, implicit_reward, accuracy
+│   ├── Artifacts: model_checkpoint, config.json
+│   └── Tags: agent_role=CEO, training_type=dpo
+├── Run 2 (2025-12-26)
+│   └── ...
+```
+
+### 8.6 Deployment
+
+DPO-aligned LoRA adapters are deployed exactly like standard LoRA adapters:
+
+**1. Registration in Azure ML Model Registry:**
+```python
+# Automatically registered during training
+# Manual registration:
+from azure.ai.ml import MLClient
+from azure.ai.ml.entities import Model
+
+ml_client = MLClient(...)
+model = Model(
+    path="models/ceo_dpo_adapter",
+    name="ceo-dpo-llama-3.1-8b",
+    version="1.0.0",
+    type="mlflow_model",
+    description="DPO-aligned LoRA adapter for CEO agent"
+)
+ml_client.models.create_or_update(model)
+```
+
+**2. Serverless Deployment via AI Foundry:**
+```python
+# Deploy to serverless endpoint
+from azure.ai.ml.entities import ManagedOnlineEndpoint, ManagedOnlineDeployment
+
+endpoint = ManagedOnlineEndpoint(
+    name="ceo-dpo-endpoint",
+    auth_mode="key"
+)
+
+deployment = ManagedOnlineDeployment(
+    name="ceo-dpo-deployment",
+    endpoint_name="ceo-dpo-endpoint",
+    model=model,
+    instance_type="Standard_DS3_v2",
+    instance_count=1
+)
+
+ml_client.online_endpoints.begin_create_or_update(endpoint)
+ml_client.online_deployments.begin_create_or_update(deployment)
+```
+
+**3. Multi-Adapter Routing:**
+```python
+# Call with specific adapter via extra_body parameter
+import requests
+
+response = requests.post(
+    "https://ceo-dpo-endpoint.azurewebservices.net/score",
+    headers={"Authorization": f"Bearer {api_key}"},
+    json={
+        "input": "What is our strategic vision for Q2?",
+        "extra_body": {
+            "adapter_id": "ceo_dpo"  # Dynamically select DPO adapter
+        }
+    }
+)
+```
+
+### 8.7 Cost Analysis: DPO vs PPO
+
+**Traditional PPO (Proximal Policy Optimization):**
+- Requires separate reward model training (~8B params)
+- Reward model inference during training
+- Higher GPU memory footprint
+- ~2-3x longer training time
+- Estimated cost: $500-800 per training run
+
+**DPO (Direct Preference Optimization):**
+- No separate reward model needed
+- Direct policy optimization
+- Lower memory requirements
+- Faster convergence
+- Estimated cost: $250-400 per training run
+
+**Cost Breakdown (Azure ML Low-Priority NC6s_v3):**
+```
+DPO Training Run:
+- Compute: $1.20/hour × 3-5 hours = $3.60-6.00
+- Storage: $0.10 (preference data + checkpoints)
+- Total: ~$4-6 per training run
+
+PPO Training Run:
+- Reward Model Training: $1.20/hour × 2 hours = $2.40
+- Policy Training: $1.20/hour × 5-8 hours = $6.00-9.60
+- Total: ~$8-12 per training run
+
+Cost Savings: 30-50% with DPO
+```
+
+### 8.8 Integration with Existing AOS Components
+
+**With Self-Learning System:**
+```python
+from AgentOperatingSystem.ml.self_learning_system import SelfLearningSystem
+
+# Self-learning automatically collects preference data
+self_learning = SelfLearningSystem(ml_manager)
+
+# As agents perform tasks, collect feedback
+await self_learning.record_episode(
+    agent_id="ceo_agent",
+    episode_data={
+        "prompt": prompt,
+        "response": response,
+        "feedback": {"rating": 5, "preferred": True}
+    }
+)
+
+# Periodically trigger DPO training
+if self_learning.should_run_dpo_training("CEO"):
+    await ml_manager.train_dpo_adapter(
+        agent_role="CEO",
+        base_adapter_path="models/ceo_lora_adapter",
+        preference_data_path=self_learning.get_preference_data_path("CEO")
+    )
+```
+
+**With Knowledge Base:**
+```python
+# Use knowledge base to generate comparison responses
+from AgentOperatingSystem.learning.knowledge_manager import KnowledgeManager
+from AgentOperatingSystem.learning.rag_engine import RAGEngine
+
+knowledge_manager = KnowledgeManager()
+rag_engine = RAGEngine(knowledge_manager)
+
+# Generate two responses: standard vs RAG-enhanced
+prompt = "Explain our revenue model"
+response_standard = await agent.generate(prompt)
+response_rag = await rag_engine.generate_response(prompt)
+
+# Collect preference (human or automated)
+ml_manager.collect_preference_data(
+    agent_role="CEO",
+    prompt=prompt,
+    response_a=response_standard,
+    response_b=response_rag,
+    preference="b",  # RAG-enhanced is better
+    metadata={"source": "rag_comparison"}
+)
+```
+
+### 8.9 DPO Status Monitoring
+
+```python
+# Check DPO training status for an agent
+dpo_status = ml_manager.get_dpo_status("CEO")
+
+print(f"""
+DPO Status for CEO:
+- Status: {dpo_status['status']}
+- Has DPO Adapter: {dpo_status['has_dpo_adapter']}
+- Preference Count: {dpo_status['preference_count']}
+- Model Path: {dpo_status.get('model_path', 'N/A')}
+- Metrics: {dpo_status.get('metrics', {})}
+""")
+```
+
+### 8.10 Best Practices
+
+**1. Preference Data Quality:**
+- Aim for 500-1000+ preference pairs for meaningful alignment
+- Ensure diverse prompts covering agent's domain
+- Balance between human and automated preferences (80/20 recommended)
+- Regular quality audits of collected preferences
+
+**2. Training Strategy:**
+- Start with existing task-specific LoRA adapter
+- Apply DPO as secondary alignment layer
+- Use low beta (0.05-0.1) for subtle adjustments
+- Monitor convergence via MLflow
+
+**3. Cost Optimization:**
+- Use Low-Priority/Spot instances (80% cost reduction)
+- Batch multiple agents' DPO training together
+- Schedule training during off-peak hours
+- Leverage checkpoint resume for interrupted jobs
+
+**4. Deployment:**
+- A/B test DPO vs base adapter before full rollout
+- Monitor user satisfaction metrics post-deployment
+- Keep base adapter as fallback
+- Version control all DPO adapters
+
+### 8.11 Security Considerations
+
+**Data Privacy:**
+- Preference data may contain sensitive information
+- Encrypt preference data at rest and in transit
+- Implement access controls for preference collection
+- Audit preference data access
+
+**Model Security:**
+- Validate preference data sources
+- Prevent adversarial preference injection
+- Monitor for reward hacking patterns
+- Implement content safety filters
+
+---
+
+## 9. Advanced ML Pipeline Capabilities
+
+### 9.1 Federated Learning for Multi-Agent Systems
 
 **Collaborative Model Training:**
 ```python
@@ -373,31 +810,30 @@ await fed_coordinator.setup_federation(
 )
 ```
 
-### 8.2 AutoML and Neural Architecture Search
-### 8.3 Continuous Learning and Online Adaptation  
-### 8.4 Multi-Modal Model Integration
-### 8.5 Explainable AI and Model Interpretability
-### 8.6 Model Versioning and A/B Testing
-### 8.7 Efficient Model Serving
-### 8.8 Reinforcement Learning from Human Feedback (RLHF)
-### 8.9 Model Monitoring and Drift Detection
-### 8.10 Edge ML and Distributed Inference
+### 9.2 AutoML and Neural Architecture Search
+### 9.3 Continuous Learning and Online Adaptation  
+### 9.4 Multi-Modal Model Integration
+### 9.5 Explainable AI and Model Interpretability
+### 9.6 Model Versioning and A/B Testing
+### 9.7 Efficient Model Serving
+### 9.8 Model Monitoring and Drift Detection
+### 9.9 Edge ML and Distributed Inference
 
 ---
 
-## 9. Future ML Pipeline Enhancements
+## 10. Future ML Pipeline Enhancements
 
-### 9.1 Quantum Machine Learning
+### 10.1 Quantum Machine Learning
 - **Quantum neural networks** for optimization problems
 - **Variational quantum algorithms** for training
 - **Quantum-enhanced** feature extraction
 
-### 9.2 Neuromorphic Computing Integration
+### 10.2 Neuromorphic Computing Integration
 - **Spiking neural networks** for energy-efficient inference
 - **Brain-inspired** learning algorithms
 - **Event-driven** model processing
 
-### 9.3 Photonic AI
+### 10.3 Photonic AI
 - **Light-based** neural networks
 - **Optical** matrix multiplication
 - **Ultra-fast** inference at speed of light
@@ -405,7 +841,7 @@ await fed_coordinator.setup_federation(
 ---
 
 **Document Approval:**
-- **Status:** Implemented and Active (Sections 1-7), Specification for Future Development (Sections 8-9)
+- **Status:** Implemented and Active (Sections 1-8), Specification for Future Development (Sections 9-10)
 - **Last Updated:** December 25, 2025
 - **Next Review:** Q2 2026
 - **Owner:** AOS ML Team
