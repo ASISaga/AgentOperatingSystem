@@ -41,5 +41,5 @@ class MLConfig:
             # MLflow configuration
             enable_mlflow=os.getenv("AOS_ENABLE_MLFLOW", "true").lower() == "true",
             mlflow_tracking_uri=os.getenv("AOS_MLFLOW_TRACKING_URI", ""),
-            mlflow_experiment_prefix=os.getenv("AOS_MLFLOW_EXPERIMENT_PREFIX", "aos_dpo")
+            mlflow_experiment_prefix=os.getenv("AOS_MLFLOW_EXPERIMENT_PREFIX", "aos_dpo"),
         )

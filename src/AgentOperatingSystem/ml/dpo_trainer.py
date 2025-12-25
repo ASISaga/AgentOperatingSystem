@@ -432,33 +432,28 @@ class PreferenceDataCollector:
         """
         Use a teacher model (e.g., Llama 4) to rank responses.
         
+        Note: This functionality requires integration with the ML pipeline
+        for teacher model inference. It is not yet implemented.
+        
         Args:
             prompt: The input prompt
             response_a: First response option
             response_b: Second response option
             teacher_model: Name/ID of teacher model to use for ranking
             metadata: Optional metadata
+            
+        Raises:
+            NotImplementedError: This feature is not yet implemented
         """
-        # This would integrate with the ML pipeline to call the teacher model
-        # For now, this is a placeholder implementation
-        
-        ranking_prompt = f"""Given the following prompt and two responses, which response is better?
-
-Prompt: {prompt}
-
-Response A: {response_a}
-
-Response B: {response_b}
-
-Answer with only 'A' or 'B' to indicate which response is better."""
-        
-        # TODO: Integrate with actual teacher model inference
-        # For now, we'll add a placeholder
-        self.logger.warning("Teacher model ranking not yet implemented. Skipping this preference.")
-        
-        # When implemented, would look like:
-        # preference = await call_teacher_model(teacher_model, ranking_prompt)
-        # self.add_human_preference(prompt, response_a, response_b, preference, metadata)
+        raise NotImplementedError(
+            "Teacher model ranking is not yet implemented. "
+            "This requires integration with the ML pipeline to call the teacher model. "
+            "Use add_human_preference() or add_heuristic_preference() instead."
+        )
+    
+    # Heuristic thresholds for response quality
+    MIN_RESPONSE_LENGTH = 50
+    MAX_RESPONSE_LENGTH = 2000
     
     def add_heuristic_preference(
         self,
@@ -481,11 +476,11 @@ Answer with only 'A' or 'B' to indicate which response is better."""
             metadata: Optional metadata
         """
         if heuristic == "length":
-            # Prefer longer, more detailed responses (up to a point)
+            # Prefer longer, more detailed responses (within reasonable bounds)
             len_a, len_b = len(response_a), len(response_b)
-            if 50 < len_a < 2000 and len_a > len_b:
+            if self.MIN_RESPONSE_LENGTH < len_a < self.MAX_RESPONSE_LENGTH and len_a > len_b:
                 preference = 'a'
-            elif 50 < len_b < 2000 and len_b > len_a:
+            elif self.MIN_RESPONSE_LENGTH < len_b < self.MAX_RESPONSE_LENGTH and len_b > len_a:
                 preference = 'b'
             else:
                 # Skip if heuristic is inconclusive
