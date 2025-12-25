@@ -61,10 +61,8 @@ Finally, the system is backed by Microsoft’s managed service guarantees, provi
 4.  **Registration:** Register each specialized adapter in the **Azure ML Model Registry** with descriptive version tags (e.g., `v2025.12.production`).
 
 ### Phase II: Deployment & Routing (Azure AI Foundry)
-1.  **Serverless Deployment:** Navigate to the 
-
-
- and select the base **Llama-3.1-8B-Instruct** model from the catalog.
+1.  **Serverless Deployment:** Navigate to the
+Azure AI Foundry portal and select the base **Llama-3.1-8B-Instruct** model from the catalog.
 2.  **MaaS Activation:** Choose **Deploy > Serverless API** to enable pay-per-token inference with no management overhead.
 3.  **Multi-Adapter Routing:** Configure the deployment to pull the 10 adapters from the registry. Users can dynamically toggle between adapters by including an `extra_body` parameter with the specific `adapter_id` in their API requests.
 4.  **Endpoint Security:** Front the serverless endpoint with **Azure API Management** to enforce rate limits and enterprise-wide authentication.
