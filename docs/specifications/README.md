@@ -407,7 +407,14 @@ Reference performance characteristics for capacity planning:
 | MCP | Tool call | Variable | Variable |
 | Orchestration | Workflow step | < 10ms | 5,000 steps/sec |
 
-*Benchmarks based on Azure Standard tier infrastructure*
+**Test Conditions:**
+- Infrastructure: Azure Standard tier (D4s v3 instances)
+- Region: Single region (West US 2)
+- Load: Sustained 50% of maximum capacity
+- Measurement: 95th percentile over 24-hour period
+- Network: Standard Azure networking within same region
+
+*These benchmarks are reference values. Actual performance depends on workload characteristics, configuration, and infrastructure choices.*
 
 ---
 
@@ -542,13 +549,15 @@ AOS implements these proven patterns:
 
 ### **Data Scaling**
 
-| Data Type | Storage | Limit | Retention |
-|-----------|---------|-------|-----------|
-| Messages | Service Bus | 80 GB per namespace | 7-30 days |
-| Blobs | Blob Storage | 5 PB per account | Configurable |
-| Tables | Table Storage | 500 TB per account | Configurable |
-| Audit Logs | Append Blobs | Unlimited | Legal requirements |
+| Data Type | Storage | Practical Limit | Retention |
+|-----------|---------|----------------|-----------|
+| Messages | Service Bus | 1 GB (Standard) / 80+ GB (Premium) | 7-30 days |
+| Blobs | Blob Storage | 5 PB per account (500 TB default) | Configurable |
+| Tables | Table Storage | Effectively unlimited | Configurable |
+| Audit Logs | Append Blobs | Effectively unlimited | Legal requirements |
 | ML Models | Blob Storage | 100 GB per model | Versioned |
+
+*Note: Limits are based on Azure documentation as of December 2025. Check current Azure documentation for latest quotas and limits.*
 
 ---
 

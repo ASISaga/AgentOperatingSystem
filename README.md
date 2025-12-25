@@ -32,13 +32,15 @@ Traditional operating systems manage hardware resources for software application
 | Memory Management | Storage & State Management |
 | File System | Unified Storage Layer (Blob, Table, Queue) |
 | Inter-Process Communication (IPC) | Agent-to-Agent Messaging & MCP |
-| Device Drivers | Azure Service Integrations |
+| System Libraries & SDKs | Azure Service Integrations |
 | System Calls | AOS APIs & Service Layer |
 | Kernel | Orchestration Engine |
 | User Space | Business Applications |
 | Scheduler | Workflow Orchestrator |
 | Security Layer | Authentication & Authorization |
 | Logging & Monitoring | Observability System |
+
+*Note: These analogies help understand AOS concepts, but AOS is purpose-built for AI agents rather than a direct OS port.*
 
 ---
 
@@ -1008,6 +1010,15 @@ Typical performance metrics on Azure:
 | Storage operations | < 50ms |
 | Authentication | < 200ms |
 | Workflow orchestration overhead | < 10ms per step |
+
+**Measurement Conditions:**
+- Infrastructure: Azure Standard D4s v3 instances
+- Region: West US 2 (single region)
+- Load: 50% sustained capacity
+- Duration: 24-hour measurement period
+- Network: Azure backbone (intra-region)
+
+*Actual performance varies based on workload, configuration, data volume, and infrastructure tier. Use these as reference values for capacity planning.*
 
 ### **Cost Optimization**
 

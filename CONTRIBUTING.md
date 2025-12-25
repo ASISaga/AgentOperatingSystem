@@ -284,7 +284,7 @@ black src/ tests/
 ruff src/ tests/
 
 # Type checking
-mypy src/
+mypy src/ tests/
 
 # Run all checks
 make lint  # or: pre-commit run --all-files
