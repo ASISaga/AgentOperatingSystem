@@ -344,7 +344,6 @@ class DPOTrainer:
                 mlflow.end_run()
             except Exception as e:
                 self.logger.warning(f"MLflow logging failed: {e}")
-                pass
         
         self.training_state["status"] = "completed"
         self.training_state["metrics"] = metrics

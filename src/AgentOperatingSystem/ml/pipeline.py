@@ -543,7 +543,6 @@ class MLPipelineManager:
             collector.load_preferences()
         except (FileNotFoundError, IOError) as e:
             self.logger.debug(f"No existing preferences found: {e}")
-            pass  # No existing preferences
         
         # Add new preference
         collector.add_human_preference(
@@ -598,7 +597,6 @@ class MLPipelineManager:
                     preference_count = sum(1 for _ in f)
             except (IOError, PermissionError) as e:
                 self.logger.warning(f"Could not count preferences in {pref_path}: {e}")
-                pass
         
         return {
             "status": adapter_info.get("status", "unknown"),
