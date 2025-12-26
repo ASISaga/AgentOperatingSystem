@@ -11,7 +11,7 @@ Domain-specific event types and business logic should be implemented in the
 application layer (e.g., BusinessInfinity).
 
 Usage:
-    from AgentOperatingSystem.audit_trail import AuditTrailManager, AuditEvent
+    from AgentOperatingSystem.monitoring.audit_trail_generic import AuditTrailManager, AuditEvent
     
     # Create manager
     audit = AuditTrailManager(storage_path="./audit_logs")

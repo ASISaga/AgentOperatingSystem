@@ -10,7 +10,7 @@ This module provides generic, reusable reliability patterns for any agent-based 
 These patterns ensure robust fault tolerance and resilience in distributed systems.
 
 Usage:
-    from AgentOperatingSystem.reliability import CircuitBreaker, RetryPolicy, with_retry
+    from AgentOperatingSystem.reliability.patterns import CircuitBreaker, RetryPolicy, with_retry
     
     # Use as decorator
     @with_retry(max_retries=3)

@@ -9,11 +9,11 @@ This module provides generic, reusable observability capabilities for any agent-
 
 These capabilities provide visibility into system behavior and performance.
 
-NOTE: For async applications, consider using contextvars instead of threading.local()
-for correlation context to properly handle async/await patterns.
+This implementation uses contextvars for correlation context, which properly
+handles both synchronous and asynchronous code execution.
 
 Usage:
-    from AgentOperatingSystem.observability import (
+    from AgentOperatingSystem.observability.structured import (
         correlation_scope, StructuredLogger, get_metrics_collector
     )
     
@@ -36,13 +36,12 @@ from datetime import datetime
 from contextlib import contextmanager
 from collections import defaultdict
 import json
+import contextvars
 
 
-# Thread-local storage for correlation context
-# NOTE: For async applications using asyncio, consider using contextvars.ContextVar
-# instead of threading.local() for proper async context propagation
-import threading
-_correlation_context = threading.local()
+# Use contextvars for proper async context propagation
+# This works for both sync and async code, unlike threading.local()
+_correlation_context = contextvars.ContextVar('correlation_context', default=None)
 
 
 class CorrelationContext:
@@ -90,13 +89,13 @@ class CorrelationContext:
 
 
 def get_correlation_context() -> Optional[CorrelationContext]:
-    """Get current correlation context from thread-local storage."""
-    return getattr(_correlation_context, 'current', None)
+    """Get current correlation context from contextvars."""
+    return _correlation_context.get()
 
 
 def set_correlation_context(context: CorrelationContext):
-    """Set correlation context in thread-local storage."""
-    _correlation_context.current = context
+    """Set correlation context in contextvars."""
+    _correlation_context.set(context)
 
 
 @contextmanager
