@@ -34,7 +34,13 @@ from .environment.manager import EnvironmentManager, env_manager
 from .mcp.client import MCPClient, MCPClientManager
 from .learning import KnowledgeManager, RAGEngine, InteractionLearner, SelfLearningMixin, DomainExpert, LearningPipeline
 
-__version__ = "1.0.0"
+# Infrastructure components from migration
+from .reliability.patterns import CircuitBreaker, RetryPolicy, IdempotencyHandler, with_retry, with_circuit_breaker
+from .observability.structured import StructuredLogger as StructuredLoggerNew, correlation_scope, get_metrics_collector, get_health_check
+from .services.service_interfaces import IStorageService, IMessagingService, IWorkflowService, IAuthService
+from .monitoring.audit_trail_generic import AuditTrailManager as AuditTrailManagerNew, AuditEvent as AuditEventNew, AuditSeverity
+
+__version__ = "1.1.0"
 __author__ = "ASISaga"
 
 # Main exports
@@ -108,4 +114,22 @@ __all__ = [
     "SelfLearningMixin",
     "DomainExpert",
     "LearningPipeline",
+    
+    # Infrastructure components (from migration)
+    "CircuitBreaker",
+    "RetryPolicy",
+    "IdempotencyHandler",
+    "with_retry",
+    "with_circuit_breaker",
+    "StructuredLoggerNew",
+    "correlation_scope",
+    "get_metrics_collector",
+    "get_health_check",
+    "IStorageService",
+    "IMessagingService",
+    "IWorkflowService",
+    "IAuthService",
+    "AuditTrailManagerNew",
+    "AuditEventNew",
+    "AuditSeverity",
 ]

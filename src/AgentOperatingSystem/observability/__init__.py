@@ -10,12 +10,24 @@ from .tracing import TracingContext, Span, TraceLevel
 from .logging import StructuredLogger, LogEntry, LogLevel, LogSeparator
 from .alerting import AlertingSystem, Alert, AlertSeverity, AlertRule
 
+# Generic observability from migration
+try:
+    from .structured import (
+        StructuredLogger as GenericStructuredLogger,
+        correlation_scope,
+        get_metrics_collector,
+        get_health_check
+    )
+    HAS_STRUCTURED = True
+except ImportError:
+    HAS_STRUCTURED = False
+
 # Advanced observability features
 try:
     from .predictive import AnomalyDetector, PredictiveAlerter, CapacityPlanner
     from .dashboard import MetricsAggregator, DashboardBuilder, MetricType as AdvancedMetricType
     
-    __all__ = [
+    base_exports = [
         'MetricsCollector',
         'Metric',
         'MetricType',
@@ -37,8 +49,18 @@ try:
         'MetricsAggregator',
         'DashboardBuilder'
     ]
+    
+    if HAS_STRUCTURED:
+        base_exports.extend([
+            'GenericStructuredLogger',
+            'correlation_scope',
+            'get_metrics_collector',
+            'get_health_check'
+        ])
+    
+    __all__ = base_exports
 except ImportError:
-    __all__ = [
+    base_exports = [
         'MetricsCollector',
         'Metric',
         'MetricType',
@@ -54,3 +76,13 @@ except ImportError:
         'AlertSeverity',
         'AlertRule'
     ]
+    
+    if HAS_STRUCTURED:
+        base_exports.extend([
+            'GenericStructuredLogger',
+            'correlation_scope',
+            'get_metrics_collector',
+            'get_health_check'
+        ])
+    
+    __all__ = base_exports

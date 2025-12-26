@@ -15,12 +15,25 @@ from .circuit_breaker import CircuitBreaker, CircuitState
 from .state_machine import StateMachine, State, Transition
 from .backpressure import BackpressureController, LoadShedder
 
+# Generic reliability patterns from migration
+try:
+    from .patterns import (
+        CircuitBreaker as GenericCircuitBreaker,
+        RetryPolicy as GenericRetryPolicy,
+        IdempotencyHandler as GenericIdempotencyHandler,
+        with_retry,
+        with_circuit_breaker
+    )
+    HAS_PATTERNS = True
+except ImportError:
+    HAS_PATTERNS = False
+
 # Advanced reliability features
 try:
     from .state_machine_advanced import DistributedStateMachine, StateTransitionError
     from .chaos import ChaosOrchestrator, ChaosType
     
-    __all__ = [
+    base_exports = [
         'IdempotencyHandler',
         'IdempotencyKey',
         'RetryPolicy',
@@ -39,8 +52,19 @@ try:
         'ChaosOrchestrator',
         'ChaosType'
     ]
+    
+    if HAS_PATTERNS:
+        base_exports.extend([
+            'GenericCircuitBreaker',
+            'GenericRetryPolicy',
+            'GenericIdempotencyHandler',
+            'with_retry',
+            'with_circuit_breaker'
+        ])
+    
+    __all__ = base_exports
 except ImportError:
-    __all__ = [
+    base_exports = [
         'IdempotencyHandler',
         'IdempotencyKey',
         'RetryPolicy',
@@ -54,3 +78,14 @@ except ImportError:
         'BackpressureController',
         'LoadShedder'
     ]
+    
+    if HAS_PATTERNS:
+        base_exports.extend([
+            'GenericCircuitBreaker',
+            'GenericRetryPolicy',
+            'GenericIdempotencyHandler',
+            'with_retry',
+            'with_circuit_breaker'
+        ])
+    
+    __all__ = base_exports
