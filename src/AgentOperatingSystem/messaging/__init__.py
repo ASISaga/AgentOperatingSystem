@@ -41,3 +41,24 @@ if ADVANCED_MESSAGING_AVAILABLE:
         "create_conversation_system", "create_agent_coordination_conversation", "create_decision_conversation",
         "NetworkProtocol", "NetworkMessage", "NetworkNode"
     ])
+
+# Advanced messaging features (try-except for optional dependencies)
+try:
+    from .streaming import EventStream, StreamProcessor, ComplexEventProcessor
+    from .saga import SagaOrchestrator, SagaStatus, ChoreographyEngine
+    from .routing import IntelligentRouter
+    from .priority import PriorityQueueManager, PriorityLevel
+    
+    __all__.extend([
+        "EventStream",
+        "StreamProcessor",
+        "ComplexEventProcessor",
+        "SagaOrchestrator",
+        "SagaStatus",
+        "ChoreographyEngine",
+        "IntelligentRouter",
+        "PriorityQueueManager",
+        "PriorityLevel"
+    ])
+except ImportError:
+    pass  # Advanced features not available
