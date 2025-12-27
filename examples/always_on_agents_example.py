@@ -23,9 +23,15 @@ to business events as they occur.
 """
 
 import asyncio
+import sys
+import os
 from datetime import datetime
-from src.AgentOperatingSystem.agents.always_on import AlwaysOnAgent
-from src.AgentOperatingSystem.agents.manager import UnifiedAgentManager
+
+# Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from AgentOperatingSystem.agents.always_on import AlwaysOnAgent
+from AgentOperatingSystem.agents.manager import UnifiedAgentManager
 
 
 class CEOAgent(AlwaysOnAgent):

@@ -28,10 +28,30 @@
 
 The **Agent Operating System (AOS)** is a complete, production-grade operating system for AI agents built on Microsoft Azure and the Microsoft Agent Framework. Just as traditional operating systems provide foundational infrastructure for applications, AOS provides the **kernel, system services, runtime environment, and application framework** for autonomous AI agents.
 
+### The Core Architectural Difference: Always-On vs Task-Based
+
+**The fundamental architectural principle of AOS is PERSISTENCE.**
+
+Traditional AI frameworks use a **task-based session model**:
+- Agents are created for specific tasks
+- Agents execute and then terminate
+- State is lost between sessions
+- Manual lifecycle management required
+
+AOS uses an **always-on persistent model**:
+- Agents are registered once and run indefinitely
+- Agents sleep when idle, awaken on events
+- State persists across the agent's entire lifetime
+- Event-driven, automatic lifecycle management
+
+This architectural choice makes AOS a true "operating system" - agents are like daemon processes that continuously run, respond to events, and maintain state, rather than short-lived scripts that execute and exit.
+
 ### Key Architectural Characteristics
 
+- **Always-On Architecture** - Agents run indefinitely as persistent entities
+- **Event-Driven** - Agents awaken automatically in response to events
+- **Persistent State** - Agent context preserved across all interactions
 - **Layered Architecture** - Clear separation between kernel, services, and applications
-- **Event-Driven** - Asynchronous, message-based communication
 - **Cloud-Native** - Designed for Azure, distributed and scalable
 - **Modular** - Loosely coupled components with well-defined interfaces
 - **Observable** - Built-in instrumentation at every layer
@@ -51,6 +71,7 @@ The **Agent Operating System (AOS)** is a complete, production-grade operating s
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐               │
 │  │   CEO      │  │    CFO     │  │    CTO     │  + Custom     │
 │  │   Agent    │  │   Agent    │  │   Agent    │    Agents     │
+│  │ [ALWAYS-ON]│  │ [ALWAYS-ON]│  │ [ALWAYS-ON]│  [ALWAYS-ON]  │
 │  └────────────┘  └────────────┘  └────────────┘               │
 └─────────────────────────────────────────────────────────────────┘
                     ↕ System Calls (Python API)
@@ -60,6 +81,7 @@ The **Agent Operating System (AOS)** is a complete, production-grade operating s
 │  │  Core Services                                           │  │
 │  │  • Auth & Authorization  • Storage Management           │  │
 │  │  • Message Bus           • Environment & Config         │  │
+│  │  • Event Distribution    • State Persistence            │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  Advanced Services                                       │  │
@@ -77,10 +99,12 @@ The **Agent Operating System (AOS)** is a complete, production-grade operating s
 │                        KERNEL LAYER                             │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  Orchestration Engine  │  Agent Lifecycle Manager        │  │
+│  │  [Event Router]        │  [Always-On Manager]            │  │
 │  ├────────────────────────┼────────────────────────────────┤  │
 │  │  Resource Scheduler    │  State Machine Manager         │  │
 │  ├────────────────────────┼────────────────────────────────┤  │
 │  │  Event Bus             │  Policy Enforcement Engine     │  │
+│  │  [Pub/Sub]             │  [Event-Driven]                │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                     ↕ Azure SDK & APIs
@@ -89,6 +113,7 @@ The **Agent Operating System (AOS)** is a complete, production-grade operating s
 │              Microsoft Azure Cloud Platform                     │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  Service Bus  │  Storage  │  ML  │  Monitor  │  AD      │  │
+│  │  [Events]     │ [State]   │      │           │          │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -122,25 +147,57 @@ The **Agent Operating System (AOS)** is a complete, production-grade operating s
 
 **Components:**
 - **Orchestration Engine** (`orchestration/`) - Workflow and agent coordination
-- **Agent Lifecycle Manager** (`agents/`) - Agent creation and management
+- **Agent Lifecycle Manager** (`agents/`) - Always-on agent management
 - **Resource Scheduler** - Resource allocation and scheduling
 - **State Machine Manager** (`reliability/state_machine.py`) - Workflow state management
-- **Event Bus** (`messaging/`) - Internal event distribution
+- **Event Bus** (`messaging/`) - Event distribution and agent awakening
 - **Policy Enforcement Engine** (`governance/`) - Runtime policy checks
 
 **Responsibilities:**
-- Agent lifecycle management (create, run, monitor, terminate)
+- Agent lifecycle management (register, run indefinitely, monitor, deregister)
+- **Always-on agent operations** - persistent agent lifecycle
+- **Event-driven awakening** - automatically wake agents for relevant events
 - Workflow orchestration and coordination
 - Resource scheduling and allocation
-- State management and persistence
+- **Persistent state management** - maintain agent context across events
 - Event routing and distribution
 - Policy enforcement
+
+**Always-On Architecture:**
+
+The kernel implements the core always-on model:
+
+1. **Agent Registration:** Agents register once and enter an indefinite run loop
+2. **Sleep Mode:** Idle agents sleep to conserve resources
+3. **Event Awakening:** Agents automatically awaken when subscribed events occur
+4. **State Persistence:** Agent state is preserved across all awakenings
+5. **Continuous Operation:** Agents run until explicitly deregistered
+
+```
+Agent Lifecycle in AOS:
+
+Register → [Initialize] → [Start Always-On Loop]
+                              ↓
+                         [Sleep Mode] ←─────────────┐
+                              ↓                      │
+                     [Event Received]                │
+                              ↓                      │
+                    [Awaken & Process]               │
+                              ↓                      │
+                      [Save State]                   │
+                              ↓                      │
+                    [Return to Sleep] ───────────────┘
+                              ↓
+                    [Runs indefinitely until deregistered]
+```
 
 **Key Characteristics:**
 - Minimal and stable
 - High performance (< 10ms overhead per operation)
 - Highly reliable (99.99% uptime)
 - Fully asynchronous
+- **Event-driven** - agents respond to events, not polling
+- **Persistent** - agents maintain state indefinitely
 
 ### Layer 3: System Service Layer
 
