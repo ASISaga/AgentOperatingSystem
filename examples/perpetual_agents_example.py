@@ -1,5 +1,5 @@
 """
-Example: Always-On Agent Operating System
+Example: Perpetual Agent Operating System
 
 This example demonstrates the key difference between Agent Operating System
 and traditional AI frameworks:
@@ -11,7 +11,7 @@ TRADITIONAL AI FRAMEWORKS (Task-Based):
 - State is lost unless explicitly saved
 - Must restart agent for each new task
 
-AGENT OPERATING SYSTEM (Always-On):
+AGENT OPERATING SYSTEM (Perpetual):
 - Register agent once
 - Agent runs indefinitely
 - Agent responds to events automatically
@@ -30,7 +30,7 @@ from datetime import datetime
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from AgentOperatingSystem.agents.always_on import AlwaysOnAgent
+from AgentOperatingSystem.agents.perpetual import AlwaysOnAgent
 from AgentOperatingSystem.agents.manager import UnifiedAgentManager
 
 
@@ -131,9 +131,9 @@ class CTOAgent(AlwaysOnAgent):
         return {"approved": True, "deployment_count": len(self.deployments)}
 
 
-async def demonstrate_always_on_agents():
+async def demonstrate_perpetual_agents():
     """
-    Demonstrate the always-on agent model.
+    Demonstrate the perpetual agent model.
     
     In this demo:
     1. Agents are registered once and run indefinitely
@@ -143,7 +143,7 @@ async def demonstrate_always_on_agents():
     """
     
     print("=" * 80)
-    print("AGENT OPERATING SYSTEM - Always-On Agent Demo")
+    print("AGENT OPERATING SYSTEM - Perpetual Agent Demo")
     print("=" * 80)
     print()
     
@@ -161,11 +161,11 @@ async def demonstrate_always_on_agents():
     await cfo.subscribe_to_event("BudgetRequest", cfo.handle_budget_request)
     await cto.subscribe_to_event("Deployment", cto.handle_deployment)
     
-    # Register agents as always-on
-    print("🔄 Registering agents in always-on mode...")
-    await manager.register_agent(ceo, always_on=True)
-    await manager.register_agent(cfo, always_on=True)
-    await manager.register_agent(cto, always_on=True)
+    # Register agents as perpetual
+    print("🔄 Registering agents in perpetual mode...")
+    await manager.register_agent(ceo, perpetual=True)
+    await manager.register_agent(cfo, perpetual=True)
+    await manager.register_agent(cto, perpetual=True)
     
     print()
     print("✅ Agents registered and running indefinitely!")
@@ -175,8 +175,8 @@ async def demonstrate_always_on_agents():
     stats = manager.get_agent_statistics()
     print(f"📊 Agent Statistics:")
     print(f"   Total Agents: {stats['total_agents']}")
-    print(f"   Always-On Agents: {stats['always_on_agents']}")
-    print(f"   Always-On Percentage: {stats['always_on_percentage']:.0f}%")
+    print(f"   Perpetual Agents: {stats['perpetual_agents']}")
+    print(f"   Perpetual Percentage: {stats['perpetual_percentage']:.0f}%")
     print()
     
     # Simulate business events over time
@@ -291,7 +291,7 @@ async def demonstrate_always_on_agents():
     print("4. ✅ Agents are STILL RUNNING (not terminated)")
     print("5. ✅ Each agent maintains its own context and history")
     print()
-    print("This is the Agent Operating System model: Always-On, Event-Driven, Persistent")
+    print("This is the Agent Operating System model: Perpetual, Event-Driven, Persistent")
     print()
     print("CONTRAST WITH TRADITIONAL FRAMEWORKS:")
     print("- Traditional: Start agent → Process task → Stop agent → Lose state")
@@ -337,12 +337,12 @@ async def demonstrate_traditional_vs_aos():
     print("❌ Manual lifecycle management")
     print()
     
-    print("AGENT OPERATING SYSTEM (Always-On):")
+    print("AGENT OPERATING SYSTEM (Perpetual):")
     print("-" * 80)
     print("```python")
     print("# Register once")
     print("agent = AlwaysOnAgent(agent_id='ceo')")
-    print("manager.register_agent(agent, always_on=True)")
+    print("manager.register_agent(agent, perpetual=True)")
     print()
     print("# Agent runs indefinitely, responds to events")
     print("# Day 1")
@@ -364,5 +364,5 @@ async def demonstrate_traditional_vs_aos():
 
 if __name__ == "__main__":
     # Run the demonstrations
-    asyncio.run(demonstrate_always_on_agents())
+    asyncio.run(demonstrate_perpetual_agents())
     asyncio.run(demonstrate_traditional_vs_aos())

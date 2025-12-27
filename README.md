@@ -7,7 +7,7 @@
 
 ---
 
-## 🎯 The Fundamental Difference: Always-On vs Task-Based
+## 🎯 The Fundamental Difference: Perpetual vs Task-Based
 
 **The key difference between Agent Operating System and traditional AI frameworks is PERSISTENCE.**
 
@@ -21,25 +21,31 @@ Traditional frameworks run **temporary sessions**:
 
 **Memory is session-focused** - agents remember only the current mission.
 
-### Agent Operating System (Always-On Persistence)
-AOS agents are **permanent entities that never stop**:
+### Agent Operating System (Perpetual Operation)
+AOS agents are **Purpose-Driven Perpetual entities that never stop**:
 - 🔄 Register agent once - it runs indefinitely
 - 😴 Agent sleeps when idle (resource efficient)
 - ⚡ Agent awakens automatically when events occur
-- 💾 State persists forever across all interactions
+- 💾 State persists forever via dedicated MCP server
 - 🎯 Event-driven reactive behavior
 - 🏃 Never terminates unless explicitly deregistered
+- 🎭 **PurposeDrivenAgent** works against perpetual, assigned purpose (not short-term tasks)
 
-**Memory is persistent** - agents build knowledge continuously over their lifetime.
+**Memory is persistent** - agents build knowledge continuously over their lifetime through MCP context preservation.
+
+### The Foundation: PurposeDrivenAgent
+
+**PurposeDrivenAgent** (from the [PurposeDrivenAgent package](https://github.com/ASISaga/PurposeDrivenAgent)) inherits from **PerpetualAgent** and is the fundamental building block of AgentOperatingSystem. It makes AOS an operating system of Purpose-Driven, Perpetual Agents.
 
 ### Why This Matters
 
-| Aspect | Traditional (Task-Based) | AOS (Always-On) |
-|--------|-------------------------|-----------------|
+| Aspect | Traditional (Task-Based) | AOS (Perpetual + Purpose-Driven) |
+|--------|-------------------------|----------------------------------|
 | **Lifecycle** | Temporary session | Permanent entity |
 | **Activation** | Manual start/stop | Event-driven awakening |
-| **State** | Lost after completion | Persists indefinitely |
-| **Context** | Current task only | Full history |
+| **State** | Lost after completion | Persists via MCP indefinitely |
+| **Context** | Current task only | Full history via MCP |
+| **Purpose** | Short-term tasks | Long-term assigned purpose |
 | **Operations** | Sequential tasks | Continuous operations |
 | **Paradigm** | Script execution | Operating system |
 
@@ -50,11 +56,19 @@ for task in tasks:
     result = agent.run(task)    # Process task
     # Agent terminates, state lost
 
-# Agent Operating System
-agent = AlwaysOnAgent("ceo")
-manager.register_agent(agent, always_on=True)  # Register once
+# Agent Operating System - Perpetual Operation
+agent = PerpetualAgent(agent_id="ceo", adapter_name="ceo")
+manager.register_agent(agent)  # Register once, runs perpetually by default
 # Agent now runs FOREVER, responding to events automatically
-# State persists across all events, days, months, years
+# State persists via dedicated MCP server across all events
+
+# Purpose-Driven Perpetual Agent (Fundamental Building Block)
+from PurposeDrivenAgent import PurposeDrivenAgent
+purpose_agent = PurposeDrivenAgent(
+    purpose="Strategic oversight and decision-making",
+    agent_id="ceo"
+)
+# Works against assigned purpose perpetually, not short-term tasks
 ```
 
 ---
@@ -65,7 +79,8 @@ The **Agent Operating System (AOS)** is not just orchestration code or a framewo
 
 **AOS is pure infrastructure** - a domain-agnostic platform that provides everything agents need to:
 - **Boot and run** (lifecycle management)
-- **Persist indefinitely** (always-on operations)
+- **Operate perpetually** (Purpose-Driven Perpetual agents)
+- **Preserve context** (dedicated MCP servers for each agent)
 - **Respond to events** (event-driven awakening)
 - **Communicate** (messaging and protocols)
 - **Store data** (unified storage layer)
@@ -83,8 +98,8 @@ Traditional operating systems manage hardware resources for software application
 | Traditional OS | Agent Operating System (AOS) |
 |----------------|------------------------------|
 | Process Management | Agent Lifecycle Management |
-| Daemon Processes | Always-On Agents |
-| Memory Management | Storage & State Management |
+| Daemon Processes | Perpetual Agents |
+| Memory Management | MCP Context Preservation & Storage |
 | File System | Unified Storage Layer (Blob, Table, Queue) |
 | Inter-Process Communication (IPC) | Agent-to-Agent Messaging & MCP |
 | Event Loop | Event-Driven Awakening |

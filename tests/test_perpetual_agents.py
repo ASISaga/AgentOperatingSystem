@@ -1,8 +1,8 @@
 """
-Tests for Always-On Agent functionality
+Tests for Perpetual Agent functionality
 
 This test suite validates the core USP of Agent Operating System:
-always-on, event-driven, persistent agents vs traditional task-based sessions.
+perpetual, event-driven, persistent agents vs traditional task-based sessions.
 """
 
 import pytest
@@ -14,12 +14,12 @@ from datetime import datetime
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from AgentOperatingSystem.agents.always_on import AlwaysOnAgent
+from AgentOperatingSystem.agents.perpetual import PerpetualAgent
 from AgentOperatingSystem.agents.manager import UnifiedAgentManager
 
 
-class TestAlwaysOnAgent:
-    """Test the always-on agent implementation"""
+class TestPerpetualAgent:
+    """Test the perpetual agent implementation"""
     
     @pytest.mark.asyncio
     async def test_agent_persistence_across_events(self):
@@ -29,8 +29,8 @@ class TestAlwaysOnAgent:
         This demonstrates the key difference from task-based frameworks:
         the agent maintains context across all interactions.
         """
-        # Create always-on agent
-        agent = AlwaysOnAgent(
+        # Create perpetual agent
+        agent = PerpetualAgent(
             agent_id="test_ceo",
             name="Test CEO",
             role="executive"
@@ -73,7 +73,7 @@ class TestAlwaysOnAgent:
         Demonstrates event-driven nature: agent sleeps when idle,
         awakens to process events, then returns to sleep.
         """
-        agent = AlwaysOnAgent(
+        agent = PerpetualAgent(
             agent_id="test_cfo",
             name="Test CFO",
             role="finance"
@@ -107,7 +107,7 @@ class TestAlwaysOnAgent:
         
         This enables selective awakening based on relevant events.
         """
-        agent = AlwaysOnAgent(
+        agent = PerpetualAgent(
             agent_id="test_coo",
             name="Test COO",
             role="operations"
@@ -149,7 +149,7 @@ class TestAlwaysOnAgent:
         This is crucial for continuous operations where agents
         build up knowledge over time.
         """
-        agent = AlwaysOnAgent(
+        agent = PerpetualAgent(
             agent_id="test_cto",
             name="Test CTO",
             role="technology"
@@ -180,25 +180,25 @@ class TestAlwaysOnAgent:
 
 class TestAlwaysOnVsTaskBased:
     """
-    Comparative tests showing the difference between always-on
+    Comparative tests showing the difference between perpetual
     and task-based agent models.
     """
     
     @pytest.mark.asyncio
-    async def test_always_on_agent_lifecycle(self):
+    async def test_perpetual_agent_lifecycle(self):
         """
-        Demonstrate always-on lifecycle: register once, run indefinitely.
+        Demonstrate perpetual lifecycle: register once, run indefinitely.
         """
         manager = UnifiedAgentManager()
         
-        agent = AlwaysOnAgent(
+        agent = PerpetualAgent(
             agent_id="persistent_ceo",
             name="Persistent CEO",
             role="executive"
         )
         
-        # Register as always-on
-        assert await manager.register_agent(agent, always_on=True)
+        # Register as perpetual
+        assert await manager.register_agent(agent, perpetual=True)
         
         # Agent should be running immediately
         assert agent.is_running
@@ -215,36 +215,36 @@ class TestAlwaysOnVsTaskBased:
         
         # Get statistics
         stats = manager.get_agent_statistics()
-        assert stats["always_on_agents"] == 1
+        assert stats["perpetual_agents"] == 1
         assert stats["total_agents"] == 1
         
         # Clean up
         await manager.deregister_agent(agent.agent_id)
     
     @pytest.mark.asyncio
-    async def test_multiple_always_on_agents(self):
+    async def test_multiple_perpetual_agents(self):
         """
-        Test multiple always-on agents running concurrently.
+        Test multiple perpetual agents running concurrently.
         
         This demonstrates the "operating system" aspect: multiple
         persistent agents coexisting and responding to different events.
         """
         manager = UnifiedAgentManager()
         
-        # Create multiple always-on agents
-        ceo = AlwaysOnAgent(agent_id="ceo", name="CEO", role="executive")
-        cfo = AlwaysOnAgent(agent_id="cfo", name="CFO", role="finance")
-        cto = AlwaysOnAgent(agent_id="cto", name="CTO", role="technology")
+        # Create multiple perpetual agents
+        ceo = PerpetualAgent(agent_id="ceo", name="CEO", role="executive")
+        cfo = PerpetualAgent(agent_id="cfo", name="CFO", role="finance")
+        cto = PerpetualAgent(agent_id="cto", name="CTO", role="technology")
         
-        # Register all as always-on
-        await manager.register_agent(ceo, always_on=True)
-        await manager.register_agent(cfo, always_on=True)
-        await manager.register_agent(cto, always_on=True)
+        # Register all as perpetual
+        await manager.register_agent(ceo, perpetual=True)
+        await manager.register_agent(cfo, perpetual=True)
+        await manager.register_agent(cto, perpetual=True)
         
         # All should be running
         stats = manager.get_agent_statistics()
-        assert stats["always_on_agents"] == 3
-        assert stats["always_on_percentage"] == 100.0
+        assert stats["perpetual_agents"] == 3
+        assert stats["perpetual_percentage"] == 100.0
         
         # Send events to different agents
         await ceo.handle_message({"type": "StrategyDecision", "data": {}})
@@ -277,24 +277,24 @@ class TestAlwaysOnVsTaskBased:
         """
         manager = UnifiedAgentManager()
         
-        # Create always-on agent
-        always_on = AlwaysOnAgent(
-            agent_id="always_on_agent",
+        # Create perpetual agent
+        perpetual = PerpetualAgent(
+            agent_id="perpetual_agent",
             name="Always On",
             role="test"
         )
         
-        await manager.register_agent(always_on, always_on=True)
+        await manager.register_agent(perpetual, perpetual=True)
         
         # Get health status
         health = await manager.health_check_all()
         
-        # Should indicate always-on mode
-        assert "always_on_agent" in health
-        assert health["always_on_agent"]["operational_mode"] == "always-on"
-        assert health["always_on_agent"]["healthy"]
+        # Should indicate perpetual mode
+        assert "perpetual_agent" in health
+        assert health["perpetual_agent"]["operational_mode"] == "perpetual"
+        assert health["perpetual_agent"]["healthy"]
         
-        await manager.deregister_agent("always_on_agent")
+        await manager.deregister_agent("perpetual_agent")
 
 
 if __name__ == "__main__":

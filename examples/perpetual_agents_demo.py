@@ -1,9 +1,9 @@
 """
-Standalone Demo: Always-On Agent vs Task-Based Framework
+Standalone Demo: Perpetual Agent vs Task-Based Framework
 
 This demo shows the conceptual difference between:
 1. Traditional AI Frameworks (Task-Based Sessions)
-2. Agent Operating System (Always-On Persistence)
+2. Agent Operating System (Perpetual Persistence)
 
 No external dependencies required - pure demonstration.
 """
@@ -81,7 +81,7 @@ def demonstrate_task_based_framework():
 
 
 # ============================================================================
-# PART 2: Agent Operating System (Always-On Persistence)
+# PART 2: Agent Operating System (Perpetual Persistence)
 # ============================================================================
 
 class AlwaysOnAgentSimple:
@@ -172,13 +172,13 @@ class AlwaysOnAgentSimple:
         }
 
 
-async def demonstrate_always_on_agent():
+async def demonstrate_perpetual_agent():
     """
     Agent Operating System: Register once, runs forever.
     Full memory across all events.
     """
     print("\n" + "=" * 80)
-    print("AGENT OPERATING SYSTEM (Always-On Persistence)")
+    print("AGENT OPERATING SYSTEM (Perpetual Persistence)")
     print("=" * 80)
     print()
     
@@ -221,7 +221,7 @@ async def demonstrate_always_on_agent():
     print(f"  💾 All Decisions: {state4['context']['decisions_made']}")
     print(f"  ✅ Agent STILL RUNNING (never terminated)\n")
     
-    print("Benefits of Always-On Model:")
+    print("Benefits of Perpetual Model:")
     print("  ✅ ONE agent for ALL events (registered once)")
     print("  ✅ Complete state preservation across events")
     print("  ✅ Full memory and context accumulation")
@@ -244,12 +244,12 @@ async def demonstrate_always_on_agent():
 def show_comparison():
     """Side-by-side comparison."""
     print("\n" + "=" * 80)
-    print("COMPARISON: Task-Based vs Always-On")
+    print("COMPARISON: Task-Based vs Perpetual")
     print("=" * 80)
     print()
     
     comparison = [
-        ("Paradigm", "Task-Based Sessions", "Always-On Persistence"),
+        ("Paradigm", "Task-Based Sessions", "Perpetual Persistence"),
         ("Agent Creation", "New agent per task", "Register once, run forever"),
         ("Lifecycle", "Start → Work → Stop", "Register → Run indefinitely"),
         ("State", "Lost after completion", "Preserved indefinitely"),
@@ -293,7 +293,7 @@ async def main():
     print("║" + " " * 78 + "║")
     print("║" + "  AGENT OPERATING SYSTEM vs TRADITIONAL AI FRAMEWORKS".center(78) + "║")
     print("║" + " " * 78 + "║")
-    print("║" + "  Demonstrating the Core USP: Always-On Persistence".center(78) + "║")
+    print("║" + "  Demonstrating the Core USP: Perpetual Persistence".center(78) + "║")
     print("║" + " " * 78 + "║")
     print("╚" + "=" * 78 + "╝")
     
@@ -301,7 +301,7 @@ async def main():
     demonstrate_task_based_framework()
     
     # Part 2: Always-on agent
-    await demonstrate_always_on_agent()
+    await demonstrate_perpetual_agent()
     
     # Part 3: Comparison
     show_comparison()
