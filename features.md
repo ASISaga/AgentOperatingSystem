@@ -26,7 +26,7 @@ This document describes the comprehensive feature set for BusinessInfinity and A
 ### Agent Operating System (Perpetual + Purpose-Driven)
 - **Permanent Lifecycle**: Agents register once → run indefinitely
 - **Continuous Operation**: Agents persist across all events
-- **Preserved State**: Context maintained via dedicated MCP server
+- **Preserved State**: Context maintained via dedicated ContextMCPServer
 - **Event-Driven**: Automatic awakening on relevant events
 - **Assigned Purpose**: PurposeDrivenAgent works against perpetual purpose, not short-term tasks
 - **Fundamental Building Block**: PurposeDrivenAgent makes AOS an operating system of Purpose-Driven, Perpetual Agents
@@ -50,7 +50,7 @@ The AgentOperatingSystem is the composable, event‑driven backbone that powers 
 Platform scope and responsibilities
 
 - **Perpetual agent lifecycle**: Identity, roles, provisioning, continuous operation, health monitoring, capability registry, event-driven awakening, upgrade paths
-- **Persistent state management**: Agent context preservation via dedicated MCP servers across all events and interactions
+- **Persistent state management**: Agent context preservation via dedicated ContextMCPServers across all events and interactions
 - **Event-driven awakening**: Automatic agent activation when subscribed events occur
 - **Purpose-driven foundation**: Support for PurposeDrivenAgent working against assigned, long-term purposes
 - Protocol surface: Deterministic handling of commands, queries, and events with standardized envelopes
@@ -74,7 +74,7 @@ Core contracts
 - **Agent identity**: Unique agent ID, operational mode (perpetual by default), human owner(s), service principal, role taxonomy, domain scopes, MCP server for context preservation
 - **Purpose contract**: For PurposeDrivenAgent - assigned purpose, purpose scope, success criteria, perpetual commitment
 - Policy interface: Evaluate, enforce, assert, explain; supports rule sets, exceptions with expiry, and evidence links
-- **Agent lifecycle contract**: Register, initialize, start (indefinite), sleep/awaken, preserve context via MCP, deregister
+- **Agent lifecycle contract**: Register, initialize, start (indefinite), sleep/awaken, preserve context via ContextMCPServer, deregister
 
 ---
 

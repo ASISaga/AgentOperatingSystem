@@ -26,7 +26,7 @@ AOS agents are **Purpose-Driven Perpetual entities that never stop**:
 - 🔄 Register agent once - it runs indefinitely
 - 😴 Agent sleeps when idle (resource efficient)
 - ⚡ Agent awakens automatically when events occur
-- 💾 State persists forever via dedicated MCP server
+- 💾 State persists forever via dedicated ContextMCPServer
 - 🎯 Event-driven reactive behavior
 - 🏃 Never terminates unless explicitly deregistered
 - 🎭 **PurposeDrivenAgent** works against perpetual, assigned purpose (not short-term tasks)
@@ -35,7 +35,36 @@ AOS agents are **Purpose-Driven Perpetual entities that never stop**:
 
 ### The Foundation: PurposeDrivenAgent
 
-**PurposeDrivenAgent** (from the [PurposeDrivenAgent package](https://github.com/ASISaga/PurposeDrivenAgent)) inherits from **PerpetualAgent** and is the fundamental building block of AgentOperatingSystem. It makes AOS an operating system of Purpose-Driven, Perpetual Agents.
+**PurposeDrivenAgent** (implemented in AOS, will be moved to dedicated repository) inherits from **PerpetualAgent** and is the fundamental building block of AgentOperatingSystem. It makes AOS an operating system of Purpose-Driven, Perpetual Agents.
+
+**Key Features:**
+- Uses **ContextMCPServer** (common infrastructure) for state preservation
+- Works against perpetual, assigned purpose (not short-term tasks)
+- Purpose alignment evaluation for all actions
+- Purpose-driven decision making
+- Goal management aligned with purpose
+
+```python
+from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.mcp import ContextMCPServer
+
+# Native AOS agent - purpose-driven and perpetual
+agent = PurposeDrivenAgent(
+    agent_id="ceo",
+    purpose="Strategic oversight and company growth",
+    purpose_scope="Strategic planning, major decisions",
+    success_criteria=["Revenue growth", "Team expansion"],
+    adapter_name="ceo"
+)
+
+await agent.initialize()  # ContextMCPServer automatically created
+await agent.start()       # Runs perpetually
+
+# Purpose-driven operations
+alignment = await agent.evaluate_purpose_alignment(action)
+decision = await agent.make_purpose_driven_decision(context)
+goal_id = await agent.add_goal("Increase revenue by 50%")
+```
 
 ### Why This Matters
 
@@ -43,8 +72,8 @@ AOS agents are **Purpose-Driven Perpetual entities that never stop**:
 |--------|-------------------------|----------------------------------|
 | **Lifecycle** | Temporary session | Permanent entity |
 | **Activation** | Manual start/stop | Event-driven awakening |
-| **State** | Lost after completion | Persists via MCP indefinitely |
-| **Context** | Current task only | Full history via MCP |
+| **State** | Lost after completion | Persists via ContextMCPServer indefinitely |
+| **Context** | Current task only | Full history via ContextMCPServer |
 | **Purpose** | Short-term tasks | Long-term assigned purpose |
 | **Operations** | Sequential tasks | Continuous operations |
 | **Paradigm** | Script execution | Operating system |
@@ -57,16 +86,19 @@ for task in tasks:
     # Agent terminates, state lost
 
 # Agent Operating System - Perpetual Operation
+from AgentOperatingSystem.agents import PerpetualAgent
 agent = PerpetualAgent(agent_id="ceo", adapter_name="ceo")
 manager.register_agent(agent)  # Register once, runs perpetually by default
 # Agent now runs FOREVER, responding to events automatically
-# State persists via dedicated MCP server across all events
+# State persists via dedicated ContextMCPServer across all events
 
 # Purpose-Driven Perpetual Agent (Fundamental Building Block)
-from PurposeDrivenAgent import PurposeDrivenAgent
+from AgentOperatingSystem.agents import PurposeDrivenAgent
 purpose_agent = PurposeDrivenAgent(
+    agent_id="ceo",
     purpose="Strategic oversight and decision-making",
-    agent_id="ceo"
+    purpose_scope="Strategic planning, major decisions",
+    adapter_name="ceo"
 )
 # Works against assigned purpose perpetually, not short-term tasks
 ```
@@ -80,7 +112,7 @@ The **Agent Operating System (AOS)** is not just orchestration code or a framewo
 **AOS is pure infrastructure** - a domain-agnostic platform that provides everything agents need to:
 - **Boot and run** (lifecycle management)
 - **Operate perpetually** (Purpose-Driven Perpetual agents)
-- **Preserve context** (dedicated MCP servers for each agent)
+- **Preserve context** (dedicated ContextMCPServers for each agent)
 - **Respond to events** (event-driven awakening)
 - **Communicate** (messaging and protocols)
 - **Store data** (unified storage layer)
@@ -589,7 +621,7 @@ aos.register_agent(agent, always_on=True)
 agent.process_event(event1)  # State saved
 
 # Day 100
-agent.process_event(event100)  # Remembers all 99 previous days via MCP
+agent.process_event(event100)  # Remembers all 99 previous days via ContextMCPServer
 
 # Agent never stops unless explicitly deregistered
 ```
@@ -601,9 +633,9 @@ agent.process_event(event100)  # Remembers all 99 previous days via MCP
 | **Scope** | Workflow coordination | Complete runtime environment |
 | **Architecture** | Framework/Library | Full operating system |
 | **Agent Type** | Task executors | Purpose-Driven Perpetual Agents |
-| **Agent Persistence** | ❌ Session-based | ✅ Perpetual via MCP |
+| **Agent Persistence** | ❌ Session-based | ✅ Perpetual via ContextMCPServer |
 | **Event-Driven** | ❌ Manual triggering | ✅ Automatic awakening |
-| **State Continuity** | ❌ Lost between runs | ✅ Preserved via dedicated MCP server |
+| **State Continuity** | ❌ Lost between runs | ✅ Preserved via dedicated ContextMCPServer |
 | **Purpose** | ❌ Short-term tasks | ✅ Long-term assigned purpose |
 | **Agent Support** | Basic task execution | Full lifecycle management |
 | **Communication** | Point-to-point | Message bus, pub/sub, MCP |
@@ -627,7 +659,7 @@ agent.process_event(event100)  # Remembers all 99 previous days via MCP
 - **Perpetual operations** - agents persist indefinitely
 - **Purpose-driven** - PurposeDrivenAgent works against assigned purposes
 - **Event-driven awakening** - automatic response to events
-- **MCP context preservation** - dedicated MCP server per agent
+- **MCP context preservation** - dedicated ContextMCPServer per agent
 - Resource allocation and scheduling
 - Process isolation and multi-tenancy
 - Health monitoring and auto-recovery
