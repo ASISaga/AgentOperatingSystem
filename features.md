@@ -6,8 +6,32 @@ This document describes the comprehensive feature set for BusinessInfinity and A
 
 - **AgentOperatingSystem**: Platform-level infrastructure (lifecycle, messaging, reliability, observability)
 - **BusinessInfinity**: Business application layer (agents, workflows, analytics, governance)
-- **C-Suite Agents** (CEO, CFO, COO, CMO, CTO, CHRO, CSO, CISO): Domain-specific agent implementations
+- **PurposeDrivenAgent**: Fundamental building block - perpetual agents working against assigned purposes
+- **C-Suite Agents** (CEO, CFO, COO, CMO, CTO, CHRO, CSO, CISO): Domain-specific PurposeDrivenAgent implementations
 - **businessinfinity.asisaga.com**: Frontend web interface for BusinessInfinity
+
+---
+
+## 🎯 Core USP: Perpetual + Purpose-Driven vs Task-Based Sessions
+
+**The key differentiator of Agent Operating System from traditional AI frameworks:**
+
+### Traditional AI Frameworks (Task-Based)
+- **Temporary Lifecycle**: Agents start → work → terminate
+- **Session Scoped**: Each task runs in isolation
+- **Lost State**: Context disappears when agent completes
+- **Manual Management**: Explicit start/stop for each task
+- **Short-term Tasks**: One task per agent instance
+
+### Agent Operating System (Perpetual + Purpose-Driven)
+- **Permanent Lifecycle**: Agents register once → run indefinitely
+- **Continuous Operation**: Agents persist across all events
+- **Preserved State**: Context maintained via dedicated ContextMCPServer
+- **Event-Driven**: Automatic awakening on relevant events
+- **Assigned Purpose**: PurposeDrivenAgent works against perpetual purpose, not short-term tasks
+- **Fundamental Building Block**: PurposeDrivenAgent makes AOS an operating system of Purpose-Driven, Perpetual Agents
+
+This architectural difference makes AOS a true "operating system" rather than a task orchestration framework.
 
 ---
 
@@ -15,35 +39,42 @@ This document describes the comprehensive feature set for BusinessInfinity and A
 
 **Repository**: [AgentOperatingSystem](https://github.com/ASISaga/AgentOperatingSystem)
 
-AgentOperatingSystem – Generic platform blueprint
+AgentOperatingSystem – Generic platform blueprint with perpetual persistence
 
 The AgentOperatingSystem is the composable, event‑driven backbone that powers all agents. It defines universal contracts, governance primitives, event semantics, reliability patterns, and observability required for BusinessInfinity and any domain layer built on top.
+
+**Core Architectural Principle**: Agents are permanent, persistent entities that run indefinitely and respond to events. PurposeDrivenAgent (inheriting from PerpetualAgent) is the fundamental building block, working against assigned purposes rather than temporary task executors.
 
 ---
 
 Platform scope and responsibilities
 
-- Agent lifecycle management: Identity, roles, provisioning, health, capability registry, upgrade paths.
-- Protocol surface: Deterministic handling of commands, queries, and events with standardized envelopes.
-- Policy engine integration: Policy‑as‑code evaluation for preconditions, postconditions, and compensating controls.
-- Governance spine: Immutable audit logging, compliance assertions, risk registry updates, decision rationale storage.
-- Eventing and integration: Publish/subscribe patterns, outbox guarantees, idempotent consumers, schema versioning.
-- Observability: Metrics, traces, structured logs with correlation/causation IDs, SLO monitoring and alerting.
-- Reliability: Retries, circuit breakers, dead‑letter queues, state machines, backpressure controls, graceful degradation.
-- Security and access: RBAC/ABAC, delegated authorization, consent records, data sensitivity tagging, least privilege defaults.
-- Knowledge services: Evidence retrieval interfaces, indexing contracts, knowledge graph interop, precedent query APIs.
-- Testing and auditability: Unit, contract, integration, chaos, and audit completeness test strategies baked into the platform.
+- **Perpetual agent lifecycle**: Identity, roles, provisioning, continuous operation, health monitoring, capability registry, event-driven awakening, upgrade paths
+- **Persistent state management**: Agent context preservation via dedicated ContextMCPServers across all events and interactions
+- **Event-driven awakening**: Automatic agent activation when subscribed events occur
+- **Purpose-driven foundation**: Support for PurposeDrivenAgent working against assigned, long-term purposes
+- Protocol surface: Deterministic handling of commands, queries, and events with standardized envelopes
+- Policy engine integration: Policy‑as‑code evaluation for preconditions, postconditions, and compensating controls
+- Governance spine: Immutable audit logging, compliance assertions, risk registry updates, decision rationale storage
+- Eventing and integration: Publish/subscribe patterns, outbox guarantees, idempotent consumers, schema versioning
+- Observability: Metrics, traces, structured logs with correlation/causation IDs, SLO monitoring and alerting
+- Reliability: Retries, circuit breakers, dead‑letter queues, state machines, backpressure controls, graceful degradation
+- Security and access: RBAC/ABAC, delegated authorization, consent records, data sensitivity tagging, least privilege defaults
+- Knowledge services: Evidence retrieval interfaces, indexing contracts, knowledge graph interop, precedent query APIs
+- Testing and auditability: Unit, contract, integration, chaos, and audit completeness test strategies baked into the platform
 
 ---
 
 Core contracts
 
-- Message envelope: Type, version, timestamp, correlationid, causationid, actor, scope, attributes, payload.
-- Command contract: Intent, required preconditions, expected outcomes, failure modes.
-- Query contract: Selectors, filters, projections, pagination, consistency guarantees.
-- Event contract: Topic, schema version, source, derived causality, delivery semantics.
-- Agent identity: Unique agent ID, human owner(s), service principal, role taxonomy, domain scopes.
-- Policy interface: Evaluate, enforce, assert, explain; supports rule sets, exceptions with expiry, and evidence links.
+- Message envelope: Type, version, timestamp, correlationid, causationid, actor, scope, attributes, payload
+- Command contract: Intent, required preconditions, expected outcomes, failure modes
+- Query contract: Selectors, filters, projections, pagination, consistency guarantees
+- Event contract: Topic, schema version, source, derived causality, delivery semantics
+- **Agent identity**: Unique agent ID, operational mode (perpetual by default), human owner(s), service principal, role taxonomy, domain scopes, MCP server for context preservation
+- **Purpose contract**: For PurposeDrivenAgent - assigned purpose, purpose scope, success criteria, perpetual commitment
+- Policy interface: Evaluate, enforce, assert, explain; supports rule sets, exceptions with expiry, and evidence links
+- **Agent lifecycle contract**: Register, initialize, start (indefinite), sleep/awaken, preserve context via ContextMCPServer, deregister
 
 ---
 

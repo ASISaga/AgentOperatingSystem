@@ -7,12 +7,113 @@
 
 ---
 
+## 🎯 The Fundamental Difference: Perpetual vs Task-Based
+
+**The key difference between Agent Operating System and traditional AI frameworks is PERSISTENCE.**
+
+### Traditional AI Frameworks (Task-Based Sessions)
+Traditional frameworks run **temporary sessions**:
+- ▶️ Start an agent for a specific task
+- ⚙️ Agent processes the task sequentially or hierarchically  
+- ⏹️ Agent completes and terminates
+- 💾 State is lost (unless explicitly saved)
+- 🔄 Must restart agent for next task
+
+**Memory is session-focused** - agents remember only the current mission.
+
+### Agent Operating System (Perpetual Operation)
+AOS agents are **Purpose-Driven Perpetual entities that never stop**:
+- 🔄 Register agent once - it runs indefinitely
+- 😴 Agent sleeps when idle (resource efficient)
+- ⚡ Agent awakens automatically when events occur
+- 💾 State persists forever via dedicated ContextMCPServer
+- 🎯 Event-driven reactive behavior
+- 🏃 Never terminates unless explicitly deregistered
+- 🎭 **PurposeDrivenAgent** works against perpetual, assigned purpose (not short-term tasks)
+
+**Memory is persistent** - agents build knowledge continuously over their lifetime through MCP context preservation.
+
+### The Foundation: PurposeDrivenAgent
+
+**PurposeDrivenAgent** (implemented in AOS, will be moved to dedicated repository) inherits from **PerpetualAgent** and is the fundamental building block of AgentOperatingSystem. It makes AOS an operating system of Purpose-Driven, Perpetual Agents.
+
+**Key Features:**
+- Uses **ContextMCPServer** (common infrastructure) for state preservation
+- Works against perpetual, assigned purpose (not short-term tasks)
+- Purpose alignment evaluation for all actions
+- Purpose-driven decision making
+- Goal management aligned with purpose
+
+```python
+from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.mcp import ContextMCPServer
+
+# Native AOS agent - purpose-driven and perpetual
+agent = PurposeDrivenAgent(
+    agent_id="ceo",
+    purpose="Strategic oversight and company growth",
+    purpose_scope="Strategic planning, major decisions",
+    success_criteria=["Revenue growth", "Team expansion"],
+    adapter_name="ceo"
+)
+
+await agent.initialize()  # ContextMCPServer automatically created
+await agent.start()       # Runs perpetually
+
+# Purpose-driven operations
+alignment = await agent.evaluate_purpose_alignment(action)
+decision = await agent.make_purpose_driven_decision(context)
+goal_id = await agent.add_goal("Increase revenue by 50%")
+```
+
+### Why This Matters
+
+| Aspect | Traditional (Task-Based) | AOS (Perpetual + Purpose-Driven) |
+|--------|-------------------------|----------------------------------|
+| **Lifecycle** | Temporary session | Permanent entity |
+| **Activation** | Manual start/stop | Event-driven awakening |
+| **State** | Lost after completion | Persists via ContextMCPServer indefinitely |
+| **Context** | Current task only | Full history via ContextMCPServer |
+| **Purpose** | Short-term tasks | Long-term assigned purpose |
+| **Operations** | Sequential tasks | Continuous operations |
+| **Paradigm** | Script execution | Operating system |
+
+```python
+# Traditional Framework
+for task in tasks:
+    agent = create_agent()      # Create new agent
+    result = agent.run(task)    # Process task
+    # Agent terminates, state lost
+
+# Agent Operating System - Perpetual Operation
+from AgentOperatingSystem.agents import PerpetualAgent
+agent = PerpetualAgent(agent_id="ceo", adapter_name="ceo")
+manager.register_agent(agent)  # Register once, runs perpetually by default
+# Agent now runs FOREVER, responding to events automatically
+# State persists via dedicated ContextMCPServer across all events
+
+# Purpose-Driven Perpetual Agent (Fundamental Building Block)
+from AgentOperatingSystem.agents import PurposeDrivenAgent
+purpose_agent = PurposeDrivenAgent(
+    agent_id="ceo",
+    purpose="Strategic oversight and decision-making",
+    purpose_scope="Strategic planning, major decisions",
+    adapter_name="ceo"
+)
+# Works against assigned purpose perpetually, not short-term tasks
+```
+
+---
+
 ## Vision: The Operating System for the AI Era
 
 The **Agent Operating System (AOS)** is not just orchestration code or a framework—it is a **complete, production-grade operating system** designed from the ground up for AI agents. Just as Linux, Windows, or macOS provide the foundational infrastructure for applications, AOS provides the **kernel, system services, runtime environment, and application framework** for autonomous AI agents.
 
 **AOS is pure infrastructure** - a domain-agnostic platform that provides everything agents need to:
 - **Boot and run** (lifecycle management)
+- **Operate perpetually** (Purpose-Driven Perpetual agents)
+- **Preserve context** (dedicated ContextMCPServers for each agent)
+- **Respond to events** (event-driven awakening)
 - **Communicate** (messaging and protocols)
 - **Store data** (unified storage layer)
 - **Execute ML workloads** (training and inference)
@@ -29,9 +130,11 @@ Traditional operating systems manage hardware resources for software application
 | Traditional OS | Agent Operating System (AOS) |
 |----------------|------------------------------|
 | Process Management | Agent Lifecycle Management |
-| Memory Management | Storage & State Management |
+| Daemon Processes | Perpetual Agents |
+| Memory Management | MCP Context Preservation & Storage |
 | File System | Unified Storage Layer (Blob, Table, Queue) |
 | Inter-Process Communication (IPC) | Agent-to-Agent Messaging & MCP |
+| Event Loop | Event-Driven Awakening |
 | System Libraries & SDKs | Azure Service Integrations |
 | System Calls | AOS APIs & Service Layer |
 | Kernel | Orchestration Engine |
@@ -484,10 +587,56 @@ class ChiefFinancialOfficer(LeadershipAgent):
 
 ## Feature Comparison: AOS vs. Traditional Orchestration
 
+### Core Philosophy Difference
+
+The fundamental architectural difference between AOS and traditional frameworks:
+
+| Dimension | Traditional AI Frameworks | Agent Operating System (AOS) |
+|-----------|---------------------------|------------------------------|
+| **Paradigm** | **Task-Based Sessions** | **Always-On Operating System** |
+| **Agent Lifecycle** | Temporary (start → work → stop) | Permanent (register → run forever) |
+| **Activation Model** | Manual start for each task | Event-driven awakening |
+| **State Management** | Session-scoped (lost on completion) | Persistent (lifetime of agent) |
+| **Memory** | Current task only | Full history across all events |
+| **Use Case** | Single-purpose task execution | Continuous operations |
+
+### Implementation Comparison
+
+```python
+# TRADITIONAL FRAMEWORK (Task-Based)
+# Must create and destroy agent for each task
+for task in daily_tasks:
+    agent = Framework.create_agent()
+    result = agent.execute(task)
+    # Agent terminates, context lost
+    
+# New day = new agent, no memory of yesterday
+
+# AGENT OPERATING SYSTEM (Always-On)
+# Register once, runs forever
+agent = PerpetualAgent("ceo")
+aos.register_agent(agent, always_on=True)
+
+# Day 1
+agent.process_event(event1)  # State saved
+
+# Day 100
+agent.process_event(event100)  # Remembers all 99 previous days via ContextMCPServer
+
+# Agent never stops unless explicitly deregistered
+```
+
+### Technical Capability Comparison
+
 | Feature | Traditional Orchestration | Agent Operating System (AOS) |
 |---------|---------------------------|------------------------------|
 | **Scope** | Workflow coordination | Complete runtime environment |
 | **Architecture** | Framework/Library | Full operating system |
+| **Agent Type** | Task executors | Purpose-Driven Perpetual Agents |
+| **Agent Persistence** | ❌ Session-based | ✅ Perpetual via ContextMCPServer |
+| **Event-Driven** | ❌ Manual triggering | ✅ Automatic awakening |
+| **State Continuity** | ❌ Lost between runs | ✅ Preserved via dedicated ContextMCPServer |
+| **Purpose** | ❌ Short-term tasks | ✅ Long-term assigned purpose |
 | **Agent Support** | Basic task execution | Full lifecycle management |
 | **Communication** | Point-to-point | Message bus, pub/sub, MCP |
 | **Storage** | External dependency | Unified storage layer |
@@ -506,7 +655,11 @@ class ChiefFinancialOfficer(LeadershipAgent):
 ### 🚀 **Complete Agent Runtime Environment**
 
 **AOS provides everything agents need to run:**
-- Agent lifecycle management (boot, run, monitor, terminate)
+- Agent lifecycle management (boot, run perpetually, monitor)
+- **Perpetual operations** - agents persist indefinitely
+- **Purpose-driven** - PurposeDrivenAgent works against assigned purposes
+- **Event-driven awakening** - automatic response to events
+- **MCP context preservation** - dedicated ContextMCPServer per agent
 - Resource allocation and scheduling
 - Process isolation and multi-tenancy
 - Health monitoring and auto-recovery
@@ -518,7 +671,7 @@ class ChiefFinancialOfficer(LeadershipAgent):
 - Message bus with pub/sub patterns
 - Request-response messaging
 - Conversation management and history
-- Model Context Protocol (MCP) integration
+- **Model Context Protocol (MCP) integration** - context preservation
 - Azure Service Bus backbone
 - Message delivery guarantees
 
@@ -529,6 +682,7 @@ class ChiefFinancialOfficer(LeadershipAgent):
 - Azure Table Storage (structured data)
 - Azure Queue Storage (message queues)
 - Cosmos DB (document database)
+- **Dedicated MCP servers** - per-agent context preservation
 - Backend-agnostic interface
 - Automatic serialization and compression
 

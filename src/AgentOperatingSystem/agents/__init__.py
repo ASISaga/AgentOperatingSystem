@@ -2,11 +2,14 @@
 AOS Agent Module
 
 Base agent classes and agent-related functionality.
+
+Includes PurposeDrivenAgent - the fundamental building block of AOS.
 """
 
 from .base import BaseAgent, Agent, StatefulAgent
 from .leadership import LeadershipAgent
 from .perpetual import PerpetualAgent
+from .purpose_driven import PurposeDrivenAgent
 from .multi_agent import (
     MultiAgentSystem, 
     BusinessAnalystAgent, 
@@ -25,6 +28,7 @@ __all__ = [
     "StatefulAgent", 
     "LeadershipAgent",
     "PerpetualAgent",
+    "PurposeDrivenAgent",
     "MultiAgentSystem",
     "BusinessAnalystAgent",
     "SoftwareEngineerAgent", 

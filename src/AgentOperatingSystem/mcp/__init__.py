@@ -2,11 +2,13 @@
 AOS MCP Module
 
 Model Context Protocol integration for AOS.
+Includes ContextMCPServer - common infrastructure for agent context preservation.
 """
 
 from .client import MCPClient, MCPConnectionStatus as ClientConnectionStatus
 from .client_manager import MCPClientManager, MCPConnectionStatus, MCPServerType, MCPServerConfig
 from .protocol import MCPRequest, MCPResponse
+from .context_server import ContextMCPServer
 
 __all__ = [
     "MCPClient",
@@ -16,5 +18,6 @@ __all__ = [
     "MCPServerType",
     "MCPServerConfig",
     "MCPRequest",
-    "MCPResponse"
+    "MCPResponse",
+    "ContextMCPServer"
 ]
