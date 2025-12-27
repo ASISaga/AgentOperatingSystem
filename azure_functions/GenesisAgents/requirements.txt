@@ -6,3 +6,4 @@ azure-keyvault-secrets>=4.7.0
 pydantic>=2.0.0
 python-dotenv>=1.0.0
 agent-framework>=1.0.0b251218
+git+https://github.com/ASISaga/AgentOperatingSystem.git

@@ -19,12 +19,17 @@ from azure.identity.aio import DefaultAzureCredential
 from azure.keyvault.secrets.aio import SecretClient
 
 # Import AOS infrastructure
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
-
-from AgentOperatingSystem.mcp.client import MCPClient
-from AgentOperatingSystem.mcp.protocol.request import MCPRequest
-from AgentOperatingSystem.mcp.protocol.response import MCPResponse
+# Note: AgentOperatingSystem package must be installed in the deployment environment
+# Install with: pip install git+https://github.com/ASISaga/AgentOperatingSystem.git
+try:
+    from AgentOperatingSystem.mcp.client import MCPClient
+    from AgentOperatingSystem.mcp.protocol.request import MCPRequest
+    from AgentOperatingSystem.mcp.protocol.response import MCPResponse
+except ImportError as e:
+    logger = logging.getLogger("MCPServers")
+    logger.error(f"Failed to import AgentOperatingSystem: {e}")
+    logger.error("Please ensure AgentOperatingSystem is installed: pip install git+https://github.com/ASISaga/AgentOperatingSystem.git")
+    raise
 
 from mcp_server_schema import MCPServerConfiguration, MCPServerRegistry, MCPServerType
 

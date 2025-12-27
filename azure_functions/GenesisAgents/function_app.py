@@ -21,12 +21,17 @@ from azure.storage.blob.aio import BlobServiceClient
 from azure.identity.aio import DefaultAzureCredential
 
 # Import AOS infrastructure
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
-
-from AgentOperatingSystem.agents import PurposeDrivenAgent, PerpetualAgent, LeadershipAgent
-from AgentOperatingSystem.mcp.client_manager import MCPClientManager
-from AgentOperatingSystem.ml.pipeline_ops import trigger_lora_training
+# Note: AgentOperatingSystem package must be installed in the deployment environment
+# Install with: pip install git+https://github.com/ASISaga/AgentOperatingSystem.git
+try:
+    from AgentOperatingSystem.agents import PurposeDrivenAgent, PerpetualAgent, LeadershipAgent
+    from AgentOperatingSystem.mcp.client_manager import MCPClientManager
+    from AgentOperatingSystem.ml.pipeline_ops import trigger_lora_training
+except ImportError as e:
+    logger = logging.getLogger("GenesisAgents")
+    logger.error(f"Failed to import AgentOperatingSystem: {e}")
+    logger.error("Please ensure AgentOperatingSystem is installed: pip install git+https://github.com/ASISaga/AgentOperatingSystem.git")
+    raise
 
 from agent_config_schema import AgentConfiguration, AgentRegistry, AgentType
 
