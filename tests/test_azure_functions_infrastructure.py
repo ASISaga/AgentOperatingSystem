@@ -4,26 +4,34 @@ Tests for GenesisAgents and MCPServers infrastructure
 
 import pytest
 import json
-import sys
 import os
 
-# Add azure_functions to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../azure_functions/GenesisAgents')))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../azure_functions/MCPServers')))
+# Import schemas directly from their modules
+# Note: The azure_functions directory is in the parent directory of tests
+GENESIS_AGENTS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../azure_functions/GenesisAgents'))
+MCP_SERVERS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../azure_functions/MCPServers'))
 
-from agent_config_schema import (
-    AgentConfiguration,
-    AgentRegistry,
-    AgentType,
-    DomainKnowledge,
-    MCPToolReference
-)
-from mcp_server_schema import (
-    MCPServerConfiguration,
-    MCPServerRegistry,
-    MCPServerType,
-    MCPToolDefinition
-)
+# Import agent config schema
+import importlib.util
+spec = importlib.util.spec_from_file_location("agent_config_schema", os.path.join(GENESIS_AGENTS_PATH, "agent_config_schema.py"))
+agent_config_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(agent_config_module)
+
+AgentConfiguration = agent_config_module.AgentConfiguration
+AgentRegistry = agent_config_module.AgentRegistry
+AgentType = agent_config_module.AgentType
+DomainKnowledge = agent_config_module.DomainKnowledge
+MCPToolReference = agent_config_module.MCPToolReference
+
+# Import MCP server schema
+spec = importlib.util.spec_from_file_location("mcp_server_schema", os.path.join(MCP_SERVERS_PATH, "mcp_server_schema.py"))
+mcp_server_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mcp_server_module)
+
+MCPServerConfiguration = mcp_server_module.MCPServerConfiguration
+MCPServerRegistry = mcp_server_module.MCPServerRegistry
+MCPServerType = mcp_server_module.MCPServerType
+MCPToolDefinition = mcp_server_module.MCPToolDefinition
 
 
 class TestAgentConfigurationSchema:
