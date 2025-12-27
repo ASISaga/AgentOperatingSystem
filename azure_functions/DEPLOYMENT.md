@@ -58,12 +58,12 @@ The script accepts an environment parameter: `dev`, `staging`, or `production`.
 ### What the Script Creates
 
 **For GenesisAgents:**
-- Resource Group: `aos-genesis-{env}`
+- Resource Group: `aos-realm-{env}`
 - Storage Account: `aosgenesis{env}store`
-- Service Bus: `aos-genesis-bus-{env}`
-  - Topic: `agent-events` (subscription: `genesis-agents`)
+- Service Bus: `aos-realm-bus-{env}`
+  - Topic: `agent-events` (subscription: `realm-agents`)
   - Queue: `agent-commands`
-- Function App: `aos-genesis-agents-{env}`
+- Function App: `aos-realm-agents-{env}`
 
 **For MCPServers:**
 - Resource Group: `aos-mcp-{env}`
@@ -90,11 +90,11 @@ az account set --subscription "<your-subscription-id>"
 
 ```bash
 # Variables
-RESOURCE_GROUP="aos-genesis-dev"
+RESOURCE_GROUP="aos-realm-dev"
 LOCATION="eastus"
 STORAGE_ACCOUNT="aosgenesisdevstore"
-SERVICE_BUS="aos-genesis-bus-dev"
-FUNCTION_APP="aos-genesis-agents-dev"
+SERVICE_BUS="aos-realm-bus-dev"
+FUNCTION_APP="aos-realm-agents-dev"
 
 # Create resource group
 az group create --name $RESOURCE_GROUP --location $LOCATION
@@ -131,7 +131,7 @@ az servicebus topic create \
   --resource-group $RESOURCE_GROUP
 
 az servicebus topic subscription create \
-  --name genesis-agents \
+  --name realm-agents \
   --topic-name agent-events \
   --namespace-name $SERVICE_BUS \
   --resource-group $RESOURCE_GROUP

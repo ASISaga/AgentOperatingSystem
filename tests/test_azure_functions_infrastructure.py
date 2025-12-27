@@ -8,7 +8,7 @@ import os
 
 # Import schemas directly from their modules
 # Note: The azure_functions directory is in the parent directory of tests
-GENESIS_AGENTS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../azure_functions/GenesisAgents'))
+GENESIS_AGENTS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../azure_functions/RealmOfAgents'))
 MCP_SERVERS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../azure_functions/MCPServers'))
 
 # Import agent config schema
@@ -75,7 +75,7 @@ class TestAgentConfigurationSchema:
         """Test loading agent registry from JSON"""
         registry_path = os.path.join(
             os.path.dirname(__file__),
-            '../azure_functions/GenesisAgents/example_agent_registry.json'
+            '../azure_functions/RealmOfAgents/example_agent_registry.json'
         )
         
         with open(registry_path) as f:
@@ -260,7 +260,7 @@ class TestIntegration:
         # Load both registries
         agent_registry_path = os.path.join(
             os.path.dirname(__file__),
-            '../azure_functions/GenesisAgents/example_agent_registry.json'
+            '../azure_functions/RealmOfAgents/example_agent_registry.json'
         )
         mcp_registry_path = os.path.join(
             os.path.dirname(__file__),

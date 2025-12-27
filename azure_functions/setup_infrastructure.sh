@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup Azure Infrastructure for GenesisAgents and MCPServers
+# Setup Azure Infrastructure for RealmOfAgents and MCPServers
 # This script creates all required Azure resources for the plug-and-play agent infrastructure
 
 set -e
@@ -9,7 +9,7 @@ RESOURCE_GROUP_PREFIX="aos"
 LOCATION="eastus"
 ENVIRONMENT="${1:-dev}"  # dev, staging, or production
 
-GENESIS_RG="${RESOURCE_GROUP_PREFIX}-genesis-${ENVIRONMENT}"
+GENESIS_RG="${RESOURCE_GROUP_PREFIX}-realm-${ENVIRONMENT}"
 MCP_RG="${RESOURCE_GROUP_PREFIX}-mcp-${ENVIRONMENT}"
 
 echo "======================================================"
@@ -37,9 +37,9 @@ SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 echo "✓ Using subscription: ${SUBSCRIPTION_ID}"
 echo ""
 
-# Create GenesisAgents Resources
+# Create RealmOfAgents Resources
 echo "======================================================"
-echo "  Creating GenesisAgents Resources"
+echo "  Creating RealmOfAgents Resources"
 echo "======================================================"
 echo ""
 
@@ -48,7 +48,7 @@ echo "Creating resource group: ${GENESIS_RG}"
 az group create --name ${GENESIS_RG} --location ${LOCATION}
 
 # Create storage account
-GENESIS_STORAGE="${RESOURCE_GROUP_PREFIX}genesis${ENVIRONMENT}store"
+GENESIS_STORAGE="${RESOURCE_GROUP_PREFIX}realm${ENVIRONMENT}store"
 echo "Creating storage account: ${GENESIS_STORAGE}"
 az storage account create \
   --name ${GENESIS_STORAGE} \
@@ -69,7 +69,7 @@ az storage container create \
   --connection-string "${GENESIS_STORAGE_CONN}"
 
 # Create Service Bus namespace
-GENESIS_BUS="${RESOURCE_GROUP_PREFIX}-genesis-bus-${ENVIRONMENT}"
+GENESIS_BUS="${RESOURCE_GROUP_PREFIX}-realm-bus-${ENVIRONMENT}"
 echo "Creating Service Bus: ${GENESIS_BUS}"
 az servicebus namespace create \
   --name ${GENESIS_BUS} \
@@ -92,7 +92,7 @@ az servicebus topic create \
   --resource-group ${GENESIS_RG}
 
 az servicebus topic subscription create \
-  --name genesis-agents \
+  --name realm-agents \
   --topic-name agent-events \
   --namespace-name ${GENESIS_BUS} \
   --resource-group ${GENESIS_RG}
@@ -103,7 +103,7 @@ az servicebus queue create \
   --resource-group ${GENESIS_RG}
 
 # Create Function App
-GENESIS_FUNC="${RESOURCE_GROUP_PREFIX}-genesis-agents-${ENVIRONMENT}"
+GENESIS_FUNC="${RESOURCE_GROUP_PREFIX}-realm-agents-${ENVIRONMENT}"
 echo "Creating Function App: ${GENESIS_FUNC}"
 az functionapp create \
   --name ${GENESIS_FUNC} \
@@ -115,7 +115,7 @@ az functionapp create \
   --os-type Linux \
   --functions-version 4
 
-echo "✓ GenesisAgents resources created"
+echo "✓ RealmOfAgents resources created"
 echo ""
 
 # Create MCPServers Resources
@@ -241,7 +241,7 @@ echo "Uploading agent registry..."
 az storage blob upload \
   --container-name agent-configs \
   --name agent_registry.json \
-  --file azure_functions/GenesisAgents/example_agent_registry.json \
+  --file azure_functions/RealmOfAgents/example_agent_registry.json \
   --connection-string "${GENESIS_STORAGE_CONN}"
 
 echo "Uploading MCP server registry..."
@@ -259,7 +259,7 @@ echo "======================================================"
 echo "  Setup Complete! 🎉"
 echo "======================================================"
 echo ""
-echo "GenesisAgents Resources:"
+echo "RealmOfAgents Resources:"
 echo "  Resource Group: ${GENESIS_RG}"
 echo "  Storage Account: ${GENESIS_STORAGE}"
 echo "  Service Bus: ${GENESIS_BUS}"
@@ -273,8 +273,8 @@ echo "  Service Bus: ${MCP_BUS}"
 echo "  Function App: ${MCP_FUNC}"
 echo ""
 echo "Next Steps:"
-echo "  1. Deploy GenesisAgents:"
-echo "     cd azure_functions/GenesisAgents"
+echo "  1. Deploy RealmOfAgents:"
+echo "     cd azure_functions/RealmOfAgents"
 echo "     func azure functionapp publish ${GENESIS_FUNC}"
 echo ""
 echo "  2. Deploy MCPServers:"

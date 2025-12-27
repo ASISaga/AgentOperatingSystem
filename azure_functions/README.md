@@ -6,7 +6,7 @@ This directory contains plug-and-play Azure Functions applications for deploying
 
 The AgentOperatingSystem provides two Azure Functions applications for configuration-driven deployment:
 
-1. **GenesisAgents** - Plug-and-play infrastructure for PurposeDrivenAgent(s)
+1. **RealmOfAgents** - Plug-and-play infrastructure for PurposeDrivenAgent(s)
 2. **MCPServers** - Plug-and-play infrastructure for MCP servers
 
 Both applications communicate with the AOS kernel over Azure Service Bus, enabling a fully decoupled architecture.
@@ -24,7 +24,7 @@ Both applications communicate with the AOS kernel over Azure Service Bus, enabli
                    │                  │
         ┌──────────▼─────────┐  ┌────▼──────────────┐
         │                    │  │                   │
-        │  GenesisAgents     │  │   MCPServers      │
+        │  RealmOfAgents     │  │   MCPServers      │
         │  (Functions App)   │  │   (Functions App) │
         │                    │  │                   │
         └────────────────────┘  └───────────────────┘
@@ -35,7 +35,7 @@ Both applications communicate with the AOS kernel over Azure Service Bus, enabli
              └───────────────────────┘
 ```
 
-## GenesisAgents
+## RealmOfAgents
 
 **Purpose**: Plug-and-play infrastructure for onboarding PurposeDrivenAgent(s)
 
@@ -47,12 +47,12 @@ Both applications communicate with the AOS kernel over Azure Service Bus, enabli
 
 **Configuration**: Agents are defined in `agent_registry.json`
 
-**Documentation**: See [GenesisAgents/README.md](GenesisAgents/README.md)
+**Documentation**: See [RealmOfAgents/README.md](RealmOfAgents/README.md)
 
 ### Quick Start
 
 ```bash
-cd GenesisAgents
+cd RealmOfAgents
 
 # Configure settings
 cp local.settings.json.example local.settings.json
@@ -142,19 +142,19 @@ func azure functionapp publish <your-function-app-name>
 ### Agent Event Flow
 
 1. **AOS Kernel** publishes event to `agent-events` topic
-2. **GenesisAgents** receives event via subscription
+2. **RealmOfAgents** receives event via subscription
 3. **Agent** processes event and may request MCP tools
-4. **GenesisAgents** sends MCP request to `mcp-requests` topic
+4. **RealmOfAgents** sends MCP request to `mcp-requests` topic
 5. **MCPServers** receives request and executes tool
 6. **MCPServers** sends response to `mcp-responses` topic
-7. **GenesisAgents** receives response and continues processing
+7. **RealmOfAgents** receives response and continues processing
 
 ### MCP Request Flow
 
 ```
-Agent -> GenesisAgents -> Service Bus (mcp-requests) -> MCPServers
+Agent -> RealmOfAgents -> Service Bus (mcp-requests) -> MCPServers
                                                              |
-Agent <- GenesisAgents <- Service Bus (mcp-responses) <------
+Agent <- RealmOfAgents <- Service Bus (mcp-responses) <------
 ```
 
 ## Azure Resources Required
@@ -162,7 +162,7 @@ Agent <- GenesisAgents <- Service Bus (mcp-responses) <------
 Both applications require the following Azure resources:
 
 ### Storage Account
-- Agent configurations (GenesisAgents)
+- Agent configurations (RealmOfAgents)
 - MCP server registry (MCPServers)
 - Function app storage
 
@@ -177,7 +177,7 @@ Both applications require the following Azure resources:
 - Secrets for MCP servers
 
 ### Function Apps
-- GenesisAgents function app
+- RealmOfAgents function app
 - MCPServers function app
 
 ## Deployment
@@ -205,8 +205,8 @@ cd AgentOperatingSystem/azure_functions
 ### Deploy Both Apps
 
 ```bash
-# Deploy GenesisAgents
-cd GenesisAgents
+# Deploy RealmOfAgents
+cd RealmOfAgents
 func azure functionapp publish aos-genesis-agents
 
 # Deploy MCPServers
@@ -249,7 +249,7 @@ az storage blob upload \
 Both apps expose health check endpoints:
 
 ```bash
-# GenesisAgents health
+# RealmOfAgents health
 curl https://aos-genesis-agents.azurewebsites.net/api/health
 
 # MCPServers health
@@ -279,8 +279,8 @@ Monitor Service Bus topics and queues:
 Both apps can run locally using Azure Functions Core Tools:
 
 ```bash
-# Start GenesisAgents locally
-cd GenesisAgents
+# Start RealmOfAgents locally
+cd RealmOfAgents
 func start
 
 # Start MCPServers locally (in another terminal)
@@ -338,13 +338,13 @@ az monitor app-insights query \
 ## Examples
 
 See example configurations:
-- [example_agent_registry.json](GenesisAgents/example_agent_registry.json)
+- [example_agent_registry.json](RealmOfAgents/example_agent_registry.json)
 - [example_mcp_server_registry.json](MCPServers/example_mcp_server_registry.json)
 
 ## Support
 
 For detailed documentation, see:
-- [GenesisAgents Documentation](GenesisAgents/README.md)
+- [RealmOfAgents Documentation](RealmOfAgents/README.md)
 - [MCPServers Documentation](MCPServers/README.md)
 - [Main AOS Documentation](../README.md)
 

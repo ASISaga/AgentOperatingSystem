@@ -1,8 +1,8 @@
-# GenesisAgents - Plug-and-Play Agent Infrastructure
+# RealmOfAgents - Plug-and-Play Agent Infrastructure
 
 ## Overview
 
-**GenesisAgents** is an Azure Functions application that provides plug-and-play infrastructure for onboarding PurposeDrivenAgent(s). Developers provide only configuration - Purpose, domain knowledge (for fine-tuning LoRA adapters), and MCP server tools from the registry. No code changes are required to onboard new agents.
+**RealmOfAgents** is an Azure Functions application that provides plug-and-play infrastructure for onboarding PurposeDrivenAgent(s). Developers provide only configuration - Purpose, domain knowledge (for fine-tuning LoRA adapters), and MCP server tools from the registry. No code changes are required to onboard new agents.
 
 ## Key Features
 
@@ -18,7 +18,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│         GenesisAgents (Azure Functions)             │
+│         RealmOfAgents (Azure Functions)             │
 ├─────────────────────────────────────────────────────┤
 │                                                     │
 │  ┌───────────────────────────────────────────────┐ │
@@ -204,7 +204,7 @@ az functionapp create \
   --os-type Linux
 
 # Deploy
-cd azure_functions/GenesisAgents
+cd azure_functions/RealmOfAgents
 func azure functionapp publish aos-genesis-agents
 ```
 

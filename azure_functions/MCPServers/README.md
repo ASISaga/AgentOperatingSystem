@@ -54,7 +54,7 @@ This app communicates with the AgentOperatingSystem kernel over Azure Service Bu
 ┌─────────────────────────────────────────────────────┐
 │      AgentOperatingSystem Kernel                    │
 │                                                     │
-│      GenesisAgents (consumes MCP tools)             │
+│      RealmOfAgents (consumes MCP tools)             │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -553,9 +553,9 @@ See `example_mcp_server_registry.json` for complete examples of:
 - Reddit MCP Server
 - Excel MCP Server
 
-## Integration with GenesisAgents
+## Integration with RealmOfAgents
 
-Agents in GenesisAgents can reference tools from MCP servers:
+Agents in RealmOfAgents can reference tools from MCP servers:
 
 ```json
 {

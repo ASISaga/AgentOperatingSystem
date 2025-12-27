@@ -1,5 +1,5 @@
 """
-GenesisAgents Azure Functions App
+RealmOfAgents Azure Functions App
 
 Plug-and-play infrastructure for onboarding PurposeDrivenAgent(s).
 Developers provide only configuration - Purpose, domain knowledge, and MCP server tools.
@@ -28,7 +28,7 @@ try:
     from AgentOperatingSystem.mcp.client_manager import MCPClientManager
     from AgentOperatingSystem.ml.pipeline_ops import trigger_lora_training
 except ImportError as e:
-    logger = logging.getLogger("GenesisAgents")
+    logger = logging.getLogger("RealmOfAgents")
     logger.error(f"Failed to import AgentOperatingSystem: {e}")
     logger.error("Please ensure AgentOperatingSystem is installed: pip install git+https://github.com/ASISaga/AgentOperatingSystem.git")
     raise
@@ -37,7 +37,7 @@ from agent_config_schema import AgentConfiguration, AgentRegistry, AgentType
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("GenesisAgents")
+logger = logging.getLogger("RealmOfAgents")
 
 # Global state
 agent_instances: Dict[str, Any] = {}
@@ -197,7 +197,7 @@ async def startup_trigger(timer: func.TimerRequest) -> None:
     This function runs on app startup and periodically to ensure all
     configured agents are running.
     """
-    logger.info("GenesisAgents startup triggered")
+    logger.info("RealmOfAgents startup triggered")
     
     try:
         # Initialize MCP client manager
@@ -207,7 +207,7 @@ async def startup_trigger(timer: func.TimerRequest) -> None:
         # Start all agents
         await start_all_agents()
         
-        logger.info(f"GenesisAgents running with {len(agent_instances)} active agents")
+        logger.info(f"RealmOfAgents running with {len(agent_instances)} active agents")
         
     except Exception as e:
         logger.error(f"Startup trigger failed: {e}", exc_info=True)

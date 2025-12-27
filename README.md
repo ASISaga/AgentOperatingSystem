@@ -408,9 +408,9 @@ with tracer.span("process_decision") as span:
 
 AOS provides **configuration-driven Azure Functions applications** for zero-code deployment of agents and MCP servers.
 
-### GenesisAgents - Plug-and-Play Agent Infrastructure
+### RealmOfAgents - Plug-and-Play Agent Infrastructure
 
-**GenesisAgents** is an Azure Functions app that enables configuration-driven deployment of PurposeDrivenAgent(s). Developers provide only configuration - no code required!
+**RealmOfAgents** is an Azure Functions app that enables configuration-driven deployment of PurposeDrivenAgent(s). Developers provide only configuration - no code required!
 
 **Configuration Only:**
 ```json
@@ -435,7 +435,7 @@ AOS provides **configuration-driven Azure Functions applications** for zero-code
 - ✅ Service Bus communication with AOS kernel
 - ✅ Lifecycle management (start, stop, restart)
 
-[📖 GenesisAgents Documentation](azure_functions/GenesisAgents/README.md)
+[📖 RealmOfAgents Documentation](azure_functions/RealmOfAgents/README.md)
 
 ### MCPServers - Plug-and-Play MCP Server Infrastructure
 
@@ -474,7 +474,7 @@ AOS provides **configuration-driven Azure Functions applications** for zero-code
     Azure Service Bus  Azure Service Bus
                │              │
     ┌──────────▼──────┐  ┌───▼──────────────┐
-    │ GenesisAgents   │  │  MCPServers      │
+    │ RealmOfAgents   │  │  MCPServers      │
     │ (Config-Driven) │  │  (Config-Driven) │
     └─────────────────┘  └──────────────────┘
 ```
