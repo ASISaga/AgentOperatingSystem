@@ -127,3 +127,11 @@ dmypy.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Azure Functions
+azure_functions/*/local.settings.json
+azure_functions/*/.python_packages/
+azure_functions/*/.venv/
+azure_functions/*/bin/
+azure_functions/*/obj/
+azure_functions/*/.funcignore
