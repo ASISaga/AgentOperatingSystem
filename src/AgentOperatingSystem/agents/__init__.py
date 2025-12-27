@@ -7,6 +7,7 @@ Base agent classes and agent-related functionality.
 from .base import BaseAgent, Agent, StatefulAgent
 from .leadership import LeadershipAgent
 from .perpetual import PerpetualAgent
+from .always_on import AlwaysOnAgent
 from .multi_agent import (
     MultiAgentSystem, 
     BusinessAnalystAgent, 
@@ -25,6 +26,7 @@ __all__ = [
     "StatefulAgent", 
     "LeadershipAgent",
     "PerpetualAgent",
+    "AlwaysOnAgent",
     "MultiAgentSystem",
     "BusinessAnalystAgent",
     "SoftwareEngineerAgent", 
