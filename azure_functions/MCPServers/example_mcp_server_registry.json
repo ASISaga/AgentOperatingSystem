@@ -1,0 +1,237 @@
+{
+  "version": "1.0",
+  "servers": [
+    {
+      "server_id": "github",
+      "server_name": "GitHub MCP Server",
+      "server_type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "tools": [
+        {
+          "name": "create_issue",
+          "description": "Create a new GitHub issue",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "owner": {"type": "string", "description": "Repository owner"},
+              "repo": {"type": "string", "description": "Repository name"},
+              "title": {"type": "string", "description": "Issue title"},
+              "body": {"type": "string", "description": "Issue body"}
+            },
+            "required": ["owner", "repo", "title"]
+          }
+        },
+        {
+          "name": "search_code",
+          "description": "Search for code in GitHub repositories",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {"type": "string", "description": "Search query"}
+            },
+            "required": ["query"]
+          }
+        }
+      ],
+      "resources": [],
+      "enabled": true,
+      "auto_start": true,
+      "timeout_seconds": 30,
+      "max_retries": 3,
+      "metadata": {
+        "created_at": "2025-12-27T00:00:00Z",
+        "version": "1.0"
+      }
+    },
+    {
+      "server_id": "erpnext",
+      "server_name": "ERPNext MCP Server",
+      "server_type": "stdio",
+      "command": "python",
+      "args": ["-m", "erpnext_mcp_server"],
+      "env": {
+        "ERPNEXT_API_KEY": "${ERPNEXT_API_KEY}",
+        "ERPNEXT_API_SECRET": "${ERPNEXT_API_SECRET}",
+        "ERPNEXT_BASE_URL": "${ERPNEXT_BASE_URL}"
+      },
+      "tools": [
+        {
+          "name": "get_financial_reports",
+          "description": "Get financial reports from ERPNext",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "report_type": {"type": "string", "description": "Type of financial report"},
+              "start_date": {"type": "string", "description": "Start date (YYYY-MM-DD)"},
+              "end_date": {"type": "string", "description": "End date (YYYY-MM-DD)"}
+            },
+            "required": ["report_type"]
+          }
+        },
+        {
+          "name": "get_company_overview",
+          "description": "Get company overview and KPIs",
+          "input_schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "name": "get_customer_analytics",
+          "description": "Get customer analytics and insights",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "customer_id": {"type": "string", "description": "Optional customer ID for specific analytics"}
+            }
+          }
+        }
+      ],
+      "resources": [],
+      "enabled": true,
+      "auto_start": true,
+      "timeout_seconds": 45,
+      "max_retries": 3,
+      "metadata": {
+        "created_at": "2025-12-27T00:00:00Z",
+        "version": "1.0"
+      }
+    },
+    {
+      "server_id": "linkedin",
+      "server_name": "LinkedIn MCP Server",
+      "server_type": "stdio",
+      "command": "python",
+      "args": ["-m", "linkedin_mcp_server"],
+      "env": {
+        "LINKEDIN_ACCESS_TOKEN": "${LINKEDIN_ACCESS_TOKEN}"
+      },
+      "tools": [
+        {
+          "name": "post_content",
+          "description": "Post content to LinkedIn",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "text": {"type": "string", "description": "Content text"},
+              "visibility": {"type": "string", "description": "Post visibility (public, connections)"}
+            },
+            "required": ["text"]
+          }
+        },
+        {
+          "name": "get_profile",
+          "description": "Get LinkedIn profile information",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "profile_id": {"type": "string", "description": "LinkedIn profile ID"}
+            }
+          }
+        }
+      ],
+      "resources": [],
+      "enabled": true,
+      "auto_start": true,
+      "timeout_seconds": 30,
+      "max_retries": 3,
+      "metadata": {
+        "created_at": "2025-12-27T00:00:00Z",
+        "version": "1.0"
+      }
+    },
+    {
+      "server_id": "reddit",
+      "server_name": "Reddit MCP Server",
+      "server_type": "stdio",
+      "command": "python",
+      "args": ["-m", "mcp_reddit"],
+      "env": {
+        "REDDIT_CLIENT_ID": "${REDDIT_CLIENT_ID}",
+        "REDDIT_CLIENT_SECRET": "${REDDIT_CLIENT_SECRET}",
+        "REDDIT_USER_AGENT": "${REDDIT_USER_AGENT}"
+      },
+      "tools": [
+        {
+          "name": "search_posts",
+          "description": "Search Reddit posts",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {"type": "string", "description": "Search query"},
+              "subreddit": {"type": "string", "description": "Subreddit to search in"}
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "name": "get_trending",
+          "description": "Get trending posts from Reddit",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "subreddit": {"type": "string", "description": "Subreddit name"}
+            }
+          }
+        }
+      ],
+      "resources": [],
+      "enabled": true,
+      "auto_start": true,
+      "timeout_seconds": 30,
+      "max_retries": 3,
+      "metadata": {
+        "created_at": "2025-12-27T00:00:00Z",
+        "version": "1.0"
+      }
+    },
+    {
+      "server_id": "excel",
+      "server_name": "Excel MCP Server",
+      "server_type": "stdio",
+      "command": "python",
+      "args": ["-m", "excel_mcp_server"],
+      "env": {},
+      "tools": [
+        {
+          "name": "analyze_spreadsheet",
+          "description": "Analyze an Excel spreadsheet",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "file_path": {"type": "string", "description": "Path to Excel file"},
+              "sheet_name": {"type": "string", "description": "Sheet name to analyze"}
+            },
+            "required": ["file_path"]
+          }
+        },
+        {
+          "name": "create_chart",
+          "description": "Create a chart from Excel data",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "file_path": {"type": "string", "description": "Path to Excel file"},
+              "data_range": {"type": "string", "description": "Data range (e.g., A1:D10)"},
+              "chart_type": {"type": "string", "description": "Chart type (bar, line, pie)"}
+            },
+            "required": ["file_path", "data_range", "chart_type"]
+          }
+        }
+      ],
+      "resources": [],
+      "enabled": true,
+      "auto_start": true,
+      "timeout_seconds": 60,
+      "max_retries": 3,
+      "metadata": {
+        "created_at": "2025-12-27T00:00:00Z",
+        "version": "1.0"
+      }
+    }
+  ]
+}
