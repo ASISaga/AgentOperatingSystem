@@ -1,8 +1,8 @@
-# Always-On Persistence Implementation
+# Perpetual Persistence Implementation
 
 ## Overview
 
-This PR implements the core USP (Unique Selling Proposition) of the Agent Operating System: **Always-On Persistence**.
+This PR implements the core USP (Unique Selling Proposition) of the Agent Operating System: **Perpetual Persistence**.
 
 ## The Key Difference
 
@@ -17,7 +17,7 @@ The fundamental difference between Agent Operating System and traditional AI fra
 
 **Memory is session-focused** - agents remember only the current mission.
 
-### Agent Operating System (Always-On Persistence)
+### Agent Operating System (Perpetual Persistence)
 - 🔄 Register agent once - it runs indefinitely
 - 😴 Agent sleeps when idle (resource efficient)
 - ⚡ Agent awakens automatically when events occur
@@ -31,10 +31,10 @@ The fundamental difference between Agent Operating System and traditional AI fra
 
 ### 1. Code Implementation
 
-#### New `AlwaysOnAgent` Class
+#### New `PerpetualAgent` Class
 **File:** `src/AgentOperatingSystem/agents/always_on.py`
 
-A new base agent class that implements the always-on paradigm:
+A new base agent class that implements the perpetual paradigm:
 - Event-driven awakening mechanism
 - Sleep/wake cycle for resource efficiency
 - Persistent state management across all events
@@ -43,9 +43,9 @@ A new base agent class that implements the always-on paradigm:
 
 Key features:
 ```python
-class AlwaysOnAgent(BaseAgent):
+class PerpetualAgent(BaseAgent):
     """
-    Always-On Agent - The foundational agent type for AOS.
+    Perpetual Agent - The foundational agent type for AOS.
     
     - Persistent: Remains registered and active indefinitely
     - Event-driven: Awakens in response to subscribed events
@@ -59,27 +59,27 @@ class AlwaysOnAgent(BaseAgent):
 
 Updated to support both operational models:
 - `register_agent(agent, always_on=True/False)` - specify operational mode
-- Track always-on vs task-based agents separately
+- Track perpetual vs task-based agents separately
 - Statistics on operational modes
 - Health checks include operational mode info
 
 ### 2. Documentation Updates
 
 #### README.md
-- Added prominent section at top explaining always-on vs task-based
+- Added prominent section at top explaining perpetual vs task-based
 - Comparison table showing the differences
 - Code examples demonstrating both approaches
 - Updated OS analogy table to include daemon processes
 
 #### ARCHITECTURE.md
-- New section explaining the always-on architecture
+- New section explaining the perpetual architecture
 - Agent lifecycle diagram showing sleep/wake cycle
 - Updated kernel layer description with event-driven details
 - Emphasized persistence as core architectural principle
 
 #### features.md
 - Added "Core USP" section at the beginning
-- Updated platform responsibilities to highlight always-on lifecycle
+- Updated platform responsibilities to highlight perpetual lifecycle
 - Enhanced agent identity contract to include operational mode
 - Added agent lifecycle contract
 
@@ -89,7 +89,7 @@ Updated to support both operational models:
 **File:** `examples/always_on_demo_standalone.py`
 
 A self-contained demonstration (no dependencies) that shows:
-- Side-by-side comparison of task-based vs always-on
+- Side-by-side comparison of task-based vs perpetual
 - Visual output showing agent creation/termination vs persistence
 - Clear metrics (event counts, wake counts, state preservation)
 - Comparison table and code examples
@@ -112,7 +112,7 @@ Agent Operating System:
 **File:** `examples/always_on_agents_example.py`
 
 Full example with C-suite agents (CEO, CFO, CTO):
-- Shows multiple always-on agents running concurrently
+- Shows multiple perpetual agents running concurrently
 - Demonstrates event subscription
 - Shows persistent state across multiple days
 - Includes health checks and statistics
@@ -127,19 +127,19 @@ Comprehensive test suite validating:
 - Event subscription system
 - Context preservation
 - Always-on vs task-based lifecycle comparison
-- Multiple concurrent always-on agents
+- Multiple concurrent perpetual agents
 - Health check operational mode reporting
 
 ## How to Use
 
-### Creating an Always-On Agent
+### Creating an Perpetual Agent
 
 ```python
-from AgentOperatingSystem.agents import AlwaysOnAgent
+from AgentOperatingSystem.agents import PerpetualAgent
 from AgentOperatingSystem.agents.manager import UnifiedAgentManager
 
-# Create an always-on agent
-agent = AlwaysOnAgent(
+# Create an perpetual agent
+agent = PerpetualAgent(
     agent_id="ceo",
     name="Chief Executive Officer",
     role="executive"
@@ -152,7 +152,7 @@ async def handle_decision(event_data):
 
 await agent.subscribe_to_event("DecisionRequested", handle_decision)
 
-# Register as always-on
+# Register as perpetual
 manager = UnifiedAgentManager()
 await manager.register_agent(agent, always_on=True)
 
@@ -184,15 +184,15 @@ This implementation:
 ## Files Changed
 
 ### New Files
-- `src/AgentOperatingSystem/agents/always_on.py` - AlwaysOnAgent implementation
+- `src/AgentOperatingSystem/agents/always_on.py` - PerpetualAgent implementation
 - `examples/always_on_demo_standalone.py` - Standalone demonstration
 - `examples/always_on_agents_example.py` - Comprehensive example
 - `tests/test_always_on_agents.py` - Test suite
 - `ALWAYS_ON_SUMMARY.md` - This file
 
 ### Modified Files
-- `src/AgentOperatingSystem/agents/__init__.py` - Export AlwaysOnAgent
-- `src/AgentOperatingSystem/agents/manager.py` - Enhanced for always-on support
+- `src/AgentOperatingSystem/agents/__init__.py` - Export PerpetualAgent
+- `src/AgentOperatingSystem/agents/manager.py` - Enhanced for perpetual support
 - `README.md` - Major updates to emphasize persistence USP
 - `ARCHITECTURE.md` - Always-on architecture explanation
 - `features.md` - Core USP section added
@@ -214,9 +214,9 @@ This implementation provides the foundation for:
 1. Enhanced event routing and filtering
 2. Agent collaboration patterns
 3. Advanced state management strategies
-4. Production deployment of always-on agent systems
-5. Metrics and monitoring for always-on agents
+4. Production deployment of perpetual agent systems
+5. Metrics and monitoring for perpetual agents
 
 ## Conclusion
 
-This PR successfully implements and documents the core differentiator of Agent Operating System: **always-on, event-driven, persistent agents** as opposed to traditional task-based sessions. The implementation is backed by working code, comprehensive examples, tests, and clear documentation that emphasizes this unique selling proposition.
+This PR successfully implements and documents the core differentiator of Agent Operating System: **perpetual, event-driven, persistent agents** as opposed to traditional task-based sessions. The implementation is backed by working code, comprehensive examples, tests, and clear documentation that emphasizes this unique selling proposition.

@@ -6,12 +6,13 @@ This document describes the comprehensive feature set for BusinessInfinity and A
 
 - **AgentOperatingSystem**: Platform-level infrastructure (lifecycle, messaging, reliability, observability)
 - **BusinessInfinity**: Business application layer (agents, workflows, analytics, governance)
-- **C-Suite Agents** (CEO, CFO, COO, CMO, CTO, CHRO, CSO, CISO): Domain-specific agent implementations
+- **PurposeDrivenAgent**: Fundamental building block - perpetual agents working against assigned purposes
+- **C-Suite Agents** (CEO, CFO, COO, CMO, CTO, CHRO, CSO, CISO): Domain-specific PurposeDrivenAgent implementations
 - **businessinfinity.asisaga.com**: Frontend web interface for BusinessInfinity
 
 ---
 
-## 🎯 Core USP: Always-On Persistence vs Task-Based Sessions
+## 🎯 Core USP: Perpetual + Purpose-Driven vs Task-Based Sessions
 
 **The key differentiator of Agent Operating System from traditional AI frameworks:**
 
@@ -20,14 +21,15 @@ This document describes the comprehensive feature set for BusinessInfinity and A
 - **Session Scoped**: Each task runs in isolation
 - **Lost State**: Context disappears when agent completes
 - **Manual Management**: Explicit start/stop for each task
-- **Single Purpose**: One task per agent instance
+- **Short-term Tasks**: One task per agent instance
 
-### Agent Operating System (Always-On)
+### Agent Operating System (Perpetual + Purpose-Driven)
 - **Permanent Lifecycle**: Agents register once → run indefinitely
 - **Continuous Operation**: Agents persist across all events
-- **Preserved State**: Context maintained for agent's lifetime
+- **Preserved State**: Context maintained via dedicated MCP server
 - **Event-Driven**: Automatic awakening on relevant events
-- **Multi-Purpose**: Handle unlimited events over time
+- **Assigned Purpose**: PurposeDrivenAgent works against perpetual purpose, not short-term tasks
+- **Fundamental Building Block**: PurposeDrivenAgent makes AOS an operating system of Purpose-Driven, Perpetual Agents
 
 This architectural difference makes AOS a true "operating system" rather than a task orchestration framework.
 
@@ -37,19 +39,20 @@ This architectural difference makes AOS a true "operating system" rather than a 
 
 **Repository**: [AgentOperatingSystem](https://github.com/ASISaga/AgentOperatingSystem)
 
-AgentOperatingSystem – Generic platform blueprint with always-on persistence
+AgentOperatingSystem – Generic platform blueprint with perpetual persistence
 
 The AgentOperatingSystem is the composable, event‑driven backbone that powers all agents. It defines universal contracts, governance primitives, event semantics, reliability patterns, and observability required for BusinessInfinity and any domain layer built on top.
 
-**Core Architectural Principle**: Agents are permanent, persistent entities that run indefinitely and respond to events, not temporary task executors.
+**Core Architectural Principle**: Agents are permanent, persistent entities that run indefinitely and respond to events. PurposeDrivenAgent (inheriting from PerpetualAgent) is the fundamental building block, working against assigned purposes rather than temporary task executors.
 
 ---
 
 Platform scope and responsibilities
 
-- **Always-on agent lifecycle**: Identity, roles, provisioning, continuous operation, health monitoring, capability registry, event-driven awakening, upgrade paths
-- **Persistent state management**: Agent context preservation across all events and interactions
+- **Perpetual agent lifecycle**: Identity, roles, provisioning, continuous operation, health monitoring, capability registry, event-driven awakening, upgrade paths
+- **Persistent state management**: Agent context preservation via dedicated MCP servers across all events and interactions
 - **Event-driven awakening**: Automatic agent activation when subscribed events occur
+- **Purpose-driven foundation**: Support for PurposeDrivenAgent working against assigned, long-term purposes
 - Protocol surface: Deterministic handling of commands, queries, and events with standardized envelopes
 - Policy engine integration: Policy‑as‑code evaluation for preconditions, postconditions, and compensating controls
 - Governance spine: Immutable audit logging, compliance assertions, risk registry updates, decision rationale storage
@@ -68,9 +71,10 @@ Core contracts
 - Command contract: Intent, required preconditions, expected outcomes, failure modes
 - Query contract: Selectors, filters, projections, pagination, consistency guarantees
 - Event contract: Topic, schema version, source, derived causality, delivery semantics
-- **Agent identity**: Unique agent ID, operational mode (always-on/task-based), human owner(s), service principal, role taxonomy, domain scopes, persistent state location
+- **Agent identity**: Unique agent ID, operational mode (perpetual by default), human owner(s), service principal, role taxonomy, domain scopes, MCP server for context preservation
+- **Purpose contract**: For PurposeDrivenAgent - assigned purpose, purpose scope, success criteria, perpetual commitment
 - Policy interface: Evaluate, enforce, assert, explain; supports rule sets, exceptions with expiry, and evidence links
-- **Agent lifecycle contract**: Register, initialize, start (indefinite), sleep/awaken, persist state, deregister
+- **Agent lifecycle contract**: Register, initialize, start (indefinite), sleep/awaken, preserve context via MCP, deregister
 
 ---
 

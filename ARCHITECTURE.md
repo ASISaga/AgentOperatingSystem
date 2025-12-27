@@ -28,7 +28,7 @@
 
 The **Agent Operating System (AOS)** is a complete, production-grade operating system for AI agents built on Microsoft Azure and the Microsoft Agent Framework. Just as traditional operating systems provide foundational infrastructure for applications, AOS provides the **kernel, system services, runtime environment, and application framework** for autonomous AI agents.
 
-### The Core Architectural Difference: Always-On vs Task-Based
+### The Core Architectural Difference: Perpetual vs Task-Based
 
 **The fundamental architectural principle of AOS is PERSISTENCE.**
 
@@ -38,7 +38,7 @@ Traditional AI frameworks use a **task-based session model**:
 - State is lost between sessions
 - Manual lifecycle management required
 
-AOS uses an **always-on persistent model**:
+AOS uses an **perpetual persistent model**:
 - Agents are registered once and run indefinitely
 - Agents sleep when idle, awaken on events
 - State persists across the agent's entire lifetime
@@ -48,7 +48,7 @@ This architectural choice makes AOS a true "operating system" - agents are like 
 
 ### Key Architectural Characteristics
 
-- **Always-On Architecture** - Agents run indefinitely as persistent entities
+- **Perpetual Architecture** - Agents run indefinitely as persistent entities
 - **Event-Driven** - Agents awaken automatically in response to events
 - **Persistent State** - Agent context preserved across all interactions
 - **Layered Architecture** - Clear separation between kernel, services, and applications
@@ -71,7 +71,7 @@ This architectural choice makes AOS a true "operating system" - agents are like 
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐               │
 │  │   CEO      │  │    CFO     │  │    CTO     │  + Custom     │
 │  │   Agent    │  │   Agent    │  │   Agent    │    Agents     │
-│  │ [ALWAYS-ON]│  │ [ALWAYS-ON]│  │ [ALWAYS-ON]│  [ALWAYS-ON]  │
+│  │ [PERPETUAL]│  │ [PERPETUAL]│  │ [PERPETUAL]│  [PERPETUAL]  │
 │  └────────────┘  └────────────┘  └────────────┘               │
 └─────────────────────────────────────────────────────────────────┘
                     ↕ System Calls (Python API)
@@ -99,7 +99,7 @@ This architectural choice makes AOS a true "operating system" - agents are like 
 │                        KERNEL LAYER                             │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  Orchestration Engine  │  Agent Lifecycle Manager        │  │
-│  │  [Event Router]        │  [Always-On Manager]            │  │
+│  │  [Event Router]        │  [Perpetual Manager]            │  │
 │  ├────────────────────────┼────────────────────────────────┤  │
 │  │  Resource Scheduler    │  State Machine Manager         │  │
 │  ├────────────────────────┼────────────────────────────────┤  │
@@ -163,9 +163,9 @@ This architectural choice makes AOS a true "operating system" - agents are like 
 - Event routing and distribution
 - Policy enforcement
 
-**Always-On Architecture:**
+**Perpetual Architecture:**
 
-The kernel implements the core always-on model:
+The kernel implements the core perpetual model:
 
 1. **Agent Registration:** Agents register once and enter an indefinite run loop
 2. **Sleep Mode:** Idle agents sleep to conserve resources
@@ -176,7 +176,7 @@ The kernel implements the core always-on model:
 ```
 Agent Lifecycle in AOS:
 
-Register → [Initialize] → [Start Always-On Loop]
+Register → [Initialize] → [Start Perpetual Loop]
                               ↓
                          [Sleep Mode] ←─────────────┐
                               ↓                      │

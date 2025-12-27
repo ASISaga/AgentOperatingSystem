@@ -582,14 +582,14 @@ for task in daily_tasks:
 
 # AGENT OPERATING SYSTEM (Always-On)
 # Register once, runs forever
-agent = AlwaysOnAgent("ceo")
+agent = PerpetualAgent("ceo")
 aos.register_agent(agent, always_on=True)
 
 # Day 1
 agent.process_event(event1)  # State saved
 
 # Day 100
-agent.process_event(event100)  # Remembers all 99 previous days
+agent.process_event(event100)  # Remembers all 99 previous days via MCP
 
 # Agent never stops unless explicitly deregistered
 ```
@@ -600,9 +600,11 @@ agent.process_event(event100)  # Remembers all 99 previous days
 |---------|---------------------------|------------------------------|
 | **Scope** | Workflow coordination | Complete runtime environment |
 | **Architecture** | Framework/Library | Full operating system |
-| **Agent Persistence** | ❌ Session-based | ✅ Always-on, persistent |
+| **Agent Type** | Task executors | Purpose-Driven Perpetual Agents |
+| **Agent Persistence** | ❌ Session-based | ✅ Perpetual via MCP |
 | **Event-Driven** | ❌ Manual triggering | ✅ Automatic awakening |
-| **State Continuity** | ❌ Lost between runs | ✅ Preserved indefinitely |
+| **State Continuity** | ❌ Lost between runs | ✅ Preserved via dedicated MCP server |
+| **Purpose** | ❌ Short-term tasks | ✅ Long-term assigned purpose |
 | **Agent Support** | Basic task execution | Full lifecycle management |
 | **Communication** | Point-to-point | Message bus, pub/sub, MCP |
 | **Storage** | External dependency | Unified storage layer |
@@ -621,9 +623,11 @@ agent.process_event(event100)  # Remembers all 99 previous days
 ### 🚀 **Complete Agent Runtime Environment**
 
 **AOS provides everything agents need to run:**
-- Agent lifecycle management (boot, run, monitor, never terminate)
-- **Always-on operations** - agents persist indefinitely
+- Agent lifecycle management (boot, run perpetually, monitor)
+- **Perpetual operations** - agents persist indefinitely
+- **Purpose-driven** - PurposeDrivenAgent works against assigned purposes
 - **Event-driven awakening** - automatic response to events
+- **MCP context preservation** - dedicated MCP server per agent
 - Resource allocation and scheduling
 - Process isolation and multi-tenancy
 - Health monitoring and auto-recovery
@@ -635,7 +639,7 @@ agent.process_event(event100)  # Remembers all 99 previous days
 - Message bus with pub/sub patterns
 - Request-response messaging
 - Conversation management and history
-- Model Context Protocol (MCP) integration
+- **Model Context Protocol (MCP) integration** - context preservation
 - Azure Service Bus backbone
 - Message delivery guarantees
 
@@ -646,6 +650,7 @@ agent.process_event(event100)  # Remembers all 99 previous days
 - Azure Table Storage (structured data)
 - Azure Queue Storage (message queues)
 - Cosmos DB (document database)
+- **Dedicated MCP servers** - per-agent context preservation
 - Backend-agnostic interface
 - Automatic serialization and compression
 
