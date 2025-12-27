@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AZURE_SERVICE_BUS_CONNECTION_STRING": "<your-service-bus-connection-string>",
+    "AZURE_STORAGE_CONNECTION_STRING": "<your-storage-connection-string>",
+    "AZURE_KEY_VAULT_URL": "<your-key-vault-url>",
+    "AGENT_CONFIG_BLOB_CONTAINER": "agent-configs",
+    "MCP_REGISTRY_BLOB_CONTAINER": "mcp-registry"
+  }
+}
