@@ -17,6 +17,7 @@ from datetime import datetime
 import logging
 import asyncio
 from ..ml.pipeline_ops import trigger_lora_training, run_azure_ml_pipeline, aml_infer
+from ..mcp.context_server import ContextMCPServer
 from .base import BaseAgent
 
 
@@ -58,9 +59,9 @@ class PerpetualAgent(BaseAgent):
         self.wake_count = 0
         self.total_events_processed = 0
         
-        # Context is preserved via MCP server
-        # Each perpetual agent has a dedicated MCP server for context preservation
-        self.mcp_context_server = None  # Will be initialized when agent starts
+        # Context is preserved via ContextMCPServer (common infrastructure)
+        # Each perpetual agent has a dedicated ContextMCPServer instance
+        self.mcp_context_server: Optional[ContextMCPServer] = None
         
         self.logger = logging.getLogger(f"aos.perpetual.{self.agent_id}")
         self.logger.info(f"PerpetualAgent {self.agent_id} created - will run indefinitely")
@@ -334,15 +335,22 @@ class PerpetualAgent(BaseAgent):
 
     async def _setup_mcp_context_server(self) -> None:
         """
-        Set up dedicated MCP server for context preservation.
+        Set up dedicated ContextMCPServer for context preservation.
         
-        Each perpetual agent has its own MCP server that preserves context
-        across all events and agent restarts. This is a key differentiator
+        Each perpetual agent has its own ContextMCPServer instance that preserves
+        context across all events and agent restarts. This is a key differentiator
         from task-based frameworks.
         """
-        # MCP server setup would be implemented here
-        # This is a placeholder for the architecture
-        self.logger.debug(f"MCP context server initialized for agent {self.agent_id}")
+        try:
+            self.mcp_context_server = ContextMCPServer(
+                agent_id=self.agent_id,
+                config=self.config.get("context_server", {}) if hasattr(self, 'config') else {}
+            )
+            await self.mcp_context_server.initialize()
+            self.logger.info(f"ContextMCPServer initialized for agent {self.agent_id}")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize ContextMCPServer: {e}")
+            raise
 
     async def _setup_event_listeners(self) -> None:
         """Set up event listening infrastructure."""
@@ -350,11 +358,17 @@ class PerpetualAgent(BaseAgent):
         self.logger.debug(f"Event listeners set up for agent {self.agent_id}")
 
     async def _load_context_from_mcp(self) -> None:
-        """Load previously saved context from MCP server."""
-        # Load context from dedicated MCP server
-        self.logger.debug(f"Loaded context from MCP for agent {self.agent_id}")
+        """Load previously saved context from ContextMCPServer."""
+        if self.mcp_context_server:
+            # Context is automatically loaded during ContextMCPServer initialization
+            context = await self.mcp_context_server.get_all_context()
+            self.logger.debug(f"Loaded {len(context)} context items from ContextMCPServer")
 
     async def _save_context_to_mcp(self) -> None:
-        """Save current context to MCP server."""
-        # Save context to dedicated MCP server
-        self.logger.debug(f"Saved context to MCP for agent {self.agent_id}")
+        """Save current context to ContextMCPServer."""
+        if self.mcp_context_server:
+            # Save current processing state
+            await self.mcp_context_server.set_context("wake_count", self.wake_count)
+            await self.mcp_context_server.set_context("total_events_processed", self.total_events_processed)
+            await self.mcp_context_server.set_context("last_active", datetime.utcnow().isoformat())
+            self.logger.debug(f"Saved context to ContextMCPServer")
