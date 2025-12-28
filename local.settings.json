@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureServiceBusConnectionString": "",
+    "AZURE_SERVICEBUS_CONNECTION_STRING": "",
+    "AZURE_STORAGE_CONNECTION_STRING": "",
+    "APPLICATIONINSIGHTS_CONNECTION_STRING": "",
+    "APP_ENVIRONMENT": "development"
+  }
+}

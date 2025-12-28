@@ -11,6 +11,25 @@ from .servicebus_manager import ServiceBusManager
 # New refactored classes
 from .envelope import MessageEnvelope
 from .reliability import RetryPolicy, CircuitBreaker
+# Azure Functions Service Bus contracts and handlers
+from .contracts import (
+    AOSMessageType,
+    AOSMessageHeader,
+    AOSMessage,
+    AOSQueues,
+    AOSTopics,
+    AgentQueryPayload,
+    AgentQueryResponse,
+    WorkflowExecutePayload,
+    WorkflowExecuteResponse,
+    StorageOperationPayload,
+    StorageOperationResponse,
+    MCPCallPayload,
+    MCPCallResponse,
+    HealthCheckPayload,
+    HealthCheckResponse,
+)
+from .servicebus_handlers import AOSServiceBusHandlers
 
 try:
     from .conversation_system import (
@@ -32,7 +51,25 @@ __all__ = [
     # New refactored classes
     "MessageEnvelope",
     "RetryPolicy",
-    "CircuitBreaker"
+    "CircuitBreaker",
+    # Azure Functions Service Bus contracts
+    "AOSMessageType",
+    "AOSMessageHeader",
+    "AOSMessage",
+    "AOSQueues",
+    "AOSTopics",
+    "AgentQueryPayload",
+    "AgentQueryResponse",
+    "WorkflowExecutePayload",
+    "WorkflowExecuteResponse",
+    "StorageOperationPayload",
+    "StorageOperationResponse",
+    "MCPCallPayload",
+    "MCPCallResponse",
+    "HealthCheckPayload",
+    "HealthCheckResponse",
+    # Service Bus handlers
+    "AOSServiceBusHandlers",
 ]
 
 if ADVANCED_MESSAGING_AVAILABLE:
