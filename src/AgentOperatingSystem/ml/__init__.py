@@ -24,6 +24,14 @@ try:
 except ImportError:
     DPO_AVAILABLE = False
 
+try:
+    from .lorax_server import (
+        LoRAxServer, LoRAxConfig, LoRAxAdapterRegistry, AdapterInfo
+    )
+    LORAX_AVAILABLE = True
+except ImportError:
+    LORAX_AVAILABLE = False
+
 __all__ = [
     "MLPipelineManager"
 ]
@@ -37,4 +45,9 @@ if SELF_LEARNING_AVAILABLE:
 if DPO_AVAILABLE:
     __all__.extend([
         "DPOTrainer", "DPOConfig", "PreferenceData", "PreferenceDataCollector"
+    ])
+
+if LORAX_AVAILABLE:
+    __all__.extend([
+        "LoRAxServer", "LoRAxConfig", "LoRAxAdapterRegistry", "AdapterInfo"
     ])
