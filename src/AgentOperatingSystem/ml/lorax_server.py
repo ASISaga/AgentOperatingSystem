@@ -4,6 +4,24 @@ LoRAx Server Integration for AOS ML Pipeline
 LoRAx (LoRA eXchange) enables serving multiple LoRA adapters concurrently with a shared
 base model, providing significant cost savings for multi-agent scenarios.
 
+**IMPORTANT NOTE:**
+This is a reference implementation that provides the infrastructure and API for LoRAx
+integration. For production deployment, you will need to integrate with actual LoRAx
+server (https://github.com/predibase/lorax) or implement the model serving logic.
+
+The current implementation:
+- ✅ Provides complete API and infrastructure for LoRAx integration
+- ✅ Implements adapter registry and management
+- ✅ Handles request batching and caching logic
+- ✅ Provides metrics and monitoring
+- ⚠️ Uses simulated inference for demonstration (production requires actual model integration)
+
+For production deployment:
+1. Install LoRAx server: pip install lorax
+2. Configure base model and GPU resources
+3. Implement actual model loading and inference in _start_server() and inference()
+4. OR connect to existing LoRAx server endpoint
+
 Key Features:
 - Dynamic adapter loading and unloading
 - Concurrent batch processing with multiple LoRA adapters
@@ -233,11 +251,17 @@ class LoRAxServer:
         self.logger.info(f"Starting LoRAx server with base model: {self.config.base_model}")
         
         try:
-            # In a real implementation, this would:
-            # 1. Download/load base model
-            # 2. Initialize GPU resources
-            # 3. Start HTTP server
-            # 4. Load initial adapters into cache
+            # TODO: Production implementation should:
+            # 1. Download/load base model from Hugging Face or Azure ML
+            # 2. Initialize GPU resources and allocate memory
+            # 3. Start HTTP server (e.g., using FastAPI or similar)
+            # 4. Load initial adapters into cache based on usage history
+            # 
+            # Example production flow:
+            # - Load base model: self.base_model = transformers.AutoModelForCausalLM.from_pretrained(...)
+            # - Initialize LoRA config: peft_config = PeftConfig(...)
+            # - Start inference server: self.server_process = start_http_server(...)
+            # - Preload adapters: await self._preload_adapters()
             
             self.logger.info("Initializing base model...")
             await asyncio.sleep(0.5)  # Simulate model loading
@@ -341,11 +365,18 @@ class LoRAxServer:
         start_time = datetime.utcnow()
         
         try:
-            # In a real implementation, this would:
-            # 1. Load adapter if not cached
-            # 2. Add request to batch queue
-            # 3. Wait for batch processing
-            # 4. Return generated text
+            # TODO: Production implementation should:
+            # 1. Check if adapter is cached, load if needed
+            # 2. Add request to batch queue with adapter metadata
+            # 3. Wait for batch processing and inference completion
+            # 4. Return generated text with metadata
+            #
+            # Example production flow:
+            # - if not adapter_info.loaded:
+            #     await self._load_adapter(adapter_id)
+            # - batch_request = create_batch_request(prompt, adapter_id, params)
+            # - result = await self._process_batch([batch_request])
+            # - generated_text = result['sequences'][0]['text']
             
             self.logger.debug(f"Processing inference request {request_id} with adapter {adapter_id}")
             
@@ -358,7 +389,7 @@ class LoRAxServer:
             else:
                 self.metrics["cache_hits"] += 1
             
-            # Simulate inference
+            # Simulate inference (in production, this would call actual model)
             await asyncio.sleep(0.2)
             
             # Update usage stats
@@ -375,15 +406,17 @@ class LoRAxServer:
                 / self.metrics["successful_requests"]
             )
             
+            # Mock response - in production, this would be actual model output
             result = {
                 "request_id": request_id,
                 "adapter_id": adapter_id,
                 "prompt": prompt,
-                "generated_text": f"[Generated response for {adapter_info.agent_role}] {prompt[:50]}...",
+                "generated_text": f"[LoRAx Simulated Response for {adapter_info.agent_role}] Based on the prompt: {prompt[:100]}...",
                 "tokens_generated": max_new_tokens,
                 "latency_ms": latency_ms,
                 "adapter_loaded": adapter_info.loaded,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
+                "note": "This is a simulated response. Production deployment requires actual model integration."
             }
             
             return result
