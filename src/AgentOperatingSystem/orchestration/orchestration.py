@@ -30,6 +30,7 @@ class Orchestration():
         self.storage_manager = StorageManager()
         self.ml_pipeline = MLPipelineManager()
         self.config = self._load_config()
+        self.lorax_enabled = False  # LoRAx integration status
 
     def _load_config(self) -> Dict[str, Any]:
         return {
@@ -37,7 +38,8 @@ class Orchestration():
             "decision_timeout": 3600,
             "quorum_threshold": 0.6,
             "auto_execution": True,
-            "audit_level": "detailed"
+            "audit_level": "detailed",
+            "enable_lorax": os.getenv("AOS_ENABLE_LORAX", "true").lower() == "true"
         }
 
     async def initialize(self):
@@ -48,6 +50,11 @@ class Orchestration():
             await self.orchestrator.initialize()
             await self.storage_manager.initialize()
             await self.ml_pipeline.initialize()
+            
+            # Initialize LoRAx if enabled
+            if self.config.get("enable_lorax", True):
+                await self._initialize_lorax()
+            
             await self._load_boardroom_state()
             await self._start_boardroom_operations()
             self.state = State.ACTIVE
@@ -56,7 +63,10 @@ class Orchestration():
                 "Autonomous Boardroom initialized successfully",
                 severity=AuditSeverity.INFO,
                 component="boardroom",
-                metadata={"member_count": len(self.members)}
+                metadata={
+                    "member_count": len(self.members),
+                    "lorax_enabled": self.lorax_enabled
+                }
             )
         except Exception as e:
             self.logger.error(f"Failed to initialize boardroom: {e}")
@@ -185,13 +195,61 @@ class Orchestration():
             metadata={"decision_id": decision.decision_id}
         )
 
+    async def _initialize_lorax(self):
+        """Initialize LoRAx multi-adapter serving for cost-effective ML inference"""
+        try:
+            # Start LoRAx server
+            success = await self.ml_pipeline.start_lorax_server()
+            
+            if success:
+                self.lorax_enabled = True
+                self.logger.info("LoRAx multi-adapter serving enabled")
+                
+                # Register adapters for all board members
+                for member_id, member in self.members.items():
+                    # Register LoRA adapter for this member's role
+                    await self._register_member_adapter(member)
+            else:
+                self.logger.warning("LoRAx server failed to start, falling back to standard inference")
+                self.lorax_enabled = False
+                
+        except Exception as e:
+            self.logger.warning(f"LoRAx initialization failed: {e}, using standard inference")
+            self.lorax_enabled = False
+    
+    async def _register_member_adapter(self, member: Member):
+        """Register LoRA adapter for a board member"""
+        try:
+            # Adapter path based on member role
+            adapter_path = f"/models/{member.role.value.lower()}_lora_adapter"
+            
+            self.ml_pipeline.register_lorax_adapter(
+                agent_role=member.role.value,
+                adapter_path=adapter_path,
+                metadata={
+                    "member_id": member.agent_id,
+                    "expertise": member.expertise_domains
+                }
+            )
+            
+            self.logger.info(f"Registered LoRAx adapter for {member.role.value}")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to register adapter for {member.agent_id}: {e}")
+
     async def _get_system_health(self) -> Dict[str, Any]:
-        return {
+        health = {
             "message_bus": await self.message_bus.health_check(),
             "storage": await self.storage_manager.health_check(),
             "orchestrator": await self.orchestrator.health_check(),
             "ml_pipeline": await self.ml_pipeline.health_check()
         }
+        
+        # Add LoRAx status if enabled
+        if self.lorax_enabled:
+            health["lorax"] = self.ml_pipeline.get_lorax_status()
+        
+        return health
 
 async def create_autonomous_boardroom(aos_instance=None) -> Orchestration:
     boardroom = Orchestration(aos_instance)

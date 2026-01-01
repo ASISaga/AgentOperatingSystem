@@ -25,14 +25,18 @@ class MultiAgentCoordinator:
     """
     Enhanced multi-agent coordinator that manages complex agent interactions,
     task distribution, and collaborative workflows.
+    
+    Integrated with LoRAx for cost-effective multi-agent ML inference.
     """
     
     def __init__(self, logger: Optional[logging.Logger] = None, 
                  send_message_func: Optional[Callable] = None,
-                 registered_agents: Optional[Dict[str, LeadershipAgent]] = None):
+                 registered_agents: Optional[Dict[str, LeadershipAgent]] = None,
+                 ml_pipeline: Optional[Any] = None):
         self.logger = logger or logging.getLogger("AOS.MultiAgentCoordinator")
         self.send_message_func = send_message_func
         self.registered_agents = registered_agents or {}
+        self.ml_pipeline = ml_pipeline  # For LoRAx integration
         
         # Coordination state
         self.active_workflows: Dict[str, Dict[str, Any]] = {}
@@ -47,6 +51,11 @@ class MultiAgentCoordinator:
         self.max_concurrent_workflows = 10
         self.default_timeout = 300  # 5 minutes
         self.retry_attempts = 3
+        
+        # LoRAx integration
+        self.use_lorax = False
+        if ml_pipeline:
+            self.use_lorax = ml_pipeline.config.enable_lorax if hasattr(ml_pipeline, 'config') else False
     
     async def handle_multiagent_request(self, agent_id: str, domain: str, user_input: str, 
                                       conv_id: str, coordination_mode: CoordinationMode = CoordinationMode.SEQUENTIAL) -> Dict[str, Any]:
@@ -227,9 +236,38 @@ class MultiAgentCoordinator:
         }
     
     async def _execute_parallel_workflow(self, workflow: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute workflow where agents work in parallel"""
+        """
+        Execute workflow where agents work in parallel.
+        
+        Uses LoRAx batch inference when available for cost-effective multi-agent ML.
+        """
         start_time = datetime.utcnow()
         
+        # Check if LoRAx is available and workflow can use it
+        use_lorax_batch = (
+            self.use_lorax and 
+            self.ml_pipeline and 
+            hasattr(self.ml_pipeline, 'lorax_batch_inference') and
+            len(workflow["agents"]) > 1
+        )
+        
+        if use_lorax_batch:
+            # Use LoRAx batch inference for efficient parallel processing
+            results = await self._execute_parallel_with_lorax(workflow)
+            execution_time = (datetime.utcnow() - start_time).total_seconds()
+            
+            # Compile final response
+            final_response = self._compile_parallel_response(results, workflow)
+            
+            return {
+                "response": final_response,
+                "results": results,
+                "execution_time": execution_time,
+                "success": len([r for r in results if "error" not in r]) > 0,
+                "used_lorax": True
+            }
+        
+        # Standard parallel execution
         # Create tasks for all agents
         tasks = []
         for agent_id in workflow["agents"]:
@@ -286,8 +324,86 @@ class MultiAgentCoordinator:
             "response": final_response,
             "results": results,
             "execution_time": execution_time,
-            "success": len([r for r in results if "error" not in r]) > 0
+            "success": len([r for r in results if "error" not in r]) > 0,
+            "used_lorax": False
         }
+    
+    async def _execute_parallel_with_lorax(self, workflow: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Execute parallel workflow using LoRAx batch inference.
+        
+        This provides significant cost savings by processing multiple agents
+        with different LoRA adapters on a single GPU.
+        """
+        try:
+            # Prepare batch requests for all agents
+            batch_requests = []
+            for agent_id in workflow["agents"]:
+                # Get agent role for LoRAx adapter selection
+                agent = self.registered_agents.get(agent_id)
+                if not agent:
+                    self.logger.warning(f"Agent {agent_id} not found in registry")
+                    continue
+                
+                # Prepare prompt for this agent
+                agent_role = agent.role if hasattr(agent, 'role') else agent_id
+                prompt = f"{workflow['domain']}: {workflow['user_input']}"
+                
+                batch_requests.append({
+                    "agent_role": agent_role,
+                    "prompt": prompt,
+                    "params": {
+                        "max_new_tokens": 256,
+                        "temperature": 0.7
+                    }
+                })
+            
+            # Execute batch inference with LoRAx
+            self.logger.info(f"Executing LoRAx batch inference for {len(batch_requests)} agents")
+            lorax_results = await self.ml_pipeline.lorax_batch_inference(batch_requests)
+            
+            # Format results
+            results = []
+            for agent_id, lorax_result in zip(workflow["agents"], lorax_results):
+                results.append({
+                    "agent_id": agent_id,
+                    "result": {
+                        "response": lorax_result.get("generated_text", ""),
+                        "latency_ms": lorax_result.get("latency_ms", 0),
+                        "adapter_loaded": lorax_result.get("adapter_loaded", False)
+                    },
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "inference_method": "lorax"
+                })
+            
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"LoRAx batch inference failed: {e}, falling back to standard execution")
+            # Fall back to standard parallel execution
+            tasks = []
+            for agent_id in workflow["agents"]:
+                message = {
+                    "type": "workflow_step",
+                    "domain": workflow["domain"],
+                    "user_input": workflow["user_input"],
+                    "conversation_id": workflow["conversation_id"],
+                    "workflow_id": workflow["workflow_id"],
+                    "context": {}
+                }
+                tasks.append(self._send_workflow_message(agent_id, message))
+            
+            agent_results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            return [
+                {
+                    "agent_id": agent_id,
+                    "result": result if not isinstance(result, Exception) else {"error": str(result)},
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "inference_method": "standard_fallback"
+                }
+                for agent_id, result in zip(workflow["agents"], agent_results)
+            ]
     
     async def _execute_hierarchical_workflow(self, workflow: Dict[str, Any]) -> Dict[str, Any]:
         """Execute workflow with hierarchical agent priority"""
