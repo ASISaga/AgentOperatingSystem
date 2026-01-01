@@ -9,17 +9,17 @@
 
 ## 🎯 The Fundamental Difference: Perpetual vs Task-Based
 
-**The key difference between Agent Operating System and traditional AI orchestration frameworks is PERSISTENCE.**
+**The key difference between Agent Operating System and traditional AI Orchestration frameworks is PERSISTENCE.**
 
-### Traditional AI orchestration Frameworks (Task-Based Sessions)
-Traditional orchestration frameworks run **temporary sessions**:
-- ▶️ Start an Agent orchestration for a specific task
-- ⚙️ Agent orchestration processes the task sequentially or hierarchically  
-- ⏹️ Agent orchestration completes and terminates
+### Traditional AI Orchestration Frameworks
+Traditional Orchestration frameworks run **Temporary Task-Based Sessions**:
+- ▶️ Start an Agent Orchestration for a specific task
+- ⚙️ Agent Orchestration processes the task sequentially or hierarchically  
+- ⏹️ Agent Orchestration completes and terminates
 - 💾 State is lost (unless explicitly saved)
-- 🔄 Must restart agent orchestration for next task
+- 🔄 Must restart Agent Orchestration for next task
 
-**Memory is session-focused** - agents remember only the current mission.
+**Memory is session-focused** - Agents remember only the current mission.
 
 ### Agent Operating System (Perpetual Orchestration)
 AOS agents are **Purpose-Driven Perpetual entities that never stop**:
@@ -27,9 +27,9 @@ AOS agents are **Purpose-Driven Perpetual entities that never stop**:
 - 😴 Agent sleeps when idle (resource efficient)
 - ⚡ Agent awakens automatically when events occur
 - 💾 State persists forever via dedicated ContextMCPServer
-- 🎯 Event-driven perpetual orchestration, with reactive behavior
+- 🎯 Event-driven, Perpetual Orchestration, with reactive behavior
 - 🏃 Never terminates unless explicitly deregistered
-- 🎭 **PurposeDrivenAgent** works against perpetual, assigned purpose (not short-term tasks)
+- 🎭 **PurposeDrivenAgent** works against Perpetual, Assigned purpose (not short-term tasks)
 
 **Memory is persistent** - agents build knowledge continuously over their lifetime through MCP context preservation.
 
