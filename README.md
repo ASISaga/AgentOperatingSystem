@@ -9,25 +9,25 @@
 
 ## 🎯 The Fundamental Difference: Perpetual vs Task-Based
 
-**The key difference between Agent Operating System and traditional AI frameworks is PERSISTENCE.**
+**The key difference between Agent Operating System and traditional AI orchestration frameworks is PERSISTENCE.**
 
-### Traditional AI Frameworks (Task-Based Sessions)
-Traditional frameworks run **temporary sessions**:
-- ▶️ Start an agent for a specific task
-- ⚙️ Agent processes the task sequentially or hierarchically  
-- ⏹️ Agent completes and terminates
+### Traditional AI orchestration Frameworks (Task-Based Sessions)
+Traditional orchestration frameworks run **temporary sessions**:
+- ▶️ Start an Agent orchestration for a specific task
+- ⚙️ Agent orchestration processes the task sequentially or hierarchically  
+- ⏹️ Agent orchestration completes and terminates
 - 💾 State is lost (unless explicitly saved)
-- 🔄 Must restart agent for next task
+- 🔄 Must restart agent orchestration for next task
 
 **Memory is session-focused** - agents remember only the current mission.
 
-### Agent Operating System (Perpetual Operation)
+### Agent Operating System (Perpetual Orchestration)
 AOS agents are **Purpose-Driven Perpetual entities that never stop**:
 - 🔄 Register agent once - it runs indefinitely
 - 😴 Agent sleeps when idle (resource efficient)
 - ⚡ Agent awakens automatically when events occur
 - 💾 State persists forever via dedicated ContextMCPServer
-- 🎯 Event-driven reactive behavior
+- 🎯 Event-driven perpetual orchestration, with reactive behavior
 - 🏃 Never terminates unless explicitly deregistered
 - 🎭 **PurposeDrivenAgent** works against perpetual, assigned purpose (not short-term tasks)
 
