@@ -3,6 +3,7 @@ AOS ML Pipeline Manager
 
 Manages machine learning operations including training, inference, and model management.
 Includes DPO (Direct Preference Optimization) support for cost-effective reinforcement learning.
+Includes LoRAx integration for cost-effective multi-adapter inference.
 """
 
 import logging
@@ -21,6 +22,7 @@ class MLPipelineManager:
     - Inference operations
     - Model deployment and versioning
     - Performance monitoring
+    - LoRAx multi-adapter serving
     """
     
     def __init__(self, config: MLConfig):
@@ -37,6 +39,11 @@ class MLPipelineManager:
         
         # Inference cache
         self.inference_cache = {}
+        
+        # LoRAx integration
+        self.lorax_server = None
+        if self.config.enable_lorax:
+            self._initialize_lorax()
     
     async def train_model(self, model_config: Dict[str, Any]) -> str:
         """
@@ -611,3 +618,234 @@ class MLPipelineManager:
             "created_at": job_info.get("created_at"),
             "completed_at": job_info.get("completed_at")
         }
+    
+    def _initialize_lorax(self):
+        """Initialize LoRAx server for multi-adapter inference."""
+        try:
+            from .lorax_server import LoRAxServer, LoRAxConfig
+            
+            lorax_config = LoRAxConfig(
+                base_model=self.config.lorax_base_model,
+                host=self.config.lorax_host,
+                port=self.config.lorax_port,
+                adapter_cache_size=self.config.lorax_adapter_cache_size,
+                max_concurrent_requests=self.config.lorax_max_concurrent_requests,
+                max_batch_size=self.config.lorax_max_batch_size,
+                gpu_memory_utilization=self.config.lorax_gpu_memory_utilization,
+                adapter_base_path=self.config.model_storage_path
+            )
+            
+            self.lorax_server = LoRAxServer(lorax_config)
+            self.logger.info("LoRAx server initialized")
+            
+        except ImportError as e:
+            self.logger.warning(f"LoRAx not available: {e}")
+            self.lorax_server = None
+    
+    async def start_lorax_server(self) -> bool:
+        """
+        Start the LoRAx server for multi-adapter inference.
+        
+        Returns:
+            True if server started successfully
+        """
+        if not self.config.enable_lorax:
+            self.logger.warning("LoRAx is disabled in configuration")
+            return False
+        
+        if self.lorax_server is None:
+            self._initialize_lorax()
+        
+        if self.lorax_server is None:
+            self.logger.error("Failed to initialize LoRAx server")
+            return False
+        
+        return await self.lorax_server.start()
+    
+    async def stop_lorax_server(self) -> bool:
+        """
+        Stop the LoRAx server.
+        
+        Returns:
+            True if server stopped successfully
+        """
+        if self.lorax_server is None:
+            self.logger.warning("LoRAx server is not initialized")
+            return True
+        
+        return await self.lorax_server.stop()
+    
+    def register_lorax_adapter(
+        self,
+        agent_role: str,
+        adapter_path: str,
+        adapter_id: Optional[str] = None,
+        version: str = "1.0.0",
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        """
+        Register a LoRA adapter with LoRAx for multi-adapter serving.
+        
+        Args:
+            agent_role: Agent role (e.g., "CEO", "CFO")
+            adapter_path: Path to the adapter files
+            adapter_id: Optional custom adapter ID (defaults to agent_role)
+            version: Version string
+            metadata: Optional metadata
+            
+        Returns:
+            True if registration successful
+        """
+        if self.lorax_server is None:
+            self.logger.error("LoRAx server is not initialized")
+            return False
+        
+        adapter_id = adapter_id or agent_role
+        
+        try:
+            self.lorax_server.registry.register_adapter(
+                adapter_id=adapter_id,
+                agent_role=agent_role,
+                adapter_path=adapter_path,
+                version=version,
+                metadata=metadata
+            )
+            
+            self.logger.info(f"Registered LoRAx adapter {adapter_id} for {agent_role}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to register LoRAx adapter: {e}")
+            return False
+    
+    async def lorax_inference(
+        self,
+        agent_role: str,
+        prompt: str,
+        max_new_tokens: int = 256,
+        temperature: float = 0.7,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Run inference using LoRAx for a specific agent role.
+        
+        This is the recommended method for multi-agent inference as it provides
+        significant cost savings through adapter sharing.
+        
+        Args:
+            agent_role: Agent role (e.g., "CEO", "CFO")
+            prompt: Input prompt
+            max_new_tokens: Maximum tokens to generate
+            temperature: Sampling temperature
+            **kwargs: Additional generation parameters
+            
+        Returns:
+            Inference result
+        """
+        if self.lorax_server is None:
+            self.logger.error("LoRAx server is not initialized")
+            return {"error": "LoRAx server not available"}
+        
+        if not self.lorax_server.running:
+            self.logger.error("LoRAx server is not running")
+            return {"error": "LoRAx server not running"}
+        
+        try:
+            result = await self.lorax_server.inference_for_agent(
+                agent_role=agent_role,
+                prompt=prompt,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                **kwargs
+            )
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"LoRAx inference failed: {e}")
+            return {"error": str(e)}
+    
+    async def lorax_batch_inference(
+        self,
+        requests: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Process multiple inference requests using LoRAx batch processing.
+        
+        This is highly efficient for processing multiple agents concurrently.
+        
+        Args:
+            requests: List of inference requests with agent_role and prompt
+            
+        Returns:
+            List of inference results
+        """
+        if self.lorax_server is None:
+            return [{"error": "LoRAx server not available"}] * len(requests)
+        
+        if not self.lorax_server.running:
+            return [{"error": "LoRAx server not running"}] * len(requests)
+        
+        try:
+            # Convert agent_role to adapter_id for each request
+            lorax_requests = []
+            for req in requests:
+                adapter_info = self.lorax_server.registry.get_adapter_for_agent(
+                    req["agent_role"]
+                )
+                if not adapter_info:
+                    self.logger.warning(f"No adapter for agent {req['agent_role']}")
+                    continue
+                
+                lorax_requests.append({
+                    "adapter_id": adapter_info.adapter_id,
+                    "prompt": req["prompt"],
+                    "params": req.get("params", {})
+                })
+            
+            results = await self.lorax_server.batch_inference(lorax_requests)
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"LoRAx batch inference failed: {e}")
+            return [{"error": str(e)}] * len(requests)
+    
+    def get_lorax_status(self) -> Dict[str, Any]:
+        """
+        Get LoRAx server status and metrics.
+        
+        Returns:
+            Status dictionary with server info and metrics
+        """
+        if self.lorax_server is None:
+            return {
+                "enabled": self.config.enable_lorax,
+                "initialized": False,
+                "running": False,
+                "message": "LoRAx server not initialized"
+            }
+        
+        status = self.lorax_server.get_status()
+        status["enabled"] = self.config.enable_lorax
+        status["initialized"] = True
+        
+        return status
+    
+    def get_lorax_adapter_stats(self, agent_role: str) -> Optional[Dict[str, Any]]:
+        """
+        Get statistics for a specific LoRAx adapter.
+        
+        Args:
+            agent_role: Agent role
+            
+        Returns:
+            Adapter statistics or None if not found
+        """
+        if self.lorax_server is None:
+            return None
+        
+        adapter_info = self.lorax_server.registry.get_adapter_for_agent(agent_role)
+        if not adapter_info:
+            return None
+        
+        return self.lorax_server.get_adapter_stats(adapter_info.adapter_id)
