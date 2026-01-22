@@ -89,3 +89,78 @@ Additional examples will be added to demonstrate:
 - Multi-agent coordination
 - Event-driven workflows
 - Plugin framework usage
+
+## Azure Foundry Agent Service Example
+
+**File**: `foundry_agent_service_example.py`
+
+Demonstrates how to use Microsoft Azure Foundry Agent Service with Llama 3.3 70B as the core reasoning engine.
+
+### Features Demonstrated
+
+1. **Basic Message Sending**
+   - Simple request/response with Llama 3.3 70B
+   - Configuration from environment variables
+   - Response handling and metrics
+
+2. **Stateful Threads**
+   - Creating persistent conversation threads
+   - Multi-turn conversations with context preservation
+   - Thread metadata and management
+   - Thread lifecycle (create, use, delete)
+
+3. **Entra Agent ID**
+   - Secure agent identity management
+   - Integration with Microsoft Entra ID
+   - Agent-level access control
+
+4. **Foundry Tools**
+   - Accessing Azure AI Foundry tools
+   - Tool selection and usage
+   - Custom tool integration
+
+5. **Model Orchestrator Integration**
+   - Using Foundry Agent Service through ModelOrchestrator
+   - Automatic model selection
+   - Request routing and management
+
+6. **Metrics and Monitoring**
+   - Request tracking
+   - Token usage monitoring
+   - Health checks
+   - Performance metrics
+
+### Prerequisites
+
+Set up the following environment variables:
+
+```bash
+export FOUNDRY_AGENT_SERVICE_ENDPOINT="https://your-endpoint.azure.com"
+export FOUNDRY_AGENT_SERVICE_API_KEY="your-api-key"
+export FOUNDRY_AGENT_ID="your-agent-id"  # Optional
+```
+
+### Running the Example
+
+```bash
+# From the repository root
+export PYTHONPATH="${PYTHONPATH}:${PWD}/src"
+
+# Run the example
+python examples/foundry_agent_service_example.py
+```
+
+### Expected Output
+
+The example will demonstrate:
+1. Basic message sending with Llama 3.3 70B
+2. Creating and managing stateful threads
+3. Multi-turn conversations with context preservation
+4. Using Foundry Tools for enhanced capabilities
+5. Integration with Model Orchestrator
+6. Advanced configuration options
+7. Metrics collection and health monitoring
+
+### Documentation
+
+For complete documentation, see [docs/FOUNDRY_AGENT_SERVICE.md](../docs/FOUNDRY_AGENT_SERVICE.md)

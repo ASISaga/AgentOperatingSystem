@@ -769,12 +769,73 @@ agent.process_event(event100)  # Remembers all 99 previous days via ContextMCPSe
 
 **Machine learning infrastructure:**
 - Azure ML integration
+- **Azure Foundry Agent Service** - Native support for Llama 3.3 70B with Stateful Threads, Entra Agent ID, and Foundry Tools
 - LoRA adapter training and management
 - **LoRAx multi-adapter serving** - Serve 100+ agents with different LoRA adapters on a single GPU
 - Multi-agent adapter sharing with dynamic loading
 - Model inference with caching
 - Model versioning and deployment
 - Training pipeline orchestration
+
+**Azure Foundry Agent Service Features:**
+- **Llama 3.3 70B**: State-of-the-art reasoning with support for fine-tuned weights
+- **Stateful Threads**: Maintain conversation context across sessions automatically
+- **Entra Agent ID**: Secure identity management integrated with Microsoft Entra ID
+- **Foundry Tools**: Access to Azure AI Foundry's comprehensive toolset
+- **Enterprise Scale**: Production-ready infrastructure with high availability
+- **Cost-Effective**: Optimized inference infrastructure reduces operational costs
+
+**Example: Foundry Agent Service with Llama 3.3 70B:**
+```python
+from AgentOperatingSystem.ml import FoundryAgentServiceClient, FoundryAgentServiceConfig
+from AgentOperatingSystem.orchestration import ModelOrchestrator, ModelType
+
+# Initialize Foundry Agent Service client
+config = FoundryAgentServiceConfig.from_env()
+client = FoundryAgentServiceClient(config)
+await client.initialize()
+
+# Create a stateful thread for persistent conversations
+thread_id = await client.create_thread(metadata={"purpose": "strategic_planning"})
+
+# Multi-turn conversation with context preservation
+response1 = await client.send_message(
+    "What are our Q3 revenue trends?",
+    thread_id=thread_id,
+    domain="financial_analysis"
+)
+
+response2 = await client.send_message(
+    "How does this compare to Q2?",
+    thread_id=thread_id,
+    domain="financial_analysis"
+)
+
+# Use via Model Orchestrator
+orchestrator = ModelOrchestrator()
+await orchestrator.initialize()
+
+result = await orchestrator.process_model_request(
+    model_type=ModelType.FOUNDRY_AGENT_SERVICE,
+    domain="leadership",
+    user_input="Analyze our strategic priorities for next quarter",
+    conversation_id="conv-001"
+)
+
+# Foundry Tools support for enhanced capabilities
+response = await client.send_message(
+    message="Analyze customer sentiment from recent feedback",
+    domain="customer_analytics",
+    tools=["sentiment_analysis", "data_aggregation"]
+)
+```
+
+**Foundry Agent Service Benefits:**
+- **High-Quality Reasoning**: Llama 3.3 70B state-of-the-art language understanding
+- **Stateful Threads**: Automatic context preservation across conversations
+- **Secure Identity**: Entra Agent ID integration for enterprise security
+- **Foundry Tools**: Access to comprehensive Azure AI capabilities
+- **Production Ready**: Enterprise-grade infrastructure with HA/DR
 
 **LoRAx Cost Efficiency:**
 - Serve 100+ agents with different LoRA adapters on 1 GPU instead of 100 GPUs
