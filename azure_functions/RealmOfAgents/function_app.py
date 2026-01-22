@@ -303,7 +303,37 @@ async def process_agent_event(agent_id: str, event_type: str, payload: Dict[str,
         
         logger.info(f"Agent {agent_id} processed event {event_type} on Foundry runtime: {run.status}")
         
-        # TODO: Extract response and send back via Service Bus
+        # Extract response from completed run
+        if run.status == "completed":
+            # Get messages from the thread to extract agent response
+            messages = await client.list_messages(thread_id=thread.id)
+            
+            # Find the latest assistant message
+            response_content = None
+            for msg in messages:
+                if msg.role == "assistant":
+                    response_content = msg.content
+                    break
+            
+            if response_content:
+                # Send response back via Service Bus
+                service_bus_conn = os.getenv('AZURE_SERVICE_BUS_CONNECTION_STRING')
+                if service_bus_conn:
+                    async with ServiceBusClient.from_connection_string(service_bus_conn) as sb_client:
+                        async with sb_client.get_queue_sender("agent-responses") as sender:
+                            response_msg = {
+                                "agent_id": agent_id,
+                                "event_type": event_type,
+                                "response": response_content,
+                                "thread_id": thread.id,
+                                "status": "completed"
+                            }
+                            await sender.send_messages(
+                                ServiceBusMessage(json.dumps(response_msg))
+                            )
+                            logger.info(f"Sent response from {agent_id} to Service Bus")
+        else:
+            logger.warning(f"Agent {agent_id} run completed with status: {run.status}")
         
     except Exception as e:
         logger.error(f"Failed to process event for agent {agent_id}: {e}")
