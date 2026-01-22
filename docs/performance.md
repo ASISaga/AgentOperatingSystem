@@ -120,7 +120,9 @@ response = await lorax.generate(
 **Cost Savings:**
 - **Without LoRAx**: 50 agents × $3,000/GPU = $150,000/month
 - **With LoRAx**: 1-2 GPUs × $3,000 = $3,000-6,000/month
-- **Savings**: $144,000/month (96% reduction)
+- **Savings**: ~$144,000-147,000/month (approximately 96-98% reduction)
+
+*Note: Cost calculations are approximate and include only GPU costs. Actual costs vary based on instance type, region, and additional infrastructure requirements.*
 
 #### Response Caching
 

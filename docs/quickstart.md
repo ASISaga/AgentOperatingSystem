@@ -7,8 +7,8 @@ Get up and running with the Agent Operating System (AOS) in minutes.
 ## Prerequisites
 
 - Python 3.9 or later
-- Azure subscription (for production deployment)
 - pip package manager
+- Azure subscription (**only required for production deployment**, not for local development/testing)
 
 ---
 

@@ -293,12 +293,17 @@ az network vnet create \
   --subnet-prefix 10.0.1.0/24
 
 # Create private endpoint for Storage
+STORAGE_RESOURCE_ID=$(az storage account show \
+  --name aosstorageacct \
+  --resource-group aos-rg \
+  --query id -o tsv)
+
 az network private-endpoint create \
   --name aos-storage-pe \
   --resource-group aos-rg \
   --vnet-name aos-vnet \
   --subnet aos-subnet \
-  --private-connection-resource-id "/subscriptions/.../aosstorageacct" \
+  --private-connection-resource-id "$STORAGE_RESOURCE_ID" \
   --group-id blob \
   --connection-name aos-storage-connection
 ```
@@ -327,9 +332,14 @@ az storage account network-rule add \
 
 ```bash
 # Configure autoscale for Function App
+PLAN_RESOURCE_ID=$(az functionapp plan show \
+  --name aos-plan \
+  --resource-group aos-rg \
+  --query id -o tsv)
+
 az monitor autoscale create \
   --resource-group aos-rg \
-  --resource aos-functions \
+  --resource "$PLAN_RESOURCE_ID" \
   --resource-type Microsoft.Web/serverfarms \
   --name aos-autoscale \
   --min-count 1 \
