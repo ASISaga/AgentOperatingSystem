@@ -8,7 +8,7 @@ Provides core infrastructure including messaging, orchestration, storage, and mo
 from .agent_operating_system import AgentOperatingSystem
 from .config import AOSConfig, default_config
 from .agents import (
-    BaseAgent, Agent, StatefulAgent, LeadershipAgent, PerpetualAgent,
+    BaseAgent, LeadershipAgent, PerpetualAgent,
     MultiAgentSystem, BusinessAnalystAgent, SoftwareEngineerAgent, ProductOwnerAgent
 )
 from .agents.agent_framework_system import AgentFrameworkSystem
@@ -52,8 +52,6 @@ __all__ = [
     
     # Base agent classes
     "BaseAgent",
-    "Agent", 
-    "StatefulAgent",
     "LeadershipAgent",
     "SelfLearningAgent",
     "SelfLearningStatefulAgent",

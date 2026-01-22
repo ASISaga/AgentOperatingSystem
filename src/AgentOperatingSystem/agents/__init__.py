@@ -6,8 +6,9 @@ Base agent classes and agent-related functionality.
 Includes PurposeDrivenAgent - the fundamental building block of AOS.
 """
 
-from .base import BaseAgent, Agent, StatefulAgent
-from .leadership import LeadershipAgent
+# v2.0.0 - Canonical implementations
+from .base_agent import BaseAgent
+from .leadership_agent import LeadershipAgent
 from .perpetual import PerpetualAgent
 from .purpose_driven import PurposeDrivenAgent
 from .multi_agent import (
@@ -17,15 +18,10 @@ from .multi_agent import (
     ProductOwnerAgent,
     ApprovalTerminationStrategy
 )
-# New refactored classes
-from .base_agent import BaseAgent as BaseAgentNew
-from .leadership_agent import LeadershipAgent as LeadershipAgentNew
 from .manager import UnifiedAgentManager
 
 __all__ = [
     "BaseAgent",
-    "Agent",
-    "StatefulAgent", 
     "LeadershipAgent",
     "PerpetualAgent",
     "PurposeDrivenAgent",
@@ -34,8 +30,5 @@ __all__ = [
     "SoftwareEngineerAgent", 
     "ProductOwnerAgent",
     "ApprovalTerminationStrategy",
-    # New refactored classes
-    "BaseAgentNew",
-    "LeadershipAgentNew",
     "UnifiedAgentManager"
 ]

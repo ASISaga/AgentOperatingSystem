@@ -2,6 +2,49 @@
 
 All notable changes to the Agent Operating System (AOS) will be documented in this file.
 
+## [3.0.0] - 2026-01-22
+
+### Breaking Changes
+
+#### Removed Backward Compatibility Code
+- **Removed** `agents/base.py` (v1.x) - Use `agents/base_agent.py`
+- **Removed** `agents/leadership.py` (v1.x) - Use `agents/leadership_agent.py`
+- **Removed** `services/interfaces.py` (legacy) - Use `services/service_interfaces.py`
+
+#### Updated Exports
+- `agents/__init__.py` now exports only v2.0.0 classes
+- `services/__init__.py` now exports only canonical service interfaces
+- Removed `Agent`, `StatefulAgent` from main exports
+- Removed `BaseAgentNew`, `LeadershipAgentNew` aliases (now canonical `BaseAgent`, `LeadershipAgent`)
+
+### Added
+
+#### Agent Skills
+- Created `code-refactoring` skill for major version refactoring guidance
+- Updated skills catalog with refactoring best practices
+
+### Changed
+- All internal imports updated to use v2.0.0 classes
+- Simplified module exports for cleaner API
+- Updated documentation to reflect v3.0.0 changes
+
+### Migration Guide
+
+External consumers must update imports:
+
+**Before (v1.x/v2.x):**
+```python
+from AgentOperatingSystem.agents.base import BaseAgent
+from AgentOperatingSystem.agents.leadership import LeadershipAgent
+# or
+from AgentOperatingSystem.agents import BaseAgentNew, LeadershipAgentNew
+```
+
+**After (v3.0.0):**
+```python
+from AgentOperatingSystem.agents import BaseAgent, LeadershipAgent
+```
+
 ## [Unreleased]
 
 ### Documentation
