@@ -184,7 +184,7 @@ async def example_dpo_training_advanced():
     # Configure DPO training
     print("\nConfiguring DPO training...")
     dpo_config = DPOConfig(
-        base_model="meta-llama/Llama-3.1-8B-Instruct",
+        base_model="meta-llama/Llama-3.3-70B-Instruct",
         lora_adapter_path="models/ceo_lora_adapter",  # Existing LoRA
         
         # DPO hyperparameters
@@ -318,14 +318,14 @@ async def example_cost_comparison():
     print("="*80 + "\n")
     
     print("Training Configuration:")
-    print("  Base Model: Llama-3.1-8B-Instruct")
+    print("  Base Model: Llama-3.3-70B-Instruct")
     print("  Compute: Azure ML Low-Priority NC6s_v3 ($1.20/hour)")
     print("  Training Data: 1000 preference pairs")
     print()
     
     print("Traditional PPO (Proximal Policy Optimization):")
     print("  Phase 1: Reward Model Training")
-    print("    - Model Size: 8B parameters")
+    print("    - Model Size: 70B parameters")
     print("    - Training Time: 2-3 hours")
     print("    - Cost: $2.40-3.60")
     print("  Phase 2: Policy Optimization")

@@ -34,7 +34,7 @@ async def main():
     
     config = MLConfig(
         enable_lorax=True,
-        lorax_base_model="meta-llama/Llama-3.1-8B-Instruct",
+        lorax_base_model="meta-llama/Llama-3.3-70B-Instruct",
         lorax_port=8080,
         lorax_adapter_cache_size=10,
         lorax_max_concurrent_requests=64,

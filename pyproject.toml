@@ -22,6 +22,8 @@ dependencies = [
     "opentelemetry-exporter-otlp-proto-grpc",
     "opentelemetry-instrumentation-fastapi",
     "agent-framework>=1.0.0b251218",
+    "azure-ai-agents>=1.1.0",
+    "azure-ai-projects>=1.0.0",
     "LeadershipAgent @ git+https://github.com/ASISaga/LeadershipAgent",
     "PurposeDrivenAgent @ git+https://github.com/ASISaga/PurposeDrivenAgent.git",
 

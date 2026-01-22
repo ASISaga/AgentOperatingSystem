@@ -1,14 +1,10 @@
 """
-RealmOfAgents Azure Functions App - Foundry Agent Service Runtime
+RealmOfAgents Azure Functions App
 
-Plug-and-play infrastructure for onboarding PurposeDrivenAgent(s) using 
-Microsoft Foundry Agent Service (Azure AI Agents runtime).
-
-PurposeDrivenAgent remains the core architectural component - it now uses
-Foundry Agent Service as its runtime with Llama 3.3 70B fine-tuned using
-domain-specific LoRA adapters.
-
+Plug-and-play infrastructure for onboarding PurposeDrivenAgent(s).
 Developers provide only configuration - Purpose, domain knowledge, and MCP server tools.
+
+This app implements all Azure and Microsoft Agent Framework infrastructure.
 All agents reside as configuration - no code changes needed to onboard new agents.
 
 Communicates with AgentOperatingSystem kernel over Azure Service Bus.
@@ -28,12 +24,7 @@ from azure.identity.aio import DefaultAzureCredential
 # Note: AgentOperatingSystem package must be installed in the deployment environment
 # Install with: pip install git+https://github.com/ASISaga/AgentOperatingSystem.git
 try:
-    from AgentOperatingSystem.agents import (
-        PurposeDrivenAgent, 
-        PurposeDrivenAgentFoundry,  # Foundry-enabled version
-        PerpetualAgent, 
-        LeadershipAgent
-    )
+    from AgentOperatingSystem.agents import PurposeDrivenAgent, PerpetualAgent, LeadershipAgent
     from AgentOperatingSystem.mcp.client_manager import MCPClientManager
     from AgentOperatingSystem.ml.pipeline_ops import trigger_lora_training
 except ImportError as e:
@@ -46,18 +37,16 @@ from agent_config_schema import AgentConfiguration, AgentRegistry, AgentType
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("RealmOfAgents.Foundry")
+logger = logging.getLogger("RealmOfAgents")
 
 # Global state
 agent_instances: Dict[str, Any] = {}
 agent_registry: Optional[AgentRegistry] = None
 mcp_client_manager: Optional[MCPClientManager] = None
 
-# Foundry runtime configuration
-USE_FOUNDRY_RUNTIME = os.getenv('USE_FOUNDRY_RUNTIME', 'true').lower() == 'true'
-
 
 app = func.FunctionApp()
+
 
 async def load_agent_registry() -> AgentRegistry:
     """
@@ -119,14 +108,9 @@ async def instantiate_agent(config: AgentConfiguration) -> Optional[Any]:
     
     This is the core of the plug-and-play infrastructure - agents are
     created entirely from configuration, no code changes needed.
-    
-    When USE_FOUNDRY_RUNTIME is enabled, PurposeDrivenAgent uses Microsoft
-    Foundry Agent Service with Llama 3.3 70B fine-tuned using domain-specific
-    LoRA adapters.
     """
     try:
-        logger.info(f"Instantiating agent {config.agent_id} of type {config.agent_type} "
-                   f"(Foundry runtime: {USE_FOUNDRY_RUNTIME})")
+        logger.info(f"Instantiating agent {config.agent_id} of type {config.agent_type}")
         
         # Prepare MCP tools from registry
         tools = []
@@ -145,32 +129,15 @@ async def instantiate_agent(config: AgentConfiguration) -> Optional[Any]:
         
         # Instantiate agent based on type
         if config.agent_type == AgentType.PURPOSE_DRIVEN:
-            if USE_FOUNDRY_RUNTIME:
-                # Use PurposeDrivenAgentFoundry with Llama 3.3 70B + LoRA adapter
-                agent = PurposeDrivenAgentFoundry(
-                    agent_id=config.agent_id,
-                    purpose=config.purpose,
-                    purpose_scope=config.purpose_scope,
-                    success_criteria=config.success_criteria,
-                    tools=tools,
-                    system_message=config.system_message,
-                    adapter_name=config.domain_knowledge.domain,  # LoRA adapter name
-                    foundry_endpoint=os.getenv('AZURE_AI_PROJECT_ENDPOINT'),
-                    model_deployment=os.getenv('AZURE_AI_MODEL_DEPLOYMENT', 'llama-3.3-70b')
-                )
-                logger.info(f"Created {config.agent_id} with Foundry runtime "
-                           f"(Llama 3.3 70B + {config.domain_knowledge.domain} LoRA)")
-            else:
-                # Use standard PurposeDrivenAgent (legacy mode)
-                agent = PurposeDrivenAgent(
-                    agent_id=config.agent_id,
-                    purpose=config.purpose,
-                    purpose_scope=config.purpose_scope,
-                    success_criteria=config.success_criteria,
-                    tools=tools,
-                    system_message=config.system_message,
-                    adapter_name=config.domain_knowledge.domain
-                )
+            agent = PurposeDrivenAgent(
+                agent_id=config.agent_id,
+                purpose=config.purpose,
+                purpose_scope=config.purpose_scope,
+                success_criteria=config.success_criteria,
+                tools=tools,
+                system_message=config.system_message,
+                adapter_name=config.domain_knowledge.domain
+            )
         elif config.agent_type == AgentType.PERPETUAL:
             agent = PerpetualAgent(
                 agent_id=config.agent_id,
@@ -189,12 +156,10 @@ async def instantiate_agent(config: AgentConfiguration) -> Optional[Any]:
             return None
         
         # Initialize the agent
-        # For Foundry agents, this creates the agent on Azure AI Agents runtime
         await agent.initialize()
         
-        # Note: LoRA adapter training would be done separately via ML pipeline
-        # The adapter_name (domain_knowledge.domain) is used to reference the
-        # fine-tuned Llama 3.3 70B model deployment
+        # Check if LoRA adapter needs training
+        # (This would be triggered separately via ML pipeline)
         
         logger.info(f"Agent {config.agent_id} instantiated successfully")
         return agent
@@ -351,10 +316,8 @@ async def agent_command_handler(message: func.ServiceBusMessage) -> None:
 async def health_check(req: func.HttpRequest) -> func.HttpResponse:
     """Health check endpoint"""
     try:
-        runtime_info = "Foundry Agent Service (Llama 3.3 70B + LoRA)" if USE_FOUNDRY_RUNTIME else "Custom Runtime"
         status = {
             "status": "healthy",
-            "runtime": runtime_info,
             "active_agents": len(agent_instances),
             "agent_ids": list(agent_instances.keys())
         }
@@ -374,30 +337,18 @@ async def health_check(req: func.HttpRequest) -> func.HttpResponse:
 @app.function_name(name="GetAgentStatus")
 @app.route(route="agents/{agent_id}/status", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
 async def get_agent_status(req: func.HttpRequest) -> func.HttpResponse:
-    """Get status of a specific agent running on Foundry or custom runtime"""
+    """Get status of a specific agent"""
     try:
         agent_id = req.route_params.get('agent_id')
         
         if agent_id in agent_instances:
             agent = agent_instances[agent_id]
-            
-            # Check if it's a Foundry agent
-            is_foundry = isinstance(agent, PurposeDrivenAgentFoundry)
-            
             status = {
                 "agent_id": agent_id,
                 "status": "running",
                 "is_running": getattr(agent, 'is_running', False),
-                "type": type(agent).__name__,
-                "runtime": "Foundry Agent Service (Llama 3.3 70B + LoRA)" if is_foundry else "Custom Runtime"
+                "type": type(agent).__name__
             }
-            
-            # Add Foundry-specific details
-            if is_foundry and hasattr(agent, 'foundry_agent'):
-                status["foundry_agent_id"] = agent.foundry_agent.id if agent.foundry_agent else None
-                status["foundry_thread_id"] = agent.foundry_thread.id if agent.foundry_thread else None
-                status["lora_adapter"] = agent.lora_adapter_name
-            
             return func.HttpResponse(
                 json.dumps(status),
                 mimetype="application/json",

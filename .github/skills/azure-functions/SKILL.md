@@ -1,11 +1,12 @@
-# Azure Functions Development for AOS
+# Azure Functions Development for AOS with Foundry Agent Runtime
 
 ## Description
-Expert knowledge for developing, deploying, and debugging Azure Functions in the Agent Operating System (AOS). This skill covers the serverless deployment model used by AOS for production workloads.
+Expert knowledge for developing, deploying, and debugging Azure Functions in the Agent Operating System (AOS). This skill covers the serverless deployment model used by AOS for production workloads, including integration with **Microsoft Foundry Agent Service (Azure AI Agents runtime)**.
 
 ## When to Use This Skill
 - Deploying AOS to Azure Functions
-- Working with function_app.py
+- Working with function_app.py and RealmOfAgents
+- Integrating with Azure AI Agents runtime (Foundry)
 - Debugging Azure Functions triggers
 - Configuring Azure Service Bus integration
 - Managing Azure Functions host settings
@@ -13,9 +14,10 @@ Expert knowledge for developing, deploying, and debugging Azure Functions in the
 
 ## Key Concepts
 
-### AOS on Azure Functions
+### AOS on Azure Functions with Foundry Runtime
 AOS is deployed as an Azure Functions application that:
 - Exposes AOS services via Azure Service Bus
+- **Orchestrates agents running on Azure AI Agents runtime (Foundry)**
 - Provides HTTP endpoints for health/status
 - Uses timer triggers for maintenance tasks
 - Integrates with Azure Storage, Key Vault, and other services
@@ -35,12 +37,22 @@ AOS is deployed as an Azure Functions application that:
 │   • Service Bus triggers            │
 │   • HTTP endpoints                  │
 │   • Timer triggers                  │
+│   • Orchestration layer             │
+└─────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│   Azure AI Agents Runtime           │
+│   (Foundry Agent Service)           │
+│   • CEO, CFO, CMO, COO agents       │
+│   • Stateful threads                │
+│   • Managed lifecycle               │
 └─────────────────────────────────────┘
               │
               ▼
 ┌─────────────────────────────────────┐
 │   AgentOperatingSystem Core         │
-│   • Agents, Storage, etc.           │
+│   • Storage, MCP, etc.              │
 └─────────────────────────────────────┘
 ```
 

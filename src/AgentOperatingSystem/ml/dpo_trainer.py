@@ -33,7 +33,7 @@ class PreferenceData:
 class DPOConfig:
     """Configuration for DPO training."""
     # Model configuration
-    base_model: str = "meta-llama/Llama-3.1-8B-Instruct"
+    base_model: str = "meta-llama/Llama-3.3-70B-Instruct"
     lora_adapter_path: Optional[str] = None  # Optional existing LoRA to build on
     
     # DPO-specific hyperparameters
@@ -69,7 +69,7 @@ class DPOConfig:
 
 class DPOTrainer:
     """
-    Direct Preference Optimization trainer for Llama-3.1-8B-Instruct.
+    Direct Preference Optimization trainer for Llama 3.3 70B Instruct.
     
     Implements the DPO algorithm which directly optimizes language models on
     preference data without requiring a separate reward model.
@@ -80,6 +80,7 @@ class DPOTrainer:
     - Azure ML native: Integrates with Azure ML and AI Foundry
     - MLflow tracking: Built-in experiment tracking and metrics
     - LoRA-compatible: Works with existing LoRA adapters
+    - Llama 3.3 70B: Latest and most capable Llama model
     """
     
     def __init__(self, config: DPOConfig):

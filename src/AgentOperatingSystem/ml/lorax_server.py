@@ -2,7 +2,7 @@
 LoRAx Server Integration for AOS ML Pipeline
 
 LoRAx (LoRA eXchange) enables serving multiple LoRA adapters concurrently with a shared
-base model, providing significant cost savings for multi-agent scenarios.
+base model (Llama 3.3 70B), providing significant cost savings for multi-agent scenarios.
 
 **IMPORTANT NOTE:**
 This is a reference implementation that provides the infrastructure and API for LoRAx
@@ -18,7 +18,7 @@ The current implementation:
 
 For production deployment:
 1. Install LoRAx server: pip install lorax
-2. Configure base model and GPU resources
+2. Configure Llama 3.3 70B as base model and GPU resources
 3. Implement actual model loading and inference in _start_server() and inference()
 4. OR connect to existing LoRAx server endpoint
 
@@ -29,9 +29,10 @@ Key Features:
 - Support for hundreds of LoRA adapters on a single GPU
 - Automatic batching and request scheduling
 - Compatible with Hugging Face models and PEFT LoRA adapters
+- Llama 3.3 70B as base model for superior performance
 
 Cost Benefits:
-- Serve 100+ agents with different LoRA adapters on single GPU
+- Serve 100+ agents with different LoRA adapters on single GPU (Llama 3.3 70B)
 - Reduce inference costs by 10-50x vs. separate model deployments
 - Dynamic adapter loading reduces memory footprint
 - Efficient batching improves throughput
@@ -52,7 +53,7 @@ logger = logging.getLogger("AOS.LoRAxServer")
 class LoRAxConfig:
     """Configuration for LoRAx server."""
     # Base model configuration
-    base_model: str = "meta-llama/Llama-3.1-8B-Instruct"
+    base_model: str = "meta-llama/Llama-3.3-70B-Instruct"
     base_model_revision: Optional[str] = None
     
     # Server configuration
