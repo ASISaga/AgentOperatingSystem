@@ -85,4 +85,4 @@ await agent.handle_user_request("How do I improve sales?", domain="sales")
 
 - [A2A Communication](a2a_communication.md)
 - [MCP Documentation](specifications/mcp.md)
-- [Architecture Overview](architecture.md)
+- [Implementation Details](Implementation.md)

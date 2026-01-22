@@ -88,3 +88,4 @@ When safe to remove duplicates (major version bump):
 - [REFACTORING.md](../REFACTORING.md) - Complete refactoring guide
 - [MIGRATION.md](../MIGRATION.md) - Migration instructions
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - System architecture
+- [CODE_ORGANIZATION.md](CODE_ORGANIZATION.md) - This document
