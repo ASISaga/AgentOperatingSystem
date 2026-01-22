@@ -1,11 +1,11 @@
 """
-RealmOfAgents Azure Functions App
+RealmOfAgents Azure Functions App - Foundry Agent Service Runtime
 
-Plug-and-play infrastructure for onboarding PurposeDrivenAgent(s).
+Plug-and-play infrastructure for onboarding PurposeDrivenAgent(s) using 
+Microsoft Foundry Agent Service (Azure AI Agents runtime).
+
 Developers provide only configuration - Purpose, domain knowledge, and MCP server tools.
-
-This app implements all Azure and Microsoft Agent Framework infrastructure.
-All agents reside as configuration - no code changes needed to onboard new agents.
+Agents run on Azure AI Agents runtime instead of custom instantiation.
 
 Communicates with AgentOperatingSystem kernel over Azure Service Bus.
 """
@@ -14,38 +14,67 @@ import logging
 import json
 import os
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import azure.functions as func
 from azure.servicebus.aio import ServiceBusClient, ServiceBusMessage
 from azure.storage.blob.aio import BlobServiceClient
 from azure.identity.aio import DefaultAzureCredential
+from azure.ai.agents import AgentsClient
+from azure.ai.agents.models import (
+    Agent,
+    AgentThread,
+    ThreadRun,
+    FunctionTool,
+    FunctionDefinition,
+    ToolSet,
+)
 
-# Import AOS infrastructure
-# Note: AgentOperatingSystem package must be installed in the deployment environment
-# Install with: pip install git+https://github.com/ASISaga/AgentOperatingSystem.git
-try:
-    from AgentOperatingSystem.agents import PurposeDrivenAgent, PerpetualAgent, LeadershipAgent
-    from AgentOperatingSystem.mcp.client_manager import MCPClientManager
-    from AgentOperatingSystem.ml.pipeline_ops import trigger_lora_training
-except ImportError as e:
-    logger = logging.getLogger("RealmOfAgents")
-    logger.error(f"Failed to import AgentOperatingSystem: {e}")
-    logger.error("Please ensure AgentOperatingSystem is installed: pip install git+https://github.com/ASISaga/AgentOperatingSystem.git")
-    raise
-
-from agent_config_schema import AgentConfiguration, AgentRegistry, AgentType
+# Import agent configuration schema
+from agent_config_schema import AgentConfiguration, AgentRegistry, AgentType, MCPToolReference
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("RealmOfAgents")
+logger = logging.getLogger("RealmOfAgents.Foundry")
 
 # Global state
-agent_instances: Dict[str, Any] = {}
+agent_clients: Dict[str, Agent] = {}  # Map of agent_id -> Agent object from Azure AI
+agents_client: Optional[AgentsClient] = None  # Azure AI Agents runtime client
 agent_registry: Optional[AgentRegistry] = None
-mcp_client_manager: Optional[MCPClientManager] = None
+agent_threads: Dict[str, AgentThread] = {}  # Map of agent_id -> active thread
 
 
 app = func.FunctionApp()
+
+
+async def get_agents_client() -> AgentsClient:
+    """
+    Initialize and return Azure AI Agents client.
+    
+    This replaces the custom agent instantiation with the official Azure AI Agents runtime.
+    """
+    global agents_client
+    
+    if agents_client:
+        return agents_client
+    
+    try:
+        # Get configuration from environment
+        endpoint = os.getenv('AZURE_AI_PROJECT_ENDPOINT')
+        if not endpoint:
+            raise ValueError("AZURE_AI_PROJECT_ENDPOINT not configured")
+        
+        # Use DefaultAzureCredential for authentication
+        credential = DefaultAzureCredential()
+        
+        # Initialize AgentsClient - this is the Foundry Agent Service runtime
+        agents_client = AgentsClient(endpoint=endpoint, credential=credential)
+        
+        logger.info(f"Initialized Azure AI Agents client with endpoint: {endpoint}")
+        return agents_client
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize Azure AI Agents client: {e}")
+        raise
 
 
 async def load_agent_registry() -> AgentRegistry:
@@ -85,129 +114,220 @@ async def load_agent_registry() -> AgentRegistry:
         return AgentRegistry(agents=[])
 
 
-async def initialize_mcp_client_manager():
-    """Initialize MCP client manager for accessing MCP tools"""
-    global mcp_client_manager
+async def convert_mcp_tools_to_function_tools(
+    mcp_tools: List[MCPToolReference]
+) -> List[FunctionTool]:
+    """
+    Convert MCP tool references to Azure AI Agents FunctionTool definitions.
     
-    try:
-        service_bus_conn = os.getenv('AZURE_SERVICE_BUS_CONNECTION_STRING')
-        if not service_bus_conn:
-            logger.warning("No Service Bus connection - MCP tools unavailable")
-            return
-        
-        mcp_client_manager = MCPClientManager()
-        logger.info("MCP client manager initialized")
-        
-    except Exception as e:
-        logger.error(f"Failed to initialize MCP client manager: {e}")
+    This bridges between MCP tools (hosted on MCPServers function app) and
+    Azure AI Agents runtime.
+    """
+    function_tools = []
+    
+    for tool_ref in mcp_tools:
+        try:
+            # Create a function definition that will call the MCP server
+            # The actual execution will be handled by Service Bus communication
+            function_def = FunctionDefinition(
+                name=f"{tool_ref.server_name}_{tool_ref.tool_name}",
+                description=f"Execute {tool_ref.tool_name} from {tool_ref.server_name} MCP server",
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "input": {
+                            "type": "string",
+                            "description": "Input for the tool"
+                        }
+                    },
+                    "required": ["input"]
+                }
+            )
+            
+            function_tool = FunctionTool(function=function_def)
+            function_tools.append(function_tool)
+            
+            logger.debug(f"Converted MCP tool: {tool_ref.server_name}.{tool_ref.tool_name}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to convert MCP tool {tool_ref.tool_name}: {e}")
+    
+    return function_tools
 
 
-async def instantiate_agent(config: AgentConfiguration) -> Optional[Any]:
+async def create_agent_on_foundry(config: AgentConfiguration) -> Optional[Agent]:
     """
-    Instantiate an agent from configuration.
+    Create an agent on Azure AI Agents runtime (Foundry Agent Service).
     
-    This is the core of the plug-and-play infrastructure - agents are
-    created entirely from configuration, no code changes needed.
+    This replaces custom PurposeDrivenAgent instantiation with native Azure AI Agents.
+    
+    Args:
+        config: Agent configuration from registry
+        
+    Returns:
+        Agent object from Azure AI Agents runtime
     """
     try:
-        logger.info(f"Instantiating agent {config.agent_id} of type {config.agent_type}")
+        client = await get_agents_client()
         
-        # Prepare MCP tools from registry
-        tools = []
-        if mcp_client_manager and config.mcp_tools:
-            for tool_ref in config.mcp_tools:
-                try:
-                    # Get tool from MCP server via Service Bus
-                    tool = await mcp_client_manager.get_tool(
-                        server_name=tool_ref.server_name,
-                        tool_name=tool_ref.tool_name
-                    )
-                    if tool:
-                        tools.append(tool)
-                except Exception as e:
-                    logger.warning(f"Failed to load tool {tool_ref.tool_name}: {e}")
+        logger.info(f"Creating agent {config.agent_id} on Azure AI Agents runtime")
         
-        # Instantiate agent based on type
-        if config.agent_type == AgentType.PURPOSE_DRIVEN:
-            agent = PurposeDrivenAgent(
-                agent_id=config.agent_id,
-                purpose=config.purpose,
-                purpose_scope=config.purpose_scope,
-                success_criteria=config.success_criteria,
-                tools=tools,
-                system_message=config.system_message,
-                adapter_name=config.domain_knowledge.domain
-            )
-        elif config.agent_type == AgentType.PERPETUAL:
-            agent = PerpetualAgent(
-                agent_id=config.agent_id,
-                tools=tools,
-                system_message=config.system_message,
-                adapter_name=config.domain_knowledge.domain
-            )
-        elif config.agent_type == AgentType.LEADERSHIP:
-            agent = LeadershipAgent(
-                agent_id=config.agent_id,
-                name=config.agent_id.upper(),
-                role=config.agent_id.upper()
-            )
-        else:
-            logger.error(f"Unknown agent type: {config.agent_type}")
-            return None
+        # Convert MCP tools to function tools
+        tools = await convert_mcp_tools_to_function_tools(config.mcp_tools)
         
-        # Initialize the agent
-        await agent.initialize()
+        # Create toolset
+        toolset = ToolSet() if tools else None
+        if tools:
+            for tool in tools:
+                toolset.add_tool(tool)
         
-        # Check if LoRA adapter needs training
-        # (This would be triggered separately via ML pipeline)
+        # Construct instructions from purpose
+        instructions = f"""You are {config.agent_id}, a purpose-driven AI agent.
+
+Purpose: {config.purpose}
+"""
         
-        logger.info(f"Agent {config.agent_id} instantiated successfully")
+        if config.purpose_scope:
+            instructions += f"\nScope: {config.purpose_scope}"
+        
+        if config.success_criteria:
+            instructions += f"\n\nSuccess Criteria:"
+            for criterion in config.success_criteria:
+                instructions += f"\n- {criterion}"
+        
+        if config.system_message:
+            instructions += f"\n\n{config.system_message}"
+        
+        # Get model deployment name from environment
+        model = os.getenv('AZURE_AI_MODEL_DEPLOYMENT', 'gpt-4')
+        
+        # Create agent on Azure AI Agents runtime
+        agent = await client.create_agent(
+            model=model,
+            name=config.agent_id,
+            description=config.purpose,
+            instructions=instructions,
+            toolset=toolset,
+            metadata={
+                "agent_type": config.agent_type.value,
+                "domain": config.domain_knowledge.domain,
+                "aos_agent_id": config.agent_id,
+            }
+        )
+        
+        logger.info(f"Created agent {config.agent_id} on Foundry runtime: {agent.id}")
         return agent
         
     except Exception as e:
-        logger.error(f"Failed to instantiate agent {config.agent_id}: {e}")
+        logger.error(f"Failed to create agent {config.agent_id} on Foundry runtime: {e}")
         return None
 
 
 async def start_all_agents():
-    """Start all enabled agents from the registry"""
-    global agent_instances, agent_registry
+    """
+    Create all enabled agents on Azure AI Agents runtime.
+    
+    This replaces the custom agent instantiation with Foundry Agent Service.
+    """
+    global agent_clients, agent_registry
     
     if not agent_registry:
         agent_registry = await load_agent_registry()
     
     enabled_agents = agent_registry.get_enabled_agents()
-    logger.info(f"Starting {len(enabled_agents)} enabled agents")
+    logger.info(f"Creating {len(enabled_agents)} enabled agents on Azure AI Agents runtime")
     
     for config in enabled_agents:
-        if config.agent_id not in agent_instances:
-            agent = await instantiate_agent(config)
+        if config.agent_id not in agent_clients:
+            agent = await create_agent_on_foundry(config)
             if agent:
-                agent_instances[config.agent_id] = agent
-                # Start perpetual operation
-                await agent.start()
+                agent_clients[config.agent_id] = agent
+                logger.info(f"Agent {config.agent_id} running on Foundry runtime")
+
+
+async def get_or_create_thread(agent_id: str) -> Optional[AgentThread]:
+    """
+    Get or create a thread for an agent.
+    
+    Threads in Azure AI Agents provide stateful conversation context.
+    """
+    global agent_threads
+    
+    try:
+        if agent_id in agent_threads:
+            return agent_threads[agent_id]
+        
+        client = await get_agents_client()
+        
+        # Create new thread
+        thread = await client.create_thread()
+        agent_threads[agent_id] = thread
+        
+        logger.info(f"Created thread {thread.id} for agent {agent_id}")
+        return thread
+        
+    except Exception as e:
+        logger.error(f"Failed to create thread for agent {agent_id}: {e}")
+        return None
+
+
+async def process_agent_event(agent_id: str, event_type: str, payload: Dict[str, Any]):
+    """
+    Process an event for an agent using Azure AI Agents runtime.
+    
+    This replaces the custom agent event processing with Foundry Agent Service.
+    """
+    try:
+        if agent_id not in agent_clients:
+            logger.warning(f"Agent {agent_id} not found in Foundry runtime")
+            return
+        
+        agent = agent_clients[agent_id]
+        thread = await get_or_create_thread(agent_id)
+        
+        if not thread:
+            logger.error(f"No thread available for agent {agent_id}")
+            return
+        
+        client = await get_agents_client()
+        
+        # Format the event as a message
+        message_content = f"Event: {event_type}\nPayload: {json.dumps(payload, indent=2)}"
+        
+        # Create and run using Azure AI Agents runtime
+        run = await client.create_thread_and_process_run(
+            agent_id=agent.id,
+            thread=thread,
+            additional_messages=[{"role": "user", "content": message_content}]
+        )
+        
+        logger.info(f"Agent {agent_id} processed event {event_type} on Foundry runtime: {run.status}")
+        
+        # TODO: Extract response and send back via Service Bus
+        
+    except Exception as e:
+        logger.error(f"Failed to process event for agent {agent_id}: {e}")
 
 
 @app.function_name(name="StartupTrigger")
 @app.timer_trigger(schedule="0 */5 * * * *", arg_name="timer", run_on_startup=True)
 async def startup_trigger(timer: func.TimerRequest) -> None:
     """
-    Startup trigger - initializes and starts all agents on app startup.
+    Startup trigger - initializes and creates all agents on Azure AI Agents runtime.
     
     This function runs on app startup and periodically to ensure all
-    configured agents are running.
+    configured agents are running on Foundry Agent Service.
     """
-    logger.info("RealmOfAgents startup triggered")
+    logger.info("RealmOfAgents startup triggered - using Azure AI Agents runtime")
     
     try:
-        # Initialize MCP client manager
-        if not mcp_client_manager:
-            await initialize_mcp_client_manager()
+        # Initialize Azure AI Agents client
+        await get_agents_client()
         
-        # Start all agents
+        # Create all agents on Foundry runtime
         await start_all_agents()
         
-        logger.info(f"RealmOfAgents running with {len(agent_instances)} active agents")
+        logger.info(f"RealmOfAgents running with {len(agent_clients)} agents on Foundry runtime")
         
     except Exception as e:
         logger.error(f"Startup trigger failed: {e}", exc_info=True)
@@ -224,7 +344,7 @@ async def agent_event_handler(message: func.ServiceBusMessage) -> None:
     """
     Handle agent events from AOS kernel via Service Bus.
     
-    Events are routed to the appropriate agent instance.
+    Events are processed by agents running on Azure AI Agents runtime.
     """
     try:
         message_body = message.get_body().decode('utf-8')
@@ -236,14 +356,8 @@ async def agent_event_handler(message: func.ServiceBusMessage) -> None:
         
         logger.info(f"Received event {event_type} for agent {agent_id}")
         
-        # Route to agent
-        if agent_id in agent_instances:
-            agent = agent_instances[agent_id]
-            # Wake agent and process event
-            if hasattr(agent, 'process_event'):
-                await agent.process_event(event_type, payload)
-        else:
-            logger.warning(f"Agent {agent_id} not found in active instances")
+        # Process event on Foundry Agent Service
+        await process_agent_event(agent_id, event_type, payload)
             
     except Exception as e:
         logger.error(f"Failed to handle agent event: {e}", exc_info=True)
@@ -260,6 +374,7 @@ async def agent_command_handler(message: func.ServiceBusMessage) -> None:
     Handle agent commands from AOS kernel via Service Bus.
     
     Commands include lifecycle operations: start, stop, restart, configure.
+    Uses Azure AI Agents runtime for agent management.
     """
     try:
         message_body = message.get_body().decode('utf-8')
@@ -271,36 +386,43 @@ async def agent_command_handler(message: func.ServiceBusMessage) -> None:
         
         logger.info(f"Received command {command} for agent {agent_id}")
         
+        client = await get_agents_client()
+        
         if command == "start":
-            # Load config and start agent
+            # Load config and create agent on Foundry runtime
             if not agent_registry:
                 await load_agent_registry()
             config = agent_registry.get_agent_by_id(agent_id)
             if config:
-                agent = await instantiate_agent(config)
+                agent = await create_agent_on_foundry(config)
                 if agent:
-                    agent_instances[agent_id] = agent
-                    await agent.start()
+                    agent_clients[agent_id] = agent
                     
         elif command == "stop":
-            # Stop agent
-            if agent_id in agent_instances:
-                agent = agent_instances[agent_id]
-                if hasattr(agent, 'stop'):
-                    await agent.stop()
-                del agent_instances[agent_id]
+            # Delete agent from Foundry runtime
+            if agent_id in agent_clients:
+                agent = agent_clients[agent_id]
+                await client.delete_agent(agent.id)
+                del agent_clients[agent_id]
+                logger.info(f"Deleted agent {agent_id} from Foundry runtime")
                 
         elif command == "restart":
-            # Restart agent
-            if agent_id in agent_instances:
-                agent = agent_instances[agent_id]
-                if hasattr(agent, 'stop'):
-                    await agent.stop()
-                if hasattr(agent, 'start'):
-                    await agent.start()
+            # Restart = stop + start on Foundry runtime
+            if agent_id in agent_clients:
+                agent = agent_clients[agent_id]
+                await client.delete_agent(agent.id)
+                del agent_clients[agent_id]
+            
+            if not agent_registry:
+                await load_agent_registry()
+            config = agent_registry.get_agent_by_id(agent_id)
+            if config:
+                agent = await create_agent_on_foundry(config)
+                if agent:
+                    agent_clients[agent_id] = agent
                     
         elif command == "reload_registry":
-            # Reload agent registry
+            # Reload agent registry and recreate all agents
             await load_agent_registry()
             await start_all_agents()
             
@@ -318,8 +440,9 @@ async def health_check(req: func.HttpRequest) -> func.HttpResponse:
     try:
         status = {
             "status": "healthy",
-            "active_agents": len(agent_instances),
-            "agent_ids": list(agent_instances.keys())
+            "runtime": "Azure AI Agents (Foundry Agent Service)",
+            "active_agents": len(agent_clients),
+            "agent_ids": list(agent_clients.keys())
         }
         return func.HttpResponse(
             json.dumps(status),
@@ -337,17 +460,18 @@ async def health_check(req: func.HttpRequest) -> func.HttpResponse:
 @app.function_name(name="GetAgentStatus")
 @app.route(route="agents/{agent_id}/status", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
 async def get_agent_status(req: func.HttpRequest) -> func.HttpResponse:
-    """Get status of a specific agent"""
+    """Get status of a specific agent running on Azure AI Agents runtime"""
     try:
         agent_id = req.route_params.get('agent_id')
         
-        if agent_id in agent_instances:
-            agent = agent_instances[agent_id]
+        if agent_id in agent_clients:
+            agent = agent_clients[agent_id]
             status = {
                 "agent_id": agent_id,
+                "runtime": "Azure AI Agents (Foundry)",
                 "status": "running",
-                "is_running": getattr(agent, 'is_running', False),
-                "type": type(agent).__name__
+                "foundry_agent_id": agent.id,
+                "model": agent.model
             }
             return func.HttpResponse(
                 json.dumps(status),
@@ -356,7 +480,7 @@ async def get_agent_status(req: func.HttpRequest) -> func.HttpResponse:
             )
         else:
             return func.HttpResponse(
-                json.dumps({"error": "Agent not found"}),
+                json.dumps({"error": "Agent not found on Foundry runtime"}),
                 mimetype="application/json",
                 status_code=404
             )

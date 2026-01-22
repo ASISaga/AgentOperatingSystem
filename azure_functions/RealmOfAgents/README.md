@@ -1,24 +1,28 @@
-# RealmOfAgents - Plug-and-Play Agent Infrastructure
+# RealmOfAgents - Plug-and-Play Agent Infrastructure with Foundry Runtime
 
 ## Overview
 
-**RealmOfAgents** is an Azure Functions application that provides plug-and-play infrastructure for onboarding PurposeDrivenAgent(s). Developers provide only configuration - Purpose, domain knowledge (for fine-tuning LoRA adapters), and MCP server tools from the registry. No code changes are required to onboard new agents.
+**RealmOfAgents** is an Azure Functions application that provides plug-and-play infrastructure for onboarding PurposeDrivenAgent(s) using **Microsoft Foundry Agent Service (Azure AI Agents runtime)**. Developers provide only configuration - Purpose, domain knowledge, and MCP server tools from the registry. No code changes are required to onboard new agents.
+
+Agents run on the **Azure AI Agents runtime** (Foundry Agent Service), providing enterprise-grade scalability, reliability, and officially supported infrastructure from Microsoft.
 
 ## Key Features
 
 - **Configuration-Driven**: All agents are defined as JSON configuration
 - **Zero Code Onboarding**: Add new agents without writing code
-- **Common Infrastructure**: Implements all Azure and Microsoft Agent Framework infrastructure
+- **Foundry Agent Service**: Agents run on Azure AI Agents runtime (not custom instances)
+- **Enterprise-Grade**: Leverages Microsoft's officially supported agent infrastructure
 - **Service Bus Integration**: Communicates with AOS kernel over Azure Service Bus
-- **LoRA Fine-Tuning**: Automatic LoRA adapter training from domain knowledge
+- **Stateful Threads**: Built-in conversation context via Azure AI Agents
 - **MCP Tool Integration**: Seamless integration with MCP tools from the registry
-- **Lifecycle Management**: Automatic agent start, stop, restart, and health monitoring
+- **Lifecycle Management**: Automatic agent creation, deletion, and health monitoring
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │         RealmOfAgents (Azure Functions)             │
+│         Orchestration Layer                         │
 ├─────────────────────────────────────────────────────┤
 │                                                     │
 │  ┌───────────────────────────────────────────────┐ │
@@ -34,20 +38,30 @@
 │  └───────────────────────────────────────────────┘ │
 │                         ↓                           │
 │  ┌───────────────────────────────────────────────┐ │
-│  │  Agent Instantiation Engine                   │ │
-│  │  - Creates PurposeDrivenAgent instances       │ │
-│  │  - Initializes MCP context servers            │ │
-│  │  - Configures LoRA adapters                   │ │
+│  │  Azure AI Agents Client (AgentsClient)        │ │
+│  │  - Uses azure-ai-agents SDK                   │ │
+│  │  - Creates agents on Foundry runtime          │ │
+│  │  - Manages threads and conversations          │ │
 │  └───────────────────────────────────────────────┘ │
 │                         ↓                           │
 │  ┌───────────────────────────────────────────────┐ │
-│  │  Active Agent Instances                       │ │
-│  │  - CEO, CFO, CMO, COO, etc.                   │ │
-│  │  - Running perpetually                        │ │
+│  │  Event & Command Processing                   │ │
+│  │  - Routes events to Foundry agents            │ │
+│  │  - Handles lifecycle commands                 │ │
 │  └───────────────────────────────────────────────┘ │
 │                                                     │
 └──────────────────┬──────────────────────────────────┘
                    │ Azure Service Bus
+                   ↓
+┌─────────────────────────────────────────────────────┐
+│   Azure AI Agents Runtime (Foundry Service)         │
+│   ┌─────────────────────────────────────────────┐   │
+│   │  Agents: CEO, CFO, CMO, COO                 │   │
+│   │  - Stateful threads                         │   │
+│   │  - Built-in state management                │   │
+│   │  - Managed lifecycle                        │   │
+│   └─────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
                    ↓
 ┌─────────────────────────────────────────────────────┐
 │      AgentOperatingSystem Kernel                    │
@@ -113,8 +127,49 @@ Each agent is defined by a JSON configuration with the following structure:
 - Azure Functions Core Tools
 - Python 3.8+
 - Azure CLI
+- **Azure AI Hub/Project** (for Foundry Agent Service)
 
-### Step 1: Create Azure Resources
+### Step 1: Create Azure AI Project
+
+```bash
+# Create Azure AI Hub (if not exists)
+az ml workspace create \
+  --kind hub \
+  --name aos-ai-hub \
+  --resource-group aos-genesis \
+  --location eastus
+
+# Create Azure AI Project
+az ml workspace create \
+  --kind project \
+  --name aos-ai-project \
+  --resource-group aos-genesis \
+  --hub-id /subscriptions/<sub-id>/resourceGroups/aos-genesis/providers/Microsoft.MachineLearningServices/workspaces/aos-ai-hub \
+  --location eastus
+
+# Get project endpoint URL
+PROJECT_ENDPOINT=$(az ml workspace show \
+  --name aos-ai-project \
+  --resource-group aos-genesis \
+  --query "discovery_url" -o tsv)
+
+echo "Project Endpoint: $PROJECT_ENDPOINT"
+```
+
+### Step 2: Deploy Model
+
+```bash
+# Deploy GPT-4 model to the project
+az ml online-deployment create \
+  --name gpt-4-deployment \
+  --workspace-name aos-ai-project \
+  --resource-group aos-genesis \
+  --model azureml://registries/azure-openai/models/gpt-4/versions/latest \
+  --instance-type Standard_DS3_v2 \
+  --instance-count 1
+```
+
+### Step 3: Create Azure Resources
 
 ```bash
 # Create resource group
@@ -153,7 +208,7 @@ az servicebus queue create \
   --resource-group aos-genesis
 ```
 
-### Step 2: Upload Agent Registry
+### Step 4: Upload Agent Registry
 
 ```bash
 # Get storage connection string
@@ -175,13 +230,15 @@ az storage blob upload \
   --connection-string "$STORAGE_CONN"
 ```
 
-### Step 3: Configure Application Settings
+### Step 5: Configure Application Settings
 
 Update `local.settings.json` with your connection strings:
 
 ```json
 {
   "Values": {
+    "AZURE_AI_PROJECT_ENDPOINT": "<your-project-endpoint>",
+    "AZURE_AI_MODEL_DEPLOYMENT": "gpt-4-deployment",
     "AZURE_SERVICE_BUS_CONNECTION_STRING": "<your-service-bus-connection>",
     "AZURE_STORAGE_CONNECTION_STRING": "<your-storage-connection>",
     "AZURE_KEY_VAULT_URL": "<your-keyvault-url>",
@@ -190,7 +247,7 @@ Update `local.settings.json` with your connection strings:
 }
 ```
 
-### Step 4: Deploy Function App
+### Step 6: Deploy Function App
 
 ```bash
 # Create Function App
