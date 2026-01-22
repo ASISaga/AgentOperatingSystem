@@ -2,6 +2,7 @@
 AOS ML Pipeline Manager
 
 Manages machine learning operations including training, inference, and model management.
+All operations use Llama 3.3 70B as the base model for superior performance and capabilities.
 Includes DPO (Direct Preference Optimization) support for cost-effective reinforcement learning.
 Includes LoRAx integration for cost-effective multi-adapter inference.
 """
@@ -450,7 +451,7 @@ class MLPipelineManager:
             
             # Setup DPO configuration
             dpo_config = DPOConfig(
-                base_model="meta-llama/Llama-3.1-8B-Instruct",
+                base_model="meta-llama/Llama-3.3-70B-Instruct",
                 lora_adapter_path=job["config"]["base_adapter_path"],
                 beta=job["config"]["beta"],
                 learning_rate=job["config"]["learning_rate"],

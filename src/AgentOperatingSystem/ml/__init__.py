@@ -3,7 +3,8 @@ AOS ML Module
 
 Machine learning pipeline management for AOS.
 Includes DPO (Direct Preference Optimization) for cost-effective reinforcement learning.
-Includes Azure Foundry Agent Service integration with Llama 3.3 70B.
+All ML operations use Llama 3.3 70B as the base model for superior performance.
+Includes Azure Foundry Agent Service integration with Llama 3.3 70B and LoRA adapters.
 """
 
 from .pipeline import MLPipelineManager
