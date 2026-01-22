@@ -3,6 +3,7 @@ AOS ML Module
 
 Machine learning pipeline management for AOS.
 Includes DPO (Direct Preference Optimization) for cost-effective reinforcement learning.
+Includes Azure Foundry Agent Service integration with Llama 3.3 70B.
 """
 
 from .pipeline import MLPipelineManager
@@ -32,6 +33,15 @@ try:
 except ImportError:
     LORAX_AVAILABLE = False
 
+try:
+    from .foundry_agent_service import (
+        FoundryAgentServiceClient, FoundryAgentServiceConfig, 
+        FoundryResponse, ThreadInfo
+    )
+    FOUNDRY_AGENT_SERVICE_AVAILABLE = True
+except ImportError:
+    FOUNDRY_AGENT_SERVICE_AVAILABLE = False
+
 __all__ = [
     "MLPipelineManager"
 ]
@@ -50,4 +60,10 @@ if DPO_AVAILABLE:
 if LORAX_AVAILABLE:
     __all__.extend([
         "LoRAxServer", "LoRAxConfig", "LoRAxAdapterRegistry", "AdapterInfo"
+    ])
+
+if FOUNDRY_AGENT_SERVICE_AVAILABLE:
+    __all__.extend([
+        "FoundryAgentServiceClient", "FoundryAgentServiceConfig", 
+        "FoundryResponse", "ThreadInfo"
     ])
