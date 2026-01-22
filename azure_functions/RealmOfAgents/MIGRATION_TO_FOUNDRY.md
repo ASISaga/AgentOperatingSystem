@@ -1,154 +1,122 @@
-# Migration Guide: Azure Functions Custom Runtime → Azure AI Agents (Foundry) Runtime
+# Migration Guide: Custom Runtime → Microsoft Foundry Agent Service Runtime
 
 ## Overview
 
-RealmOfAgents has been migrated from using **Azure Functions as a custom runtime** for Microsoft Agent Framework agents to using the **Azure AI Agents runtime (Foundry Agent Service)**. This provides a more robust, scalable, and officially supported platform for running AI agents.
+RealmOfAgents has been enhanced to support **Microsoft Foundry Agent Service** as the runtime for **PurposeDrivenAgent** - the core architectural component of AOS. 
+
+**Important**: PurposeDrivenAgent is NOT being phased out. Instead, it has been enhanced with a new Foundry-enabled implementation (`PurposeDrivenAgentFoundry`) that uses Azure AI Agents runtime with **Llama 3.3 70B fine-tuned using domain-specific LoRA adapters**.
 
 ## What Changed
 
-### Before (Custom Runtime)
+### Before
 ```
-Azure Functions (RealmOfAgents)
-├── Manually instantiate PurposeDrivenAgent
-├── Manually manage agent lifecycle
-├── Custom event processing
-└── Custom thread/state management
-```
-
-### After (Foundry Runtime)
-```
-Azure Functions (RealmOfAgents) → Orchestration Layer
-├── Uses AgentsClient from azure-ai-agents
-├── Agents run on Azure AI Agents runtime
-├── Foundry handles agent lifecycle
-└── Built-in thread/state management
+PurposeDrivenAgent (Custom Runtime)
+├── Manual lifecycle management
+├── Custom state management
+└── Direct agent framework integration
 ```
 
-## Architecture Changes
+### After  
+```
+PurposeDrivenAgent (Core Component - UNCHANGED)
+├── Standard implementation (legacy mode)
+└── New: PurposeDrivenAgentFoundry (Foundry-enabled)
+    ├── Uses Azure AI Agents runtime
+    ├── Llama 3.3 70B with LoRA adapters
+    ├── Managed lifecycle by Foundry
+    └── Built-in stateful threads
+```
 
-### Old Architecture
-- **Custom Agent Instantiation**: `PurposeDrivenAgent`, `PerpetualAgent`, `LeadershipAgent` were manually created in Python
-- **Custom State Management**: State was managed through custom ContextMCPServer
-- **Manual Lifecycle**: Start/stop/restart was handled manually
-- **Custom Threading**: Thread management implemented from scratch
+## Architecture
 
-### New Architecture
-- **Foundry Agent Service**: Agents are created using `AgentsClient.create_agent()`
-- **Built-in State**: Azure AI Agents provides built-in thread and state management
-- **Managed Lifecycle**: Foundry handles agent lifecycle automatically
-- **Stateful Threads**: Native support for stateful conversations via `AgentThread`
+### PurposeDrivenAgent Remains the Core Component
 
-## Breaking Changes
+**PurposeDrivenAgent** is the fundamental building block of AOS and continues to be the main API:
 
-### 1. Agent Creation
-
-**Before:**
 ```python
-from AgentOperatingSystem.agents import PurposeDrivenAgent
-
+# The API remains the same
 agent = PurposeDrivenAgent(
     agent_id="ceo",
-    purpose="Strategic leadership",
-    tools=tools,
-    adapter_name="ceo"
+    purpose="Strategic oversight and decision-making",
+    purpose_scope="Strategic planning, major decisions",
+    adapter_name="ceo"  # Now references LoRA adapter
 )
 await agent.initialize()
 await agent.start()
 ```
 
-**After:**
+### How It Works
+
+When `USE_FOUNDRY_RUNTIME=true` (default), the system uses **PurposeDrivenAgentFoundry**:
+
+1. **Agent Creation**: Creates agent on Azure AI Agents runtime
+2. **Model**: Uses Llama 3.3 70B fine-tuned with domain LoRA adapter
+3. **Execution**: Runs on Foundry Agent Service (managed by Microsoft)
+4. **State**: Stateful threads managed by Azure AI Agents
+
+### Llama 3.3 70B with LoRA Adapters
+
+Each PurposeDrivenAgent uses Llama 3.3 70B fine-tuned with a domain-specific LoRA adapter:
+
 ```python
-from azure.ai.agents import AgentsClient
-from azure.identity.aio import DefaultAzureCredential
-
-client = AgentsClient(
-    endpoint=os.getenv('AZURE_AI_PROJECT_ENDPOINT'),
-    credential=DefaultAzureCredential()
-)
-
-agent = await client.create_agent(
-    model="gpt-4",
-    name="ceo",
-    description="Strategic leadership",
-    instructions="You are the CEO...",
-    toolset=toolset
-)
-```
-
-### 2. Agent Interaction
-
-**Before:**
-```python
-# Direct method call
-result = await agent.process_event(event_type, payload)
-```
-
-**After:**
-```python
-# Create thread and run
-thread = await client.create_thread()
-run = await client.create_thread_and_process_run(
-    agent_id=agent.id,
-    thread=thread,
-    additional_messages=[{"role": "user", "content": message}]
+agent = PurposeDrivenAgentFoundry(
+    agent_id="ceo",
+    purpose="Strategic oversight",
+    adapter_name="ceo",  # LoRA adapter: llama-3.3-70b-ceo
+    # Model deployment: llama-3.3-70b-{adapter_name}
 )
 ```
 
-### 3. Required Environment Variables
-
-**New Required Variables:**
-```bash
-# Azure AI Project endpoint
-AZURE_AI_PROJECT_ENDPOINT=https://<resource>.services.ai.azure.com/api/projects/<project>
-
-# Model deployment name
-AZURE_AI_MODEL_DEPLOYMENT=gpt-4
-
-# Existing variables (unchanged)
-AZURE_STORAGE_CONNECTION_STRING=...
-AZURE_SERVICE_BUS_CONNECTION_STRING=...
-```
+**LoRA Adapters by Domain:**
+- `ceo` → Llama 3.3 70B fine-tuned for CEO/strategic thinking
+- `cfo` → Llama 3.3 70B fine-tuned for financial analysis
+- `cto` → Llama 3.3 70B fine-tuned for technology strategy
+- `cmo` → Llama 3.3 70B fine-tuned for marketing strategy
 
 ## Migration Steps
 
 ### Step 1: Update Dependencies
 
-Update `requirements.txt`:
+Dependencies remain the same - `azure-ai-agents` and `azure-ai-projects` are used internally by `PurposeDrivenAgentFoundry`:
+
 ```txt
-# Add
+# Already included
 azure-ai-agents>=1.1.0
 azure-ai-projects>=1.0.0
-
-# Keep (for compatibility)
-agent-framework>=1.0.0b251218
-git+https://github.com/ASISaga/AgentOperatingSystem.git
 ```
 
-### Step 2: Deploy Azure AI Project
+### Step 2: Deploy LoRA-tuned Llama 3.3 70B Models
+
+For each domain/agent type, fine-tune and deploy Llama 3.3 70B with LoRA adapters:
 
 ```bash
-# Create Azure AI Hub (if not exists)
-az ml workspace create \
-  --kind project \
-  --name aos-ai-project \
+# Example: Deploy CEO LoRA adapter
+az ml online-deployment create \
+  --name llama-3.3-70b-ceo \
+  --workspace-name aos-ai-project \
   --resource-group aos-genesis \
-  --location eastus
+  --model llama-3.3-70b \
+  --lora-adapter path/to/ceo_adapter
 
-# Get project endpoint
-az ml workspace show \
-  --name aos-ai-project \
+# Deploy CFO LoRA adapter
+az ml online-deployment create \
+  --name llama-3.3-70b-cfo \
+  --workspace-name aos-ai-project \
   --resource-group aos-genesis \
-  --query "discovery_url" -o tsv
+  --model llama-3.3-70b \
+  --lora-adapter path/to/cfo_adapter
 ```
 
 ### Step 3: Update Configuration
 
 Update `local.settings.json` (or Azure Function App Settings):
+
 ```json
 {
   "Values": {
+    "USE_FOUNDRY_RUNTIME": "true",
     "AZURE_AI_PROJECT_ENDPOINT": "https://<your-project>.services.ai.azure.com/api/projects/<project-name>",
-    "AZURE_AI_MODEL_DEPLOYMENT": "gpt-4",
+    "AZURE_AI_MODEL_DEPLOYMENT": "llama-3.3-70b",
     "AZURE_SERVICE_BUS_CONNECTION_STRING": "<unchanged>",
     "AZURE_STORAGE_CONNECTION_STRING": "<unchanged>",
     "AGENT_CONFIG_BLOB_CONTAINER": "agent-configs"
@@ -156,9 +124,33 @@ Update `local.settings.json` (or Azure Function App Settings):
 }
 ```
 
-### Step 4: Update Agent Configurations (Optional)
+**Key Settings:**
+- `USE_FOUNDRY_RUNTIME=true` - Enable Foundry runtime (default)
+- `AZURE_AI_MODEL_DEPLOYMENT=llama-3.3-70b` - Base model name
+- Agent-specific LoRA: Automatically appended as `{model}-{adapter_name}`
 
-Agent configurations in `agent_registry.json` remain largely the same. The system will automatically convert them to Foundry format.
+### Step 4: No Changes to Agent Configurations
+
+Agent configurations in `agent_registry.json` remain **completely unchanged**:
+
+```json
+{
+  "agent_id": "ceo",
+  "agent_type": "purpose_driven",
+  "purpose": "Strategic leadership and decision-making",
+  "domain_knowledge": {
+    "domain": "ceo",  // This becomes the LoRA adapter name
+    "training_data_path": "training-data/ceo/scenarios.jsonl"
+  },
+  "mcp_tools": [...],
+  "enabled": true
+}
+```
+
+The system automatically:
+1. Detects `USE_FOUNDRY_RUNTIME=true`
+2. Creates `PurposeDrivenAgentFoundry` instead of base `PurposeDrivenAgent`
+3. Uses `llama-3.3-70b-{domain}` as the model deployment
 
 ### Step 5: Deploy Function App
 
@@ -176,9 +168,21 @@ curl https://<your-app>.azurewebsites.net/api/health
 # Expected response:
 {
   "status": "healthy",
-  "runtime": "Azure AI Agents (Foundry Agent Service)",
+  "runtime": "Foundry Agent Service (Llama 3.3 70B + LoRA)",
   "active_agents": 4,
   "agent_ids": ["ceo", "cfo", "cmo", "coo"]
+}
+
+# Check specific agent
+curl https://<your-app>.azurewebsites.net/api/agents/ceo/status
+
+# Expected response:
+{
+  "agent_id": "ceo",
+  "status": "running",
+  "type": "PurposeDrivenAgentFoundry",
+  "runtime": "Foundry Agent Service (Llama 3.3 70B + LoRA)",
+  "lora_adapter": "ceo"
 }
 ```
 
