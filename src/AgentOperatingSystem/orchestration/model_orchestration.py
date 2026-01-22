@@ -40,6 +40,7 @@ class ModelType(Enum):
     OPENAI = "openai"
     AGENT_FRAMEWORK = "agent_framework"
     LOCAL_MODEL = "local_model"
+    FOUNDRY_AGENT_SERVICE = "foundry_agent_service"
 
 
 class ModelOrchestrator:
@@ -75,6 +76,18 @@ class ModelOrchestrator:
         
         # Semantic Kernel is now Agent Framework
         self.agent_framework_client: Optional['ChatAgent'] = None
+        
+        # Azure Foundry Agent Service configuration
+        self.foundry_agent_service_config = {
+            "endpoint_url": os.getenv("FOUNDRY_AGENT_SERVICE_ENDPOINT"),
+            "api_key": os.getenv("FOUNDRY_AGENT_SERVICE_API_KEY"),
+            "agent_id": os.getenv("FOUNDRY_AGENT_ID"),
+            "model": "llama-3.3-70b",  # Default to Llama 3.3 70B
+            "enable_stateful_threads": True,
+            "enable_entra_agent_id": True,
+            "enable_foundry_tools": True,
+            "timeout": 60
+        }
         
         # Performance tracking
         self.request_metrics: Dict[str, Dict[str, Any]] = {}
@@ -210,6 +223,8 @@ class ModelOrchestrator:
                 result = await self._handle_agent_framework_request(domain, user_input, conversation_id, **kwargs)
             elif model_type == ModelType.OPENAI:
                 result = await self._handle_openai_request(domain, user_input, conversation_id, **kwargs)
+            elif model_type == ModelType.FOUNDRY_AGENT_SERVICE:
+                result = await self._handle_foundry_agent_service_request(domain, user_input, conversation_id, **kwargs)
             else:
                 raise ValueError(f"Unsupported model type: {model_type}")
             
@@ -351,6 +366,95 @@ class ModelOrchestrator:
             self.logger.error(f"OpenAI request failed: {e}")
             raise
     
+    async def _handle_foundry_agent_service_request(self, domain: str, user_input: str, 
+                                                   conversation_id: str, **kwargs) -> Dict[str, Any]:
+        """Handle Azure Foundry Agent Service request with Llama 3.3 70B"""
+        
+        if not self.foundry_agent_service_config["endpoint_url"]:
+            raise ValueError("Foundry Agent Service endpoint URL not configured")
+        
+        try:
+            # Prepare request payload for Foundry Agent Service
+            # Include support for Stateful Threads, Entra Agent ID, and Foundry Tools
+            payload = {
+                "agent_id": self.foundry_agent_service_config["agent_id"],
+                "model": self.foundry_agent_service_config["model"],  # Llama 3.3 70B
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": f"You are a specialized agent for the {domain} domain."
+                    },
+                    {
+                        "role": "user",
+                        "content": user_input
+                    }
+                ],
+                "conversation_id": conversation_id,
+                "enable_stateful_threads": self.foundry_agent_service_config["enable_stateful_threads"],
+                "enable_entra_agent_id": self.foundry_agent_service_config["enable_entra_agent_id"],
+                "enable_foundry_tools": self.foundry_agent_service_config["enable_foundry_tools"],
+                **kwargs
+            }
+            
+            # Call Foundry Agent Service endpoint
+            result = await self._call_foundry_agent_service(payload)
+            
+            return {
+                "conversationId": conversation_id,
+                "domain": domain,
+                "reply": result.get("response", "No response generated"),
+                "success": True,
+                "source": "foundry_agent_service",
+                "model": "llama-3.3-70b",
+                "thread_id": result.get("thread_id"),
+                "agent_id": result.get("agent_id"),
+                "tools_used": result.get("tools_used", []),
+                "model_details": result.get("model_info", {})
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Foundry Agent Service request failed: {e}")
+            raise
+    
+    async def _call_foundry_agent_service(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Call Azure Foundry Agent Service endpoint"""
+        
+        try:
+            url = self.foundry_agent_service_config["endpoint_url"]
+            
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.foundry_agent_service_config['api_key']}"
+            }
+            
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=self.foundry_agent_service_config["timeout"]
+            )
+            
+            response.raise_for_status()
+            result = response.json()
+            
+            return {
+                "response": result.get("choices", [{}])[0].get("message", {}).get("content", ""),
+                "thread_id": result.get("thread_id"),
+                "agent_id": result.get("agent_id"),
+                "tools_used": result.get("tool_calls", []),
+                "model_info": {
+                    "model": result.get("model", "llama-3.3-70b"),
+                    "usage": result.get("usage", {})
+                }
+            }
+            
+        except requests.RequestException as e:
+            self.logger.error(f"Foundry Agent Service API request failed: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Foundry Agent Service processing failed: {e}")
+            raise
+    
     async def _call_vllm(self, prompt: str) -> Dict[str, Any]:
         """Call vLLM server endpoint"""
         
@@ -432,10 +536,10 @@ class ModelOrchestrator:
         
         # Simple model selection logic (can be enhanced with ML)
         model_preferences = {
-            "leadership": [ModelType.AGENT_FRAMEWORK, ModelType.VLLM, ModelType.AZURE_ML],
-            "sales": [ModelType.AZURE_ML, ModelType.VLLM, ModelType.OPENAI],
-            "erp": [ModelType.AZURE_ML, ModelType.VLLM],
-            "general": [ModelType.VLLM, ModelType.OPENAI, ModelType.AZURE_ML]
+            "leadership": [ModelType.FOUNDRY_AGENT_SERVICE, ModelType.AGENT_FRAMEWORK, ModelType.VLLM, ModelType.AZURE_ML],
+            "sales": [ModelType.FOUNDRY_AGENT_SERVICE, ModelType.AZURE_ML, ModelType.VLLM, ModelType.OPENAI],
+            "erp": [ModelType.FOUNDRY_AGENT_SERVICE, ModelType.AZURE_ML, ModelType.VLLM],
+            "general": [ModelType.FOUNDRY_AGENT_SERVICE, ModelType.VLLM, ModelType.OPENAI, ModelType.AZURE_ML]
         }
         
         # Get domain preferences
@@ -461,6 +565,8 @@ class ModelOrchestrator:
             return self.agent_framework_client is not None
         elif model_type == ModelType.OPENAI:
             return bool(os.getenv("OPENAI_API_KEY"))
+        elif model_type == ModelType.FOUNDRY_AGENT_SERVICE:
+            return bool(self.foundry_agent_service_config["endpoint_url"])
         
         return False
     

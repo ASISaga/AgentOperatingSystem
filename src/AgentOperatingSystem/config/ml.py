@@ -32,6 +32,16 @@ class MLConfig:
     lorax_max_concurrent_requests: int = 128
     lorax_max_batch_size: int = 32
     lorax_gpu_memory_utilization: float = 0.9
+    
+    # Azure Foundry Agent Service configuration
+    enable_foundry_agent_service: bool = True
+    foundry_agent_service_endpoint: str = ""
+    foundry_agent_service_api_key: str = ""
+    foundry_agent_id: str = ""
+    foundry_model: str = "llama-3.3-70b"  # Llama 3.3 70B as core reasoning engine
+    foundry_enable_stateful_threads: bool = True
+    foundry_enable_entra_agent_id: bool = True
+    foundry_enable_foundry_tools: bool = True
 
     @classmethod
     def from_env(cls):
@@ -61,4 +71,13 @@ class MLConfig:
             lorax_max_concurrent_requests=int(os.getenv("AOS_LORAX_MAX_CONCURRENT_REQUESTS", "128")),
             lorax_max_batch_size=int(os.getenv("AOS_LORAX_MAX_BATCH_SIZE", "32")),
             lorax_gpu_memory_utilization=float(os.getenv("AOS_LORAX_GPU_MEMORY_UTILIZATION", "0.9")),
+            # Azure Foundry Agent Service configuration
+            enable_foundry_agent_service=os.getenv("AOS_ENABLE_FOUNDRY_AGENT_SERVICE", "true").lower() == "true",
+            foundry_agent_service_endpoint=os.getenv("FOUNDRY_AGENT_SERVICE_ENDPOINT", ""),
+            foundry_agent_service_api_key=os.getenv("FOUNDRY_AGENT_SERVICE_API_KEY", ""),
+            foundry_agent_id=os.getenv("FOUNDRY_AGENT_ID", ""),
+            foundry_model=os.getenv("FOUNDRY_MODEL", "llama-3.3-70b"),
+            foundry_enable_stateful_threads=os.getenv("FOUNDRY_ENABLE_STATEFUL_THREADS", "true").lower() == "true",
+            foundry_enable_entra_agent_id=os.getenv("FOUNDRY_ENABLE_ENTRA_AGENT_ID", "true").lower() == "true",
+            foundry_enable_foundry_tools=os.getenv("FOUNDRY_ENABLE_FOUNDRY_TOOLS", "true").lower() == "true",
         )
