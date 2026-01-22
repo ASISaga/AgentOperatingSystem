@@ -71,13 +71,13 @@ Updated to support both operational models:
 - Code examples demonstrating both approaches
 - Updated OS analogy table to include daemon processes
 
-#### ARCHITECTURE.md
+#### docs/architecture/ARCHITECTURE.md
 - New section explaining the perpetual architecture
 - Agent lifecycle diagram showing sleep/wake cycle
 - Updated kernel layer description with event-driven details
 - Emphasized persistence as core architectural principle
 
-#### features.md
+#### docs/features/features-overview.md
 - Added "Core USP" section at the beginning
 - Updated platform responsibilities to highlight perpetual lifecycle
 - Enhanced agent identity contract to include operational mode
@@ -194,8 +194,8 @@ This implementation:
 - `src/AgentOperatingSystem/agents/__init__.py` - Export PerpetualAgent
 - `src/AgentOperatingSystem/agents/manager.py` - Enhanced for perpetual support
 - `README.md` - Major updates to emphasize persistence USP
-- `ARCHITECTURE.md` - Always-on architecture explanation
-- `features.md` - Core USP section added
+- `docs/architecture/ARCHITECTURE.md` - Always-on architecture explanation
+- `docs/features/features-overview.md` - Core USP section added
 
 ## Testing
 

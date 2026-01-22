@@ -195,7 +195,7 @@ pytest tests/test_services.py
 1. **Create a Migration Branch**: Don't do this on main
 2. **Update Incrementally**: One component at a time
 3. **Test After Each Change**: Ensure nothing breaks
-4. **Document Changes**: Update CHANGELOG.md
+4. **Document Changes**: Update docs/releases/CHANGELOG.md
 5. **Communicate**: Notify external consumers
 6. **Backup**: Tag before major refactoring
 7. **Review Thoroughly**: Code review all changes
@@ -209,7 +209,7 @@ pytest tests/test_services.py
 - [ ] Tests pass
 - [ ] Documentation updated
 - [ ] Examples updated
-- [ ] CHANGELOG.md updated
+- [ ] docs/releases/CHANGELOG.md updated
 - [ ] No grep matches for old imports
 - [ ] External consumers notified
 - [ ] Code review completed
@@ -221,6 +221,6 @@ pytest tests/test_services.py
 
 ## Additional Resources
 - `docs/CODE_ORGANIZATION.md` - Current duplication documentation
-- `REFACTORING.md` - Refactoring history
-- `MIGRATION.md` - Migration guides
-- `CHANGELOG.md` - Version history
+- `docs/development/REFACTORING.md` - Refactoring history
+- `docs/development/MIGRATION.md` - Migration guides
+- `docs/releases/CHANGELOG.md` - Version history

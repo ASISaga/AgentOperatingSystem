@@ -56,7 +56,7 @@ This fundamental difference makes AOS a true "operating system" - agents are lik
 ### Understanding AOS
 - **Architecture**: [skills/aos-architecture/SKILL.md](skills/aos-architecture/SKILL.md)
 - **Main README**: [../README.md](../README.md)
-- **Architecture Doc**: [../ARCHITECTURE.md](../ARCHITECTURE.md)
+- **Architecture Doc**: [../docs/architecture/ARCHITECTURE.md](../docs/architecture/ARCHITECTURE.md)
 
 ### Agent Development
 - **Perpetual Agents**: [skills/perpetual-agents/SKILL.md](skills/perpetual-agents/SKILL.md)
@@ -74,7 +74,7 @@ This fundamental difference makes AOS a true "operating system" - agents are lik
 - **Function App**: [../function_app.py](../function_app.py)
 
 ### Contributing
-- **Contributing Guide**: [../CONTRIBUTING.md](../CONTRIBUTING.md)
+- **Contributing Guide**: [../docs/development/CONTRIBUTING.md](../docs/development/CONTRIBUTING.md)
 - **Development Docs**: [../docs/development.md](../docs/development.md)
 
 ## 🔑 Key Concepts Quick Reference
@@ -222,7 +222,7 @@ func azure functionapp publish <function-app-name>
 2. **Examples**: Check [examples/](../examples/) for working code
 3. **Tests**: Look at [tests/](../tests/) for usage patterns
 4. **Issues**: Check GitHub issues for similar problems
-5. **Contributing**: See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines
+5. **Contributing**: See [CONTRIBUTING.md](../docs/development/CONTRIBUTING.md) for guidelines
 
 ## ✅ Pre-Commit Checklist
 

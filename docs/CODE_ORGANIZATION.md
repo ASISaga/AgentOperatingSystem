@@ -53,7 +53,7 @@ from AgentOperatingSystem.agents.leadership_agent import LeadershipAgent
 
 ## Related Documentation
 
-- [REFACTORING.md](../REFACTORING.md) - Complete refactoring guide
-- [MIGRATION.md](../MIGRATION.md) - Migration instructions
-- [ARCHITECTURE.md](../ARCHITECTURE.md) - System architecture
+- [REFACTORING.md](development/REFACTORING.md) - Complete refactoring guide
+- [MIGRATION.md](development/MIGRATION.md) - Migration instructions
+- [ARCHITECTURE.md](architecture/ARCHITECTURE.md) - System architecture
 - [CODE_ORGANIZATION.md](CODE_ORGANIZATION.md) - This document

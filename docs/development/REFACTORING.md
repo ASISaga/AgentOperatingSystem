@@ -198,9 +198,9 @@ pytest tests/
 
 ## Related Documentation
 
-- [ARCHITECTURE.md](ARCHITECTURE.md): System architecture
+- [ARCHITECTURE.md](../architecture/ARCHITECTURE.md): System architecture
 - [CONTRIBUTING.md](CONTRIBUTING.md): Contribution guidelines
-- [BREAKING_CHANGES.md](BREAKING_CHANGES.md): Breaking changes log
+- [BREAKING_CHANGES.md](../releases/BREAKING_CHANGES.md): Breaking changes log
 
 ## Support
 

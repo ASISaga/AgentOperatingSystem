@@ -548,8 +548,8 @@ Extend existing agent when:
 - `mcp-integration` - MCP and ContextMCPServer usage
 
 ## Additional Resources
-- ARCHITECTURE.md - Detailed architecture documentation
+- docs/architecture/ARCHITECTURE.md - Detailed architecture documentation
 - README.md - Core concepts overview
-- CONTRIBUTING.md - Development guidelines
+- docs/development/CONTRIBUTING.md - Development guidelines
 - docs/ - Additional technical documentation
 - examples/ - Architecture examples in practice

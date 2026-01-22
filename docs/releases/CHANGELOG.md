@@ -154,6 +154,6 @@ See [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for details.
 
 ## Documentation
 
-- [README.md](README.md) - Main documentation
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
+- [README.md](../../README.md) - Main documentation
+- [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) - System architecture
+- [CONTRIBUTING.md](../development/CONTRIBUTING.md) - Contribution guidelines
