@@ -181,6 +181,7 @@ Traditional operating systems manage hardware resources for software application
 │  │  Azure Service Bus    Azure Storage      Azure ML           │  │
 │  │  Azure Functions      Key Vault          Cosmos DB          │  │
 │  │  Azure Monitor        Event Grid         Cognitive Services │  │
+│  │  Azure AI Agents      Azure AI Projects  Foundry Service    │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                                                                    │
 └────────────────────────────────────────────────────────────────────┘
@@ -410,7 +411,7 @@ AOS provides **configuration-driven Azure Functions applications** for zero-code
 
 ### RealmOfAgents - Plug-and-Play Agent Infrastructure
 
-**RealmOfAgents** is an Azure Functions app that enables configuration-driven deployment of PurposeDrivenAgent(s). Developers provide only configuration - no code required!
+**RealmOfAgents** is an Azure Functions app that enables configuration-driven deployment of PurposeDrivenAgent(s) on **Azure AI Agents runtime (Foundry Agent Service)**. Developers provide only configuration - no code required! Agents run on Microsoft's officially supported Foundry infrastructure.
 
 **Configuration Only:**
 ```json
