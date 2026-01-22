@@ -142,8 +142,8 @@ When adding new skills:
 
 - **Repository Instructions**: [.github/instructions/Readme.md](../instructions/Readme.md)
 - **Main README**: [README.md](../../README.md)
-- **Architecture**: [ARCHITECTURE.md](../../ARCHITECTURE.md)
-- **Contributing**: [CONTRIBUTING.md](../../CONTRIBUTING.md)
+- **Architecture**: [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md)
+- **Contributing**: [CONTRIBUTING.md](../../docs/development/CONTRIBUTING.md)
 
 ---
 

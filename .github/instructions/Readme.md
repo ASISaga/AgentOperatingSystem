@@ -144,8 +144,8 @@ AOS implements MCP for tool and resource access:
 
 ### Key Documentation
 - `README.md` - Main project README with overview
-- `ARCHITECTURE.md` - Detailed architecture documentation
-- `CONTRIBUTING.md` - Contribution guidelines
+- `docs/architecture/ARCHITECTURE.md` - Detailed architecture documentation
+- `docs/development/CONTRIBUTING.md` - Contribution guidelines
 - `docs/` - Additional technical documentation
 
 ### Configuration
@@ -217,10 +217,10 @@ pytest tests/ --cov=src/AgentOperatingSystem
 
 ### For First-Time Contributors
 1. Read `README.md` - Understand the core concept of perpetual vs task-based
-2. Read `ARCHITECTURE.md` - Understand the layered architecture
+2. Read `docs/architecture/ARCHITECTURE.md` - Understand the layered architecture
 3. Review `examples/perpetual_agents_example.py` - See usage examples
 4. Run simple tests: `pytest tests/simple_test.py -v`
-5. Read `CONTRIBUTING.md` - Understand contribution guidelines
+5. Read `docs/development/CONTRIBUTING.md` - Understand contribution guidelines
 
 ### For Code Changes
 1. Identify the relevant module (agents/, orchestration/, messaging/, etc.)
@@ -245,7 +245,7 @@ pytest tests/ --cov=src/AgentOperatingSystem
 
 ### To understand orchestration:
 - `src/AgentOperatingSystem/orchestration/` - Orchestration engine
-- `ARCHITECTURE.md` - Orchestration architecture
+- `docs/architecture/ARCHITECTURE.md` - Orchestration architecture
 - `tests/test_integration.py` - Orchestration tests
 
 ### To understand Azure integration:

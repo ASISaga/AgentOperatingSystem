@@ -332,6 +332,6 @@ async def test_agent_with_mocked_services():
 
 ## Additional Resources
 - README.md - Core concepts and perpetual vs task-based comparison
-- ARCHITECTURE.md - System architecture and agent layer
+- docs/architecture/ARCHITECTURE.md - System architecture and agent layer
 - examples/perpetual_agents_example.py - Complete examples
-- docs/PERPETUAL_AGENTS_SUMMARY.md - Detailed perpetual agent documentation
+- docs/summaries/PERPETUAL_AGENTS_SUMMARY.md - Detailed perpetual agent documentation

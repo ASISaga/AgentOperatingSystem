@@ -147,7 +147,7 @@ When adding new prompts:
 - **Skills**: [.github/skills/](../skills/)
 - **Instructions**: [.github/instructions/Readme.md](../instructions/Readme.md)
 - **Main README**: [README.md](../../README.md)
-- **Architecture**: [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- **Architecture**: [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md)
 
 ---
 

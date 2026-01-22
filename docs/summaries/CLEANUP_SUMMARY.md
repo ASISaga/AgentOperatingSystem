@@ -124,11 +124,11 @@ Conservative cleanup focusing on documentation consolidation and adding clarity 
 - Reason: Provide detailed feature documentation, referenced in CHANGELOG
 
 ### Active Documentation (Kept)
-- features.md - comprehensive feature specification
-- ARCHITECTURE.md - root level architecture overview
-- BREAKING_CHANGES.md - important for consumers
-- RELEASE_NOTES.md - Microsoft agent-framework changes
-- CONTRIBUTING.md - contribution guidelines
+- docs/features/features-overview.md - comprehensive feature specification
+- docs/architecture/ARCHITECTURE.md - root level architecture overview
+- docs/releases/BREAKING_CHANGES.md - important for consumers
+- docs/releases/RELEASE_NOTES.md - Microsoft agent-framework changes
+- docs/development/CONTRIBUTING.md - contribution guidelines
 - All docs/specifications/* files - active API specs
 
 ## Verification
