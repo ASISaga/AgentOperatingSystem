@@ -1,209 +1,133 @@
-# Overview
+# Agent Operating System - Skills Catalog
 
-> A simple, open format for giving agents new capabilities and expertise.
+This directory contains specialized skills for working with the Agent Operating System (AOS) codebase. Each skill is a focused collection of knowledge, patterns, and best practices for specific aspects of AOS development.
 
-export const LogoCarousel = () => {
-  const logos = [{
-    name: "Gemini CLI",
-    url: "https://geminicli.com",
-    lightSrc: "/images/logos/gemini-cli/gemini-cli-logo_light.svg",
-    darkSrc: "/images/logos/gemini-cli/gemini-cli-logo_dark.svg"
-  }, {
-    name: "OpenCode",
-    url: "https://opencode.ai/",
-    lightSrc: "/images/logos/opencode/opencode-wordmark-light.svg",
-    darkSrc: "/images/logos/opencode/opencode-wordmark-dark.svg"
-  }, {
-    name: "Mux",
-    url: "https://mux.coder.com/",
-    lightSrc: "/images/logos/mux/mux-editor-light.svg",
-    darkSrc: "/images/logos/mux/mux-editor-dark.svg"
-  }, {
-    name: "Cursor",
-    url: "https://cursor.com/",
-    lightSrc: "/images/logos/cursor/LOCKUP_HORIZONTAL_2D_LIGHT.svg",
-    darkSrc: "/images/logos/cursor/LOCKUP_HORIZONTAL_2D_DARK.svg"
-  }, {
-    name: "Amp",
-    url: "https://ampcode.com/",
-    lightSrc: "/images/logos/amp/amp-logo-light.svg",
-    darkSrc: "/images/logos/amp/amp-logo-dark.svg",
-    width: "120px"
-  }, {
-    name: "Letta",
-    url: "https://www.letta.com/",
-    lightSrc: "/images/logos/letta/Letta-logo-RGB_OffBlackonTransparent.svg",
-    darkSrc: "/images/logos/letta/Letta-logo-RGB_GreyonTransparent.svg"
-  }, {
-    name: "Goose",
-    url: "https://block.github.io/goose/",
-    lightSrc: "/images/logos/goose/goose-logo-black.png",
-    darkSrc: "/images/logos/goose/goose-logo-white.png"
-  }, {
-    name: "GitHub",
-    url: "https://github.com/",
-    lightSrc: "/images/logos/github/GitHub_Lockup_Dark.svg",
-    darkSrc: "/images/logos/github/GitHub_Lockup_Light.svg"
-  }, {
-    name: "VS Code",
-    url: "https://code.visualstudio.com/",
-    lightSrc: "/images/logos/vscode/vscode.svg",
-    darkSrc: "/images/logos/vscode/vscode-alt.svg"
-  }, {
-    name: "Claude Code",
-    url: "https://claude.ai/code",
-    lightSrc: "/images/logos/claude-code/Claude-Code-logo-Slate.svg",
-    darkSrc: "/images/logos/claude-code/Claude-Code-logo-Ivory.svg"
-  }, {
-    name: "Claude",
-    url: "https://claude.ai/",
-    lightSrc: "/images/logos/claude-ai/Claude-logo-Slate.svg",
-    darkSrc: "/images/logos/claude-ai/Claude-logo-Ivory.svg"
-  }, {
-    name: "OpenAI Codex",
-    url: "https://developers.openai.com/codex",
-    lightSrc: "/images/logos/oai-codex/OAI_Codex-Lockup_400px.svg",
-    darkSrc: "/images/logos/oai-codex/OAI_Codex-Lockup_400px_Darkmode.svg"
-  }, {
-    name: "Factory",
-    url: "https://factory.ai/",
-    lightSrc: "/images/logos/factory/factory-logo-light.svg",
-    darkSrc: "/images/logos/factory/factory-logo-dark.svg"
-  }, {
-    name: "Databricks",
-    url: "https://databricks.com/",
-    lightSrc: "/images/logos/databricks/databricks-logo-light.svg",
-    darkSrc: "/images/logos/databricks/databricks-logo-dark.svg"
-  }, {
-    name: "Agentman",
-    url: "https://agentman.ai/",
-    lightSrc: "/images/logos/agentman/agentman-wordmark-light.svg",
-    darkSrc: "/images/logos/agentman/agentman-wordmark-dark.svg"
-  }, {
-    name: "TRAE",
-    url: "https://trae.ai/",
-    lightSrc: "/images/logos/trae/trae-logo-lightmode.svg",
-    darkSrc: "/images/logos/trae/trae-logo-darkmode.svg"
-  }, {
-    name: "Spring AI",
-    url: "https://docs.spring.io/spring-ai/reference",
-    lightSrc: "/images/logos/spring-ai/spring-ai-logo-light.svg",
-    darkSrc: "/images/logos/spring-ai/spring-ai-logo-dark.svg"
-  }];
-  const [shuffled, setShuffled] = useState(logos);
-  useEffect(() => {
-    const shuffle = items => {
-      const copy = [...items];
-      for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-      }
-      return copy;
-    };
-    setShuffled(shuffle(logos));
-  }, []);
-  const row1 = shuffled.filter((_, i) => i % 2 === 0);
-  const row2 = shuffled.filter((_, i) => i % 2 === 1);
-  const row1Doubled = [...row1, ...row1];
-  const row2Doubled = [...row2, ...row2];
-  return <>
-      <div className="logo-carousel">
-        <div className="logo-carousel-track" style={{
-    animation: 'logo-scroll 50s linear infinite'
-  }}>
-          {row1Doubled.map((logo, i) => <a key={`${logo.name}-${i}`} href={logo.url} style={{
-    textDecoration: 'none',
-    border: 'none'
-  }}>
-              <img className="block dark:hidden object-contain" style={{
-    width: logo.width || '150px',
-    maxWidth: '100%'
-  }} src={logo.lightSrc} alt={logo.name} />
-              <img className="hidden dark:block object-contain" style={{
-    width: logo.width || '150px',
-    maxWidth: '100%'
-  }} src={logo.darkSrc} alt={logo.name} />
-            </a>)}
-        </div>
-      </div>
-      <div className="logo-carousel">
-        <div className="logo-carousel-track" style={{
-    animation: 'logo-scroll 60s linear infinite reverse'
-  }}>
-          {row2Doubled.map((logo, i) => <a key={`${logo.name}-${i}`} href={logo.url} style={{
-    textDecoration: 'none',
-    border: 'none'
-  }}>
-              <img className="block dark:hidden object-contain" style={{
-    width: logo.width || '150px',
-    maxWidth: '100%'
-  }} src={logo.lightSrc} alt={logo.name} />
-              <img className="hidden dark:block object-contain" style={{
-    width: logo.width || '150px',
-    maxWidth: '100%'
-  }} src={logo.darkSrc} alt={logo.name} />
-            </a>)}
-        </div>
-      </div>
-    </>;
-};
+## Available Skills
 
-Agent Skills are folders of instructions, scripts, and resources that agents can discover and use to do things more accurately and efficiently.
+### 1. [Perpetual Agents](perpetual-agents/SKILL.md)
+**Expert knowledge for working with Perpetual Agents and PurposeDrivenAgents.**
 
-## Why Agent Skills?
+**Use this skill when**:
+- Creating new perpetual agents
+- Modifying existing agent behavior
+- Understanding agent state management
+- Working with ContextMCPServer for state preservation
+- Implementing purpose-driven decision making
 
-Agents are increasingly capable, but often don't have the context they need to do real work reliably. Skills solve this by giving agents access to procedural knowledge and company-, team-, and user-specific context they can load on demand. Agents with access to a set of skills can extend their capabilities based on the task they're working on.
+**Key topics**:
+- Perpetual vs task-based architecture
+- Agent lifecycle management
+- State persistence via ContextMCPServer
+- Testing perpetual agents
+- Common issues and solutions
 
-**For skill authors**: Build capabilities once and deploy them across multiple agent products.
+### 2. [Azure Functions](azure-functions/SKILL.md)
+**Expert knowledge for developing and deploying AOS on Azure Functions.**
 
-**For compatible agents**: Support for skills lets end users give agents new capabilities out of the box.
+**Use this skill when**:
+- Deploying AOS to Azure Functions
+- Working with function_app.py
+- Debugging Azure Functions triggers
+- Configuring Service Bus integration
+- Testing Functions locally
 
-**For teams and enterprises**: Capture organizational knowledge in portable, version-controlled packages.
+**Key topics**:
+- Azure Functions architecture
+- Service Bus triggered functions
+- HTTP and timer triggers
+- Local development workflow
+- Deployment and monitoring
 
-## What can Agent Skills enable?
+### 3. [Async Python Testing](async-python-testing/SKILL.md)
+**Expert knowledge for testing asynchronous Python code in AOS.**
 
-* **Domain expertise**: Package specialized knowledge into reusable instructions, from legal review processes to data analysis pipelines.
-* **New capabilities**: Give agents new capabilities (e.g. creating presentations, building MCP servers, analyzing datasets).
-* **Repeatable workflows**: Turn multi-step tasks into consistent and auditable workflows.
-* **Interoperability**: Reuse the same skill across different skills-compatible agent products.
+**Use this skill when**:
+- Writing tests for async functions
+- Mocking async calls and Azure services
+- Debugging async test failures
+- Testing concurrent operations
+- Understanding pytest-asyncio patterns
 
-## Adoption
+**Key topics**:
+- Async test patterns
+- Mocking with AsyncMock
+- Testing perpetual agents
+- Common async testing issues
+- Best practices for async tests
 
-Agent Skills are supported by leading AI development tools.
+### 4. [AOS Architecture](aos-architecture/SKILL.md)
+**Expert knowledge of AOS architecture, components, and design patterns.**
 
-<LogoCarousel />
+**Use this skill when**:
+- Understanding AOS architecture
+- Working across multiple components
+- Making architectural decisions
+- Integrating new components
+- Debugging cross-component issues
 
-## Open development
+**Key topics**:
+- Operating system paradigm
+- Architectural layers (Application, Service, Kernel)
+- Component interactions
+- Design patterns (Circuit Breaker, State Machine, etc.)
+- Data flow and event processing
 
-The Agent Skills format was originally developed by [Anthropic](https://www.anthropic.com/), released as an open standard, and has been adopted by a growing number of agent products. The standard is open to contributions from the broader ecosystem.
+## How to Use Skills
 
-[View on GitHub](https://github.com/agentskills/agentskills)
+Skills are designed to be discovered and used by AI coding agents. Each skill follows the Agent Skills format with a `SKILL.md` file containing:
 
-## Get started
+1. **Description**: What the skill provides
+2. **When to Use**: Specific scenarios where the skill applies
+3. **Key Concepts**: Core knowledge and principles
+4. **Code Patterns**: Reusable code examples
+5. **Common Issues**: Problems and solutions
+6. **Best Practices**: Recommended approaches
+7. **File Locations**: Where to find relevant code
+8. **Related Skills**: Connected skills for broader context
 
-<CardGroup cols={3}>
-  <Card title="What are skills?" icon="lightbulb" href="/what-are-skills">
-    Learn about skills, how they work, and why they matter.
-  </Card>
+## Quick Reference
 
-  <Card title="Specification" icon="file-code" href="/specification">
-    The complete format specification for SKILL.md files.
-  </Card>
+**For new contributors**:
+- Start with [AOS Architecture](aos-architecture/SKILL.md) to understand the system
+- Review [Perpetual Agents](perpetual-agents/SKILL.md) for agent concepts
+- Check [Async Python Testing](async-python-testing/SKILL.md) for testing patterns
 
-  <Card title="Integrate skills" icon="gear" href="/integrate-skills">
-    Add skills support to your agent or tool.
-  </Card>
+**For Azure deployment**:
+- Use [Azure Functions](azure-functions/SKILL.md) for deployment guidance
 
-  <Card title="Example skills" icon="code" href="https://github.com/anthropics/skills">
-    Browse example skills on GitHub.
-  </Card>
+**For testing**:
+- Use [Async Python Testing](async-python-testing/SKILL.md) for all async test scenarios
 
-  <Card title="Reference library" icon="wrench" href="https://github.com/agentskills/agentskills/tree/main/skills-ref">
-    Validate skills and generate prompt XML.
-  </Card>
-</CardGroup>
+**For agent development**:
+- Use [Perpetual Agents](perpetual-agents/SKILL.md) for agent implementation
+- Reference [AOS Architecture](aos-architecture/SKILL.md) for system integration
 
+## Skill Format
+
+All skills in this repository follow the Agent Skills specification. Each skill is self-contained and includes:
+
+- **SKILL.md**: Main skill content
+- Clear descriptions and examples
+- Contextual guidance on when to use the skill
+- References to related code and documentation
+
+## Contributing New Skills
+
+When adding new skills:
+
+1. Create a new directory in `.github/skills/`
+2. Add a `SKILL.md` file following the existing pattern
+3. Include practical examples from the AOS codebase
+4. Link to related skills and documentation
+5. Update this README with the new skill
+
+## Additional Resources
+
+- **Repository Instructions**: [.github/instructions/Readme.md](../instructions/Readme.md)
+- **Main README**: [README.md](../../README.md)
+- **Architecture**: [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- **Contributing**: [CONTRIBUTING.md](../../CONTRIBUTING.md)
 
 ---
 
-> To find navigation and other pages in this documentation, fetch the llms.txt file at: https://agentskills.io/llms.txt
+> **Note**: These skills are specifically designed for the Agent Operating System codebase. They complement the general Agent Skills format with repository-specific knowledge and patterns.
