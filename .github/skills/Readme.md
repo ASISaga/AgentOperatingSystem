@@ -72,6 +72,23 @@ This directory contains specialized skills for working with the Agent Operating 
 - Design patterns (Circuit Breaker, State Machine, etc.)
 - Data flow and event processing
 
+### 5. [Code Refactoring](code-refactoring/SKILL.md)
+**Expert knowledge for performing major version refactoring and removing backward compatibility.**
+
+**Use this skill when**:
+- Performing major version bumps
+- Removing deprecated code
+- Consolidating duplicate implementations
+- Updating imports across codebase
+- Cleaning up technical debt
+
+**Key topics**:
+- Backward compatibility removal
+- Import migration strategies
+- Class consolidation
+- Documentation updates
+- Testing refactored code
+
 ## How to Use Skills
 
 Skills are designed to be discovered and used by AI coding agents. Each skill follows the Agent Skills format with a `SKILL.md` file containing:

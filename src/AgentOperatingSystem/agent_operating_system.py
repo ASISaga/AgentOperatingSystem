@@ -18,7 +18,7 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
-    from .agents.base import BaseAgent
+    from .agents.base_agent import BaseAgent
 
 from .messaging.bus import MessageBus
 from .messaging.router import MessageRouter
