@@ -270,7 +270,7 @@ We welcome contributions! Here's how to get started:
 - Zero-trust architecture
 - Quantum computing preparation
 
-**[🔮 Complete Roadmap →](README.md.backup#roadmap)**
+**[🔮 Complete Roadmap →](ROADMAP.md)**
 
 ---
 
