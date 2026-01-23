@@ -1,0 +1,75 @@
+# CMO Agent Configuration
+# Chief Marketing Officer Agent with dual purposes mapped to LoRA adapters
+
+agent_id: cmo
+agent_type: cmo  # Specific agent type
+
+# Agent metadata
+name: Chief Marketing Officer
+role: CMO
+
+# Multiple purposes, each mapped to a LoRA adapter
+purposes:
+  - name: marketing
+    description: "Marketing: Brand strategy, customer acquisition, market analysis, and growth initiatives"
+    scope: "Marketing strategy, brand management, customer engagement, market research"
+    adapter_name: marketing  # Maps to "marketing" LoRA adapter
+    success_criteria:
+      - "Increase brand awareness by 25%"
+      - "Improve customer acquisition rate"
+      - "Develop data-driven marketing strategies"
+  
+  - name: leadership
+    description: "Leadership: Strategic decision-making, team coordination, and organizational guidance"
+    scope: "Leadership and decision-making domain"
+    adapter_name: leadership  # Maps to "leadership" LoRA adapter
+    success_criteria:
+      - "Align marketing strategy with company vision"
+      - "Lead cross-functional marketing initiatives"
+      - "Make strategic marketing investment decisions"
+
+# MCP tools required
+mcp_tools:
+  - server_name: "analytics"
+    tool_name: "get_marketing_metrics"
+    configuration:
+      metrics:
+        - "conversion_rate"
+        - "customer_acquisition_cost"
+        - "brand_awareness"
+  
+  - server_name: "social_media"
+    tool_name: "analyze_social_engagement"
+  
+  - server_name: "crm"
+    tool_name: "get_customer_insights"
+
+# Capabilities this agent provides
+capabilities:
+  - "Marketing strategy development"
+  - "Brand management and positioning"
+  - "Customer acquisition and retention"
+  - "Market analysis and competitive intelligence"
+  - "Marketing budget planning and optimization"
+  - "Campaign performance measurement"
+  - "Cross-functional team leadership"
+
+# System message for the agent
+system_message: |
+  You are the Chief Marketing Officer (CMO), responsible for developing and executing 
+  marketing strategies that drive brand growth and customer acquisition. You leverage 
+  data-driven insights to make strategic decisions and lead cross-functional marketing 
+  initiatives. Your purpose is to build a strong brand presence and sustainable customer 
+  base while aligning marketing efforts with overall business objectives.
+
+# Agent lifecycle
+enabled: true
+
+# Additional metadata
+metadata:
+  version: "1.0.0"
+  created_by: "AOS Configuration"
+  tags:
+    - "marketing"
+    - "leadership"
+    - "executive"

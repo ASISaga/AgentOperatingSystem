@@ -18,6 +18,8 @@ PurposeDrivenAgent will eventually be moved to a dedicated repository.
 from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
 import logging
+import yaml
+from pathlib import Path
 from .perpetual import PerpetualAgent
 
 
@@ -61,12 +63,16 @@ class PurposeDrivenAgent(PerpetualAgent):
     def __init__(
         self,
         agent_id: str,
-        purpose: str,
+        purpose: str = None,
         purpose_scope: str = None,
         success_criteria: List[str] = None,
         tools: List[Any] = None,
         system_message: str = None,
-        adapter_name: str = None
+        adapter_name: str = None,
+        purposes: List[Dict[str, Any]] = None,
+        mcp_tools: List[Dict[str, Any]] = None,
+        capabilities: List[str] = None,
+        metadata: Dict[str, Any] = None
     ):
         """
         Initialize a Purpose-Driven Agent.
@@ -79,6 +85,10 @@ class PurposeDrivenAgent(PerpetualAgent):
             tools: Tools available to the agent (optional, via MCP)
             system_message: System message for the agent (optional)
             adapter_name: Name for LoRA adapter providing domain knowledge & persona (e.g., 'ceo', 'cfo')
+            purposes: List of purpose configurations for multi-purpose agents (optional)
+            mcp_tools: List of MCP tool configurations (optional)
+            capabilities: List of agent capabilities (optional)
+            metadata: Additional metadata (optional)
         
         Architecture:
             - The purpose is added to the primary LLM context to guide behavior
@@ -96,11 +106,30 @@ class PurposeDrivenAgent(PerpetualAgent):
             adapter_name=adapter_name  # Maps to LoRA adapter for domain expertise
         )
         
-        # Purpose-specific attributes
-        # The purpose will be added to primary LLM context during initialization
-        self.purpose = purpose
-        self.purpose_scope = purpose_scope or "General purpose operation"
-        self.success_criteria = success_criteria or []
+        # Support both single purpose (backward compatible) and multi-purpose configurations
+        self.purposes_config = purposes or []
+        
+        # If traditional single purpose is provided, use it
+        if purpose:
+            self.purpose = purpose
+            self.purpose_scope = purpose_scope or "General purpose operation"
+            self.success_criteria = success_criteria or []
+        # If multi-purpose config is provided, use the first one as primary
+        elif self.purposes_config:
+            primary_purpose = self.purposes_config[0]
+            self.purpose = primary_purpose.get("description", "")
+            self.purpose_scope = primary_purpose.get("scope", "General purpose operation")
+            self.success_criteria = primary_purpose.get("success_criteria", [])
+        else:
+            # Default values if nothing provided
+            self.purpose = "General purpose agent"
+            self.purpose_scope = "General purpose operation"
+            self.success_criteria = []
+        
+        # Store MCP tools and capabilities configuration
+        self.mcp_tools_config = mcp_tools or []
+        self.capabilities = capabilities or []
+        self.metadata = metadata or {}
         
         # Purpose tracking
         self.purpose_metrics = {
@@ -118,6 +147,72 @@ class PurposeDrivenAgent(PerpetualAgent):
         self.logger.info(
             f"PurposeDrivenAgent {self.agent_id} created with purpose: {self.purpose}, "
             f"adapter: {self.adapter_name}"
+        )
+    
+    @classmethod
+    def from_yaml(cls, yaml_path: str) -> "PurposeDrivenAgent":
+        """
+        Create a PurposeDrivenAgent from a YAML configuration file.
+        
+        Args:
+            yaml_path: Path to the YAML configuration file
+            
+        Returns:
+            Initialized PurposeDrivenAgent instance
+            
+        Raises:
+            FileNotFoundError: If the YAML file doesn't exist
+            ValueError: If the YAML file is invalid or missing required fields
+            
+        Example:
+            >>> agent = PurposeDrivenAgent.from_yaml("config/agents/ceo_agent.yaml")
+            >>> await agent.initialize()
+            >>> await agent.start()
+        """
+        yaml_file = Path(yaml_path)
+        if not yaml_file.exists():
+            raise FileNotFoundError(f"Agent configuration file not found: {yaml_path}")
+        
+        try:
+            with open(yaml_file, 'r') as f:
+                config = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML file {yaml_path}: {e}")
+        
+        # Validate required fields
+        if not config.get("agent_id"):
+            raise ValueError(f"Missing required field 'agent_id' in {yaml_path}")
+        
+        # Extract purposes configuration
+        purposes = config.get("purposes", [])
+        
+        # Determine adapter_name:
+        # - If single purpose, use its adapter_name
+        # - If multiple purposes, use the first one as primary
+        # - Otherwise, use agent_id as fallback
+        adapter_name = None
+        if purposes:
+            adapter_name = purposes[0].get("adapter_name")
+        
+        # Build combined purpose description from all purposes
+        if purposes:
+            purpose_descriptions = [p.get("description", "") for p in purposes]
+            combined_purpose = "; ".join(purpose_descriptions)
+        else:
+            combined_purpose = config.get("purpose", "General purpose agent")
+        
+        # Create the agent instance
+        return cls(
+            agent_id=config["agent_id"],
+            purpose=combined_purpose,
+            purpose_scope=config.get("scope"),
+            success_criteria=config.get("success_criteria"),
+            system_message=config.get("system_message"),
+            adapter_name=adapter_name or config.get("adapter_name"),
+            purposes=purposes,
+            mcp_tools=config.get("mcp_tools", []),
+            capabilities=config.get("capabilities", []),
+            metadata=config.get("metadata", {})
         )
     
     async def initialize(self) -> bool:
@@ -146,6 +241,18 @@ class PurposeDrivenAgent(PerpetualAgent):
                 await self.mcp_context_server.set_context("purpose", self.purpose)
                 await self.mcp_context_server.set_context("purpose_scope", self.purpose_scope)
                 await self.mcp_context_server.set_context("success_criteria", self.success_criteria)
+                
+                # Store multi-purpose configuration if available
+                if self.purposes_config:
+                    await self.mcp_context_server.set_context("purposes", self.purposes_config)
+                
+                # Store MCP tools configuration
+                if self.mcp_tools_config:
+                    await self.mcp_context_server.set_context("mcp_tools", self.mcp_tools_config)
+                
+                # Store capabilities
+                if self.capabilities:
+                    await self.mcp_context_server.set_context("capabilities", self.capabilities)
             
             self.logger.info(
                 f"PurposeDrivenAgent {self.agent_id} initialized - "

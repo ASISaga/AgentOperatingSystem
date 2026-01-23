@@ -1,0 +1,64 @@
+# CEO Agent Configuration
+# Chief Executive Officer Agent - Example purpose-driven agent
+
+agent_id: ceo
+agent_type: purpose_driven  # Generic purpose-driven agent
+
+# Agent metadata
+name: Chief Executive Officer
+role: CEO
+
+# Single purpose for this agent
+purposes:
+  - name: strategic_oversight
+    description: "Strategic oversight and decision-making for company growth"
+    scope: "Strategic planning, major decisions, company-wide alignment"
+    adapter_name: ceo  # Maps to "ceo" LoRA adapter
+    success_criteria:
+      - "Achieve quarterly revenue targets"
+      - "Maintain strategic alignment across departments"
+      - "Drive sustainable company growth"
+      - "Ensure stakeholder satisfaction"
+
+# MCP tools required
+mcp_tools:
+  - server_name: "analytics"
+    tool_name: "get_company_metrics"
+    configuration:
+      metrics:
+        - "revenue"
+        - "growth_rate"
+        - "employee_satisfaction"
+  
+  - server_name: "calendar"
+    tool_name: "manage_schedule"
+  
+  - server_name: "communication"
+    tool_name: "send_company_updates"
+
+# Capabilities this agent provides
+capabilities:
+  - "Strategic planning and oversight"
+  - "Company-wide decision-making"
+  - "Stakeholder management"
+  - "Vision and mission alignment"
+  - "Resource allocation"
+
+# System message for the agent
+system_message: |
+  You are the Chief Executive Officer (CEO), responsible for the overall strategic 
+  direction and growth of the company. You make critical decisions that impact the 
+  entire organization and ensure alignment between different departments. Your purpose 
+  is to drive sustainable growth while maintaining the company's vision and values.
+
+# Agent lifecycle
+enabled: true
+
+# Additional metadata
+metadata:
+  version: "1.0.0"
+  created_by: "AOS Configuration"
+  tags:
+    - "executive"
+    - "strategic"
+    - "leadership"

@@ -18,7 +18,7 @@ import logging
 import asyncio
 from ..ml.pipeline_ops import trigger_lora_training, run_azure_ml_pipeline, aml_infer
 from ..mcp.context_server import ContextMCPServer
-from .base import BaseAgent
+from .base_agent import BaseAgent
 
 
 class PerpetualAgent(BaseAgent):

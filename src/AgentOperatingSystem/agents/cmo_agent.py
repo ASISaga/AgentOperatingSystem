@@ -117,6 +117,76 @@ class CMOAgent(LeadershipAgent):
             f"Leadership (adapter: {self.leadership_adapter_name})"
         )
     
+    @classmethod
+    def from_yaml(cls, yaml_path: str) -> "CMOAgent":
+        """
+        Create a CMOAgent from a YAML configuration file.
+        
+        Args:
+            yaml_path: Path to the YAML configuration file
+            
+        Returns:
+            Initialized CMOAgent instance
+            
+        Raises:
+            FileNotFoundError: If the YAML file doesn't exist
+            ValueError: If the YAML file is invalid or missing required fields
+            
+        Example:
+            >>> agent = CMOAgent.from_yaml("config/agents/cmo_agent.yaml")
+            >>> await agent.initialize()
+            >>> await agent.start()
+        """
+        from pathlib import Path
+        import yaml
+        
+        yaml_file = Path(yaml_path)
+        if not yaml_file.exists():
+            raise FileNotFoundError(f"Agent configuration file not found: {yaml_path}")
+        
+        try:
+            with open(yaml_file, 'r') as f:
+                config = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML file {yaml_path}: {e}")
+        
+        # Validate required fields
+        if not config.get("agent_id"):
+            raise ValueError(f"Missing required field 'agent_id' in {yaml_path}")
+        
+        # Extract purposes
+        purposes = config.get("purposes", [])
+        
+        # Find marketing and leadership purposes
+        marketing_purpose = None
+        leadership_purpose = None
+        marketing_adapter = None
+        leadership_adapter = None
+        
+        for purpose in purposes:
+            purpose_name = purpose.get("name", "").lower()
+            if "marketing" in purpose_name:
+                marketing_purpose = purpose.get("description")
+                marketing_adapter = purpose.get("adapter_name", "marketing")
+            elif "leadership" in purpose_name:
+                leadership_purpose = purpose.get("description")
+                leadership_adapter = purpose.get("adapter_name", "leadership")
+        
+        # Create the agent instance
+        return cls(
+            agent_id=config["agent_id"],
+            name=config.get("name"),
+            role=config.get("role"),
+            marketing_purpose=marketing_purpose,
+            leadership_purpose=leadership_purpose,
+            purpose_scope=config.get("scope"),
+            success_criteria=config.get("success_criteria"),
+            system_message=config.get("system_message"),
+            marketing_adapter_name=marketing_adapter,
+            leadership_adapter_name=leadership_adapter,
+            config=config.get("metadata", {})
+        )
+    
     def get_adapter_for_purpose(self, purpose_type: str) -> str:
         """
         Get the LoRA adapter name for a specific purpose type.

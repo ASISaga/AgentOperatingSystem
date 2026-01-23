@@ -65,6 +65,68 @@ class LeadershipAgent(PurposeDrivenAgent):
         
         self.decisions_made = []
         self.stakeholders = []
+    
+    @classmethod
+    def from_yaml(cls, yaml_path: str) -> "LeadershipAgent":
+        """
+        Create a LeadershipAgent from a YAML configuration file.
+        
+        Args:
+            yaml_path: Path to the YAML configuration file
+            
+        Returns:
+            Initialized LeadershipAgent instance
+            
+        Raises:
+            FileNotFoundError: If the YAML file doesn't exist
+            ValueError: If the YAML file is invalid or missing required fields
+            
+        Example:
+            >>> agent = LeadershipAgent.from_yaml("config/agents/leadership_agent.yaml")
+            >>> await agent.initialize()
+            >>> await agent.start()
+        """
+        from pathlib import Path
+        import yaml
+        
+        yaml_file = Path(yaml_path)
+        if not yaml_file.exists():
+            raise FileNotFoundError(f"Agent configuration file not found: {yaml_path}")
+        
+        try:
+            with open(yaml_file, 'r') as f:
+                config = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML file {yaml_path}: {e}")
+        
+        # Validate required fields
+        if not config.get("agent_id"):
+            raise ValueError(f"Missing required field 'agent_id' in {yaml_path}")
+        
+        # Extract purpose (first purpose if multiple)
+        purposes = config.get("purposes", [])
+        purpose = None
+        adapter_name = None
+        success_criteria = None
+        
+        if purposes:
+            first_purpose = purposes[0]
+            purpose = first_purpose.get("description")
+            adapter_name = first_purpose.get("adapter_name", "leadership")
+            success_criteria = first_purpose.get("success_criteria")
+        
+        # Create the agent instance
+        return cls(
+            agent_id=config["agent_id"],
+            name=config.get("name"),
+            role=config.get("role"),
+            purpose=purpose,
+            purpose_scope=config.get("scope"),
+            success_criteria=success_criteria or config.get("success_criteria"),
+            system_message=config.get("system_message"),
+            adapter_name=adapter_name,
+            config=config.get("metadata", {})
+        )
         
     async def make_decision(
         self,

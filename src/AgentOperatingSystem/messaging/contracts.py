@@ -206,6 +206,20 @@ class AgentResponsePayload:
 
 
 @dataclass
+class AgentQueryResponse:
+    """Response payload for agent query."""
+    agent_id: str
+    response: str
+    confidence: float = 0.0
+    sources: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    error: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
 class WorkflowExecutePayload:
     """Payload for workflow execution request."""
     workflow_id: str
@@ -251,6 +265,78 @@ class StorageResultPayload:
     data: Optional[Any] = None
     keys: List[str] = field(default_factory=list)
     error: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class StorageOperationResponse:
+    """Response for storage operations."""
+    operation: str
+    success: bool
+    data: Optional[Any] = None
+    keys: List[str] = field(default_factory=list)
+    error: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class WorkflowExecuteResponse:
+    """Response for workflow execution."""
+    workflow_id: str
+    status: str  # "completed", "failed", "cancelled"
+    outputs: Dict[str, Any] = field(default_factory=dict)
+    error: Optional[str] = None
+    execution_time_ms: int = 0
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class MCPCallPayload:
+    """Payload for MCP call."""
+    server_name: str
+    tool_name: str
+    arguments: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class MCPCallResponse:
+    """Response for MCP call."""
+    success: bool
+    result: Optional[Any] = None
+    error: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class HealthCheckPayload:
+    """Payload for health check."""
+    component: str
+    check_type: str = "basic"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class HealthCheckResponse:
+    """Response for health check."""
+    component: str
+    status: str  # "healthy", "degraded", "unhealthy"
+    details: Dict[str, Any] = field(default_factory=dict)
+    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
