@@ -1,6 +1,11 @@
 """
 Leadership Agent - Agent with decision-making and coordination capabilities.
 Extends PurposeDrivenAgent with collaborative decision-making patterns.
+
+Architecture:
+- LoRA adapter provides leadership domain knowledge (language, vocabulary, concepts, agent persona)
+- Core leadership purpose added to primary LLM context
+- MCP provides context management and domain-specific tools
 """
 
 from typing import Dict, Any, List, Optional
@@ -16,7 +21,10 @@ class LeadershipAgent(PurposeDrivenAgent):
     - Consensus building
     - Delegation patterns
     - Decision provenance
-    - Leadership purpose mapped to LoRA adapter
+    
+    The Leadership purpose is mapped to the "leadership" LoRA adapter, which provides
+    leadership-specific domain knowledge and agent persona. The core purpose is added
+    to the primary LLM context to guide agent behavior.
     """
     
     def __init__(

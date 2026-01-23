@@ -118,6 +118,11 @@ agent = PurposeDrivenAgent(
 
 **PurposeDrivenAgent** is the abstract base class that provides purpose-driven functionality and maps purposes to LoRA adapters. All specialized agents should inherit from PurposeDrivenAgent or its subclasses.
 
+**Architecture Components:**
+- **LoRA Adapters**: Provide domain-specific knowledge (language, vocabulary, concepts, and importantly **agent persona**) to PurposeDrivenAgents
+- **Core Purposes**: Added to the primary LLM context of PurposeDrivenAgents
+- **MCP (Model Context Protocol)**: Provides context management, domain-specific tools, and access to contemporary software systems
+
 #### Agent Hierarchy:
 ```
 BaseAgent (generic agent interface)
@@ -168,6 +173,10 @@ await cmo.execute_with_purpose(task, purpose_type="leadership") # Uses leadershi
 ```
 
 **Key Concept**: PurposeDrivenAgent and its subclasses map purposes to LoRA adapters through configuration. This allows agents to leverage domain-specific fine-tuned models for different aspects of their responsibilities.
+
+- **LoRA adapters** provide domain-specific knowledge including language, vocabulary, concepts, and agent persona
+- **Core purposes** are incorporated into the primary LLM context to guide agent behavior
+- **MCP integration** enables context management, domain tools, and access to external software systems
 
 ### 4. Async/Await Everywhere
 Most AOS code is asynchronous:

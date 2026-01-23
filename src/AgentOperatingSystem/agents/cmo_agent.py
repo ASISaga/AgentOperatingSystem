@@ -2,6 +2,11 @@
 CMO Agent - Chief Marketing Officer Agent with marketing and leadership capabilities.
 Extends LeadershipAgent with marketing-specific functionality.
 Maps both Marketing and Leadership purposes to respective LoRA adapters.
+
+Architecture:
+- LoRA adapters provide domain knowledge (language, vocabulary, concepts, agent persona)
+- Core purposes are added to primary LLM context
+- MCP provides context management and domain-specific tools
 """
 
 from typing import Dict, Any, List, Optional
@@ -19,8 +24,11 @@ class CMOAgent(LeadershipAgent):
     - Leadership and decision-making (inherited)
     
     This agent maps two purposes to LoRA adapters:
-    1. Marketing purpose -> "marketing" LoRA adapter
-    2. Leadership purpose -> "leadership" LoRA adapter (inherited)
+    1. Marketing purpose -> "marketing" LoRA adapter (provides marketing domain knowledge & persona)
+    2. Leadership purpose -> "leadership" LoRA adapter (provides leadership domain knowledge & persona)
+    
+    The core purposes are added to the primary LLM context to guide behavior.
+    MCP integration provides context management and domain-specific tools.
     """
     
     def __init__(
