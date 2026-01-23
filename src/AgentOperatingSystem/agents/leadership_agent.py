@@ -1,6 +1,8 @@
 """
-Leadership Agent - Agent with decision-making and coordination capabilities.
-Extends PurposeDrivenAgent with collaborative decision-making patterns.
+Leadership Agent - Lean wrapper over PurposeDrivenAgent for leadership domain.
+
+This agent is a minimal wrapper that configures PurposeDrivenAgent with leadership
+defaults and provides domain-specific decision-making methods.
 
 Architecture:
 - LoRA adapter provides leadership domain knowledge (language, vocabulary, concepts, agent persona)
@@ -13,18 +15,20 @@ from datetime import datetime
 import uuid
 from .purpose_driven import PurposeDrivenAgent
 
+
 class LeadershipAgent(PurposeDrivenAgent):
     """
-    Leadership agent providing:
+    Leadership agent - lean wrapper over PurposeDrivenAgent.
+    
+    Provides:
     - Decision-making capabilities
     - Stakeholder coordination
     - Consensus building
     - Delegation patterns
     - Decision provenance
     
-    The Leadership purpose is mapped to the "leadership" LoRA adapter, which provides
-    leadership-specific domain knowledge and agent persona. The core purpose is added
-    to the primary LLM context to guide agent behavior.
+    The Leadership purpose is mapped to the "leadership" LoRA adapter via YAML configuration.
+    Most functionality is inherited from PurposeDrivenAgent.
     """
     
     def __init__(
@@ -38,8 +42,10 @@ class LeadershipAgent(PurposeDrivenAgent):
         tools: List[Any] = None,
         system_message: str = None,
         adapter_name: str = None,
-        config: Dict[str, Any] = None
+        config: Dict[str, Any] = None,
+        **kwargs
     ):
+        """Initialize Leadership Agent with defaults."""
         # Default leadership purpose and adapter if not provided
         if purpose is None:
             purpose = "Leadership: Strategic decision-making, team coordination, and organizational guidance"
@@ -48,6 +54,7 @@ class LeadershipAgent(PurposeDrivenAgent):
         if purpose_scope is None:
             purpose_scope = "Leadership and decision-making domain"
         
+        # Initialize parent PurposeDrivenAgent
         super().__init__(
             agent_id=agent_id,
             purpose=purpose,
@@ -55,17 +62,21 @@ class LeadershipAgent(PurposeDrivenAgent):
             success_criteria=success_criteria,
             tools=tools,
             system_message=system_message,
-            adapter_name=adapter_name
+            adapter_name=adapter_name,
+            **kwargs
         )
         
-        # Legacy compatibility
+        # Legacy compatibility attributes
         self.name = name or agent_id
         self.role = role or "leader"
         self.config = config or {}
         
+        # Domain-specific state
         self.decisions_made = []
         self.stakeholders = []
-        
+    
+    # Domain-specific methods
+    
     async def make_decision(
         self,
         context: Dict[str, Any],
@@ -100,7 +111,7 @@ class LeadershipAgent(PurposeDrivenAgent):
     
     async def _evaluate_decision(self, context: Dict[str, Any]) -> Any:
         """
-        Evaluate and make decision. Override in subclasses.
+        Evaluate and make decision. Override in subclasses for specific logic.
         
         Args:
             context: Decision context
@@ -108,7 +119,7 @@ class LeadershipAgent(PurposeDrivenAgent):
         Returns:
             Decision outcome
         """
-        # Base implementation - override in subclasses
+        # Base implementation - can be overridden by subclasses
         return {"decision": "pending", "reason": "not_implemented"}
     
     async def consult_stakeholders(

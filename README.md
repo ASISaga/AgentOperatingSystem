@@ -39,27 +39,73 @@ The **Agent Operating System (AOS)** is a complete, production-grade operating s
 pip install git+https://github.com/ASISaga/AgentOperatingSystem.git
 ```
 
-### Basic Example
+### LLM-First YAML Configuration
+
+**PurposeDrivenAgents are LLM-first agents** configured via YAML with verbose purpose descriptions. The agent's behavior emerges from LLM reasoning over these purposes, not hard-coded logic.
 
 ```python
-from AgentOperatingSystem import AgentOperatingSystem
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import PurposeDrivenAgent, CMOAgent
 
-# Create a purpose-driven perpetual agent
-agent = PurposeDrivenAgent(
-    agent_id="ceo",
-    purpose="Strategic oversight and company growth",
-    purpose_scope="Strategic planning, major decisions",
-    adapter_name="ceo"
-)
+# Load LLM-first agent from YAML with verbose purposes
+ceo_agent = PurposeDrivenAgent.from_yaml("config/agents/ceo_agent.yaml")
+await ceo_agent.initialize()  # Verbose purposes converted to LLM context
+await ceo_agent.start()       # Agent operates via LLM reasoning
 
-await agent.initialize()  # ContextMCPServer automatically created
-await agent.start()       # Runs perpetually
+# Multi-purpose agent (CMO with marketing + leadership purposes)
+cmo_agent = CMOAgent.from_yaml("config/agents/cmo_agent.yaml")
+await cmo_agent.initialize()
 
-# Purpose-driven operations
-alignment = await agent.evaluate_purpose_alignment(action)
-decision = await agent.make_purpose_driven_decision(context)
+# Execute with specific purpose/adapter - LLM reasons over purpose context
+await cmo_agent.execute_with_purpose(task, purpose_type="marketing")
+await cmo_agent.execute_with_purpose(task, purpose_type="leadership")
 ```
+
+#### Verbose Purpose Example in YAML
+
+Purposes should be comprehensive, multi-line descriptions that provide rich context for the LLM:
+
+```yaml
+agent_id: ceo
+agent_type: purpose_driven
+
+purposes:
+  - name: strategic_oversight
+    description: |
+      You are the Chief Executive Officer (CEO), responsible for overall 
+      strategic direction and operational success.
+      
+      Your Purpose:
+      Provide visionary leadership and strategic oversight to drive sustainable 
+      company growth while balancing stakeholder interests...
+      
+      Core Responsibilities:
+      - Set and communicate company vision and strategic objectives
+      - Make high-impact decisions on direction and investments
+      - Ensure alignment across all departments
+      - Manage board, investor, and stakeholder relationships
+      ...
+      
+      Decision-Making Framework:
+      - Balance short-term performance with long-term sustainability
+      - Consider impact on all stakeholders
+      - Base decisions on data and strategic foresight
+      ...
+    adapter_name: ceo  # LoRA adapter receives verbose purpose as LLM context
+
+
+# MCP tools required
+mcp_tools:
+  - server_name: "analytics"
+    tool_name: "get_marketing_metrics"
+
+# Agent capabilities
+capabilities:
+  - "Marketing strategy development"
+  - "Brand management"
+  - "Team leadership"
+```
+
+See [Agent Configuration Schema](docs/agent-configuration-schema.md) for complete details.
 
 📖 **[Full Quick Start Guide](docs/getting-started/quickstart.md)**
 
@@ -117,6 +163,83 @@ AOS provides a complete operating system architecture:
 
 ---
 
+## 🎯 Agent Configuration System
+
+### LLM-First Agent Architecture
+
+**PurposeDrivenAgents are LLM-first agents**, not conventional logic-based agents. They operate through LLM reasoning over verbose purpose descriptions, not hard-coded decision logic.
+
+#### Key Principles:
+
+1. **Verbose Purposes as LLM Context**
+   - Purpose descriptions are comprehensive, multi-line narratives
+   - Converted to LLM context and passed to LoRA adapters
+   - LLM reasons over this context to guide all behavior
+
+2. **LoRA Adapters** 
+   - Receive verbose purpose descriptions as LLM context
+   - Provide domain-specific knowledge, language, and persona
+   - Enable LLM to reason within domain expertise
+
+3. **Configuration-Driven**
+   - Agents created from YAML (not code)
+   - No backward compatibility with code-based initialization
+   - Purpose descriptions are the primary configuration
+
+#### Verbose Purpose Example
+
+```yaml
+agent_id: ceo
+purposes:
+  - name: strategic_oversight
+    description: |
+      You are the Chief Executive Officer (CEO), responsible for...
+      
+      Your Purpose:
+      Provide visionary leadership and strategic oversight to drive 
+      sustainable company growth while balancing stakeholder interests...
+      
+      Core Responsibilities:
+      - Set and communicate company vision
+      - Make high-impact strategic decisions
+      - Ensure cross-departmental alignment
+      - Manage board and investor relationships
+      
+      Decision-Making Framework:
+      - Balance short-term vs long-term impact
+      - Consider all stakeholder perspectives
+      - Base decisions on data and foresight
+      
+      Success Metrics:
+      - Revenue and profitability growth
+      - Market share and competitive position
+      - Employee and customer satisfaction
+      ...
+    adapter_name: ceo  # Receives verbose purpose as LLM context
+```
+
+### Lean Agent Architecture
+
+**PurposeDrivenAgent is the fundamental LLM-first agent class** containing all core functionality:
+- Converts verbose purposes to LLM context
+- Multi-purpose support and adapter switching
+- YAML configuration loading
+- Purpose-to-adapter mapping
+- Goal tracking, metrics, decision infrastructure
+
+**Derived agents** (LeadershipAgent, CMOAgent) are lean wrappers (~60-150 lines) that:
+- Provide domain-specific defaults only
+- Add domain-specific methods when needed (minimal)
+- Are YAML-configured with verbose purposes
+- Inherit all LLM-first core functionality
+
+This architecture ensures agents are LLM-first, configuration-driven, and maintainable.
+
+📖 **[Agent Configuration Schema](docs/agent-configuration-schema.md)** - Complete YAML schema reference  
+📖 **[Example Configurations](config/agents/)** - CEO, CMO, Leadership with verbose purposes
+
+---
+
 ## 🔌 Plug-and-Play Infrastructure
 
 ### RealmOfAgents - Configuration-Driven Agent Deployment
@@ -162,6 +285,7 @@ Add MCP servers with **zero code** - just configuration:
 - **[Vision & Why "Operating System"](docs/overview/vision.md)** - The OS for AI agents
 - **[Core Principles](docs/overview/principles.md)** - Design principles and philosophy
 - **[Perpetual vs Task-Based Agents](docs/overview/perpetual-agents.md)** - Key architectural difference
+- **[Agent Configuration Schema](docs/agent-configuration-schema.md)** - YAML-based agent configuration
 - **[Operating System Services](docs/overview/services.md)** - Core OS services
 
 ### Development & Integration
