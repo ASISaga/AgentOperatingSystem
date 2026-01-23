@@ -44,10 +44,10 @@ pip install git+https://github.com/ASISaga/AgentOperatingSystem.git
 
 ```python
 from AgentOperatingSystem import AgentOperatingSystem
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import LeadershipAgent
 
-# Create a purpose-driven perpetual agent
-agent = PurposeDrivenAgent(
+# Create a purpose-driven perpetual agent (using concrete subclass)
+agent = LeadershipAgent(
     agent_id="ceo",
     purpose="Strategic oversight and company growth",
     purpose_scope="Strategic planning, major decisions",
