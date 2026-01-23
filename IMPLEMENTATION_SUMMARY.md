@@ -12,15 +12,17 @@ PurposeDrivenAgent was supposed to be an abstract class but was being directly i
 
 ### 2. Created GenericPurposeDrivenAgent
 - Concrete implementation for general-purpose agents
-- Implements `get_agent_type()` returning `"generic"`
+- Implements `get_agent_type()` returning `["generic"]` (list of personas/skills)
 - Provides all the functionality of PurposeDrivenAgent without specialization
 
 ### 3. Updated All Subclasses
-All concrete subclasses now implement `get_agent_type()`:
-- **GenericPurposeDrivenAgent**: returns `"generic"`
-- **LeadershipAgent**: returns `"leadership"`
-- **CMOAgent**: returns `"cmo"`
-- **PurposeDrivenAgentFoundry**: returns `"foundry"`
+All concrete subclasses now implement `get_agent_type()` returning a list of personas/skills:
+- **GenericPurposeDrivenAgent**: returns `["generic"]`
+- **LeadershipAgent**: returns `["leadership"]`
+- **CMOAgent**: returns `["marketing", "leadership"]` - combining both personas
+- **PurposeDrivenAgentFoundry**: configurable via `agent_types` parameter (defaults to `["generic"]`)
+  - Foundry is a runtime wrapper (Azure AI Agents service), not an agent type
+  - Example: `PurposeDrivenAgentFoundry(..., agent_types=["leadership"])`
 
 ### 4. Fixed Direct Instantiations
 Replaced all direct PurposeDrivenAgent instantiations with concrete implementations:
@@ -73,13 +75,19 @@ PurposeDrivenAgent (concrete class - could be instantiated)
 ### After
 ```
 PurposeDrivenAgent (abstract base class - ABC)
-│   └── @abstractmethod get_agent_type()
+│   └── @abstractmethod get_agent_type() -> List[str]  # Returns personas/skills
 │
-├── GenericPurposeDrivenAgent (concrete - general use)
-├── LeadershipAgent (concrete - leadership)
-│   └── CMOAgent (concrete - marketing + leadership)
-└── PurposeDrivenAgentFoundry (concrete - Foundry runtime)
+├── GenericPurposeDrivenAgent → ["generic"]
+├── LeadershipAgent → ["leadership"]
+│   └── CMOAgent → ["marketing", "leadership"]  # Combined personas
+└── PurposeDrivenAgentFoundry → configurable (runtime wrapper, not agent type)
 ```
+
+### Key Insight: Composable Personas
+- **Personas are composable**: An agent can have multiple personas/skills
+- **Chief Marketing Officer = Marketing + Leadership**: Returns both personas
+- **Foundry is infrastructure**: Not a persona, just a runtime (Azure AI Agents service)
+
 
 ## Validation
 
