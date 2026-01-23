@@ -10,7 +10,7 @@ from functools import wraps
 
 class RetryPolicy:
     """Exponential backoff retry with jitter."""
-    
+
     def __init__(
         self,
         max_attempts: int = 3,
@@ -24,11 +24,11 @@ class RetryPolicy:
         self.max_delay = max_delay
         self.exponential_base = exponential_base
         self.jitter = jitter
-    
+
     async def execute(self, func: Callable, *args, **kwargs) -> Any:
         """Execute function with retry policy."""
         last_exception = None
-        
+
         for attempt in range(self.max_attempts):
             try:
                 return await func(*args, **kwargs)
@@ -42,12 +42,12 @@ class RetryPolicy:
                     if self.jitter:
                         delay *= (0.5 + random.random())
                     await asyncio.sleep(delay)
-        
+
         raise last_exception
 
 class CircuitBreaker:
     """Circuit breaker pattern for fault tolerance."""
-    
+
     def __init__(
         self,
         failure_threshold: int = 5,
@@ -61,7 +61,7 @@ class CircuitBreaker:
         self.success_count = 0
         self.state = "closed"  # closed, open, half_open
         self.opened_at = None
-    
+
     async def execute(self, func: Callable, *args, **kwargs) -> Any:
         """Execute function with circuit breaker."""
         if self.state == "open":
@@ -70,7 +70,7 @@ class CircuitBreaker:
                 self.success_count = 0
             else:
                 raise Exception("Circuit breaker is open")
-        
+
         try:
             result = await func(*args, **kwargs)
             self._on_success()
@@ -78,7 +78,7 @@ class CircuitBreaker:
         except Exception as e:
             self._on_failure()
             raise e
-    
+
     def _on_success(self):
         """Handle successful execution."""
         self.failure_count = 0
@@ -86,7 +86,7 @@ class CircuitBreaker:
             self.success_count += 1
             if self.success_count >= self.success_threshold:
                 self.state = "closed"
-    
+
     def _on_failure(self):
         """Handle failed execution."""
         self.failure_count += 1

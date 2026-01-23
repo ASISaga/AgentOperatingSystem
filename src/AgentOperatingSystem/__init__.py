@@ -45,9 +45,6 @@ from .mcp import MCPClient, MCPClientManager, MCPServerType, MCPServerConfig
 from .auth.manager import AuthManager
 from .environment.manager import EnvironmentManager, env_manager
 from .shared.models import Envelope, MessagesQuery, UiAction
-from .auth.manager import AuthManager
-from .environment.manager import EnvironmentManager, env_manager
-from .mcp.client import MCPClient, MCPClientManager
 from .learning import KnowledgeManager, RAGEngine, InteractionLearner, SelfLearningMixin, DomainExpert, LearningPipeline
 
 # Infrastructure components from migration
@@ -65,26 +62,26 @@ __all__ = [
     "AgentOperatingSystem",
     "AOSConfig",
     "default_config",
-    
+
     # Core agent classes (consolidated in agents module)
     "BaseAgent",
     "PerpetualAgent",
     "PurposeDrivenAgent",
     "LeadershipAgent",
     "CMOAgent",
-    
+
     # Agent orchestration (moved to orchestration module)
     "UnifiedAgentManager",
     "MultiAgentSystem",
     "BusinessAnalystAgent",
-    "SoftwareEngineerAgent", 
+    "SoftwareEngineerAgent",
     "ProductOwnerAgent",
     "AgentFrameworkSystem",
-    
+
     # Self-learning agents (in learning module)
     "SelfLearningAgent",
     "SelfLearningStatefulAgent",
-    
+
     # Messaging
     "Message",
     "MessageType",
@@ -92,7 +89,7 @@ __all__ = [
     "MessageBus",
     "MessageRouter",
     "ServiceBusManager",
-    
+
     # Orchestration
     "DecisionEngine",
     "OrchestrationEngine",
@@ -100,34 +97,34 @@ __all__ = [
     "WorkflowStep",
     "WorkflowOrchestrator",
     "WorkflowOrchestratorFactory",
-    
+
     # Storage
     "StorageManager",
-    
+
     # Monitoring
     "SystemMonitor",
-    
+
     # ML Pipeline
     "MLPipelineManager",
-    
+
     # Authentication
     "AuthManager",
-    
+
     # Environment
     "EnvironmentManager",
     "env_manager",
-    
+
     # MCP
     "MCPClient",
     "MCPClientManager",
     "MCPServerType",
     "MCPServerConfig",
-    
+
     # Shared Models
     "Envelope",
     "MessagesQuery",
     "UiAction",
-    
+
     # Learning System
     "KnowledgeManager",
     "RAGEngine",
@@ -135,7 +132,7 @@ __all__ = [
     "SelfLearningMixin",
     "DomainExpert",
     "LearningPipeline",
-    
+
     # Infrastructure components (from migration)
     "CircuitBreaker",
     "RetryPolicy",

@@ -9,7 +9,7 @@ class MLConfig:
     training_data_path: str = "training_data"
     max_training_jobs: int = 5
     default_model_type: str = "lora"
-    
+
     # DPO (Direct Preference Optimization) configuration
     enable_dpo: bool = True
     dpo_beta: float = 0.1  # Temperature parameter for DPO
@@ -17,12 +17,12 @@ class MLConfig:
     dpo_batch_size: int = 4
     dpo_epochs: int = 3
     preference_data_path: str = "preference_data"
-    
+
     # MLflow tracking for DPO
     enable_mlflow: bool = True
     mlflow_tracking_uri: str = ""
     mlflow_experiment_prefix: str = "aos_dpo"
-    
+
     # LoRAx (LoRA eXchange) configuration
     enable_lorax: bool = True
     lorax_base_model: str = "meta-llama/Llama-3.1-8B-Instruct"
@@ -32,7 +32,7 @@ class MLConfig:
     lorax_max_concurrent_requests: int = 128
     lorax_max_batch_size: int = 32
     lorax_gpu_memory_utilization: float = 0.9
-    
+
     # Azure Foundry Agent Service configuration
     enable_foundry_agent_service: bool = True
     foundry_agent_service_endpoint: str = ""

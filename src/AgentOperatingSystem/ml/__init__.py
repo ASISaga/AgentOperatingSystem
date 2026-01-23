@@ -36,7 +36,7 @@ except ImportError:
 
 try:
     from .foundry_agent_service import (
-        FoundryAgentServiceClient, FoundryAgentServiceConfig, 
+        FoundryAgentServiceClient, FoundryAgentServiceConfig,
         FoundryResponse, ThreadInfo
     )
     FOUNDRY_AGENT_SERVICE_AVAILABLE = True
@@ -65,6 +65,6 @@ if LORAX_AVAILABLE:
 
 if FOUNDRY_AGENT_SERVICE_AVAILABLE:
     __all__.extend([
-        "FoundryAgentServiceClient", "FoundryAgentServiceConfig", 
+        "FoundryAgentServiceClient", "FoundryAgentServiceConfig",
         "FoundryResponse", "ThreadInfo"
     ])

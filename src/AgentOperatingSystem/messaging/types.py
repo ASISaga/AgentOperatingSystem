@@ -45,9 +45,9 @@ class Message:
     expires_at: Optional[datetime] = None
     retry_count: int = 0
     max_retries: int = 3
-    
+
     @classmethod
-    def create(cls, 
+    def create(cls,
                message_type: MessageType,
                from_agent: str,
                content: Dict[str, Any],
@@ -67,11 +67,11 @@ class Message:
             correlation_id=correlation_id,
             expires_at=datetime.utcnow() + timedelta(seconds=expires_in_seconds)
         )
-    
+
     def is_expired(self) -> bool:
         """Check if message has expired"""
         return self.expires_at and datetime.utcnow() > self.expires_at
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert message to dictionary for serialization"""
         return {
@@ -87,7 +87,7 @@ class Message:
             "retry_count": self.retry_count,
             "max_retries": self.max_retries
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Message':
         """Create message from dictionary"""

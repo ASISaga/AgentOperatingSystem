@@ -30,15 +30,15 @@ logger = logging.getLogger("AOS.ServiceBusHandlers")
 class AOSServiceBusHandlers:
     """
     Handles Service Bus messages for AOS operations.
-    
+
     This class processes incoming requests and dispatches them to
     the appropriate AOS components.
     """
-    
+
     def __init__(self, aos_instance=None):
         """
         Initialize handlers with AOS instance.
-        
+
         Args:
             aos_instance: Optional AgentOperatingSystem instance
         """
@@ -46,7 +46,7 @@ class AOSServiceBusHandlers:
         self.logger = logger
         self._handlers: Dict[str, Callable] = {}
         self._register_handlers()
-    
+
     def _register_handlers(self):
         """Register message type handlers."""
         self._handlers = {
@@ -63,20 +63,20 @@ class AOSServiceBusHandlers:
             AOSMessageType.HEALTH_CHECK.value: self._handle_health_check,
             AOSMessageType.PING.value: self._handle_ping,
         }
-    
+
     async def process_message(self, message: AOSMessage) -> AOSMessage:
         """
         Process an incoming Service Bus message.
-        
+
         Args:
             message: The incoming AOSMessage
-            
+
         Returns:
             Response AOSMessage
         """
         message_type = message.header.message_type
         handler = self._handlers.get(message_type)
-        
+
         if not handler:
             self.logger.warning(f"No handler for message type: {message_type}")
             return self._create_error_response(
@@ -84,7 +84,7 @@ class AOSServiceBusHandlers:
                 "UNKNOWN_MESSAGE_TYPE",
                 f"No handler for message type: {message_type}"
             )
-        
+
         try:
             self.logger.info(f"Processing message: {message_type} (id={message.header.message_id})")
             return await handler(message)
@@ -95,7 +95,7 @@ class AOSServiceBusHandlers:
                 "PROCESSING_ERROR",
                 str(e)
             )
-    
+
     def _create_error_response(
         self,
         original: AOSMessage,
@@ -112,21 +112,21 @@ class AOSServiceBusHandlers:
             ).to_dict(),
             source="aos"
         )
-    
+
     # Agent Handlers
-    
+
     async def _handle_agent_query(self, message: AOSMessage) -> AOSMessage:
         """Handle agent query request."""
         payload = message.payload
         agent_id = payload.get("agent_id")
         query = payload.get("query", "")
         context = payload.get("context", {})
-        
+
         try:
             if self.aos:
                 # Get agent from AOS
                 agent = self.aos.get_agent(agent_id) if hasattr(self.aos, 'get_agent') else None
-                
+
                 if agent:
                     # Process query through agent
                     if hasattr(agent, 'process_query'):
@@ -135,7 +135,7 @@ class AOSServiceBusHandlers:
                         result = await agent.ask(query, context)
                     else:
                         result = {"response": f"Agent {agent_id} processed query", "query": query}
-                    
+
                     response_payload = AgentResponsePayload(
                         agent_id=agent_id,
                         response=result.get("response", str(result)),
@@ -157,18 +157,18 @@ class AOSServiceBusHandlers:
                     confidence=0.5,
                     metadata={"mock": True}
                 )
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.AGENT_RESPONSE,
                 response_payload.to_dict(),
                 source="aos"
             )
-            
+
         except Exception as e:
             self.logger.error(f"Agent query error: {e}")
             return self._create_error_response(message, "AGENT_QUERY_ERROR", str(e))
-    
+
     async def _handle_agent_list(self, message: AOSMessage) -> AOSMessage:
         """Handle agent list request."""
         try:
@@ -181,7 +181,7 @@ class AOSServiceBusHandlers:
                     {"id": "cto", "name": "CTO Agent", "status": "available"},
                     {"id": "cfo", "name": "CFO Agent", "status": "available"},
                 ]
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.AGENT_STATUS,
@@ -190,17 +190,17 @@ class AOSServiceBusHandlers:
             )
         except Exception as e:
             return self._create_error_response(message, "AGENT_LIST_ERROR", str(e))
-    
+
     async def _handle_agent_status(self, message: AOSMessage) -> AOSMessage:
         """Handle agent status request."""
         agent_id = message.payload.get("agent_id")
-        
+
         try:
             if self.aos and hasattr(self.aos, 'get_agent_status'):
                 status = self.aos.get_agent_status(agent_id)
             else:
                 status = {"agent_id": agent_id, "status": "available", "load": 0.0}
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.AGENT_STATUS,
@@ -209,19 +209,19 @@ class AOSServiceBusHandlers:
             )
         except Exception as e:
             return self._create_error_response(message, "AGENT_STATUS_ERROR", str(e))
-    
+
     # Workflow Handlers
-    
+
     async def _handle_workflow_execute(self, message: AOSMessage) -> AOSMessage:
         """Handle workflow execution request."""
         payload = message.payload
         workflow_id = payload.get("workflow_id")
         workflow_name = payload.get("workflow_name")
         inputs = payload.get("inputs", {})
-        
+
         try:
             start_time = datetime.utcnow()
-            
+
             if self.aos and hasattr(self.aos, 'execute_workflow'):
                 result = await self.aos.execute_workflow(workflow_name, inputs)
                 status = "completed"
@@ -232,9 +232,9 @@ class AOSServiceBusHandlers:
                 outputs = {"result": f"Workflow {workflow_name} executed", "inputs": inputs}
                 status = "completed"
                 error = None
-            
+
             execution_time = int((datetime.utcnow() - start_time).total_seconds() * 1000)
-            
+
             response_payload = WorkflowResultPayload(
                 workflow_id=workflow_id,
                 status=status,
@@ -242,14 +242,14 @@ class AOSServiceBusHandlers:
                 error=error,
                 execution_time_ms=execution_time
             )
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.WORKFLOW_RESULT,
                 response_payload.to_dict(),
                 source="aos"
             )
-            
+
         except Exception as e:
             self.logger.error(f"Workflow execution error: {e}")
             return AOSMessage.create_response(
@@ -262,17 +262,17 @@ class AOSServiceBusHandlers:
                 ).to_dict(),
                 source="aos"
             )
-    
+
     async def _handle_workflow_status(self, message: AOSMessage) -> AOSMessage:
         """Handle workflow status request."""
         workflow_id = message.payload.get("workflow_id")
-        
+
         try:
             if self.aos and hasattr(self.aos, 'get_workflow_status'):
                 status = self.aos.get_workflow_status(workflow_id)
             else:
                 status = {"workflow_id": workflow_id, "status": "unknown"}
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.WORKFLOW_STATUS,
@@ -281,15 +281,15 @@ class AOSServiceBusHandlers:
             )
         except Exception as e:
             return self._create_error_response(message, "WORKFLOW_STATUS_ERROR", str(e))
-    
+
     # Storage Handlers
-    
+
     async def _handle_storage_get(self, message: AOSMessage) -> AOSMessage:
         """Handle storage get request."""
         payload = message.payload
         container = payload.get("container", "default")
         key = payload.get("key")
-        
+
         try:
             if self.aos and hasattr(self.aos, 'storage_manager'):
                 data = await self.aos.storage_manager.get(container, key)
@@ -297,7 +297,7 @@ class AOSServiceBusHandlers:
             else:
                 data = None
                 success = False
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.STORAGE_RESULT,
@@ -310,21 +310,21 @@ class AOSServiceBusHandlers:
             )
         except Exception as e:
             return self._create_error_response(message, "STORAGE_GET_ERROR", str(e))
-    
+
     async def _handle_storage_set(self, message: AOSMessage) -> AOSMessage:
         """Handle storage set request."""
         payload = message.payload
         container = payload.get("container", "default")
         key = payload.get("key")
         value = payload.get("value")
-        
+
         try:
             if self.aos and hasattr(self.aos, 'storage_manager'):
                 await self.aos.storage_manager.set(container, key, value)
                 success = True
             else:
                 success = True  # Mock success
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.STORAGE_RESULT,
@@ -336,20 +336,20 @@ class AOSServiceBusHandlers:
             )
         except Exception as e:
             return self._create_error_response(message, "STORAGE_SET_ERROR", str(e))
-    
+
     async def _handle_storage_delete(self, message: AOSMessage) -> AOSMessage:
         """Handle storage delete request."""
         payload = message.payload
         container = payload.get("container", "default")
         key = payload.get("key")
-        
+
         try:
             if self.aos and hasattr(self.aos, 'storage_manager'):
                 await self.aos.storage_manager.delete(container, key)
                 success = True
             else:
                 success = True  # Mock success
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.STORAGE_RESULT,
@@ -361,19 +361,19 @@ class AOSServiceBusHandlers:
             )
         except Exception as e:
             return self._create_error_response(message, "STORAGE_DELETE_ERROR", str(e))
-    
+
     async def _handle_storage_list(self, message: AOSMessage) -> AOSMessage:
         """Handle storage list request."""
         payload = message.payload
         container = payload.get("container", "default")
         prefix = payload.get("prefix", "")
-        
+
         try:
             if self.aos and hasattr(self.aos, 'storage_manager'):
                 keys = await self.aos.storage_manager.list(container, prefix)
             else:
                 keys = []
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.STORAGE_RESULT,
@@ -386,22 +386,22 @@ class AOSServiceBusHandlers:
             )
         except Exception as e:
             return self._create_error_response(message, "STORAGE_LIST_ERROR", str(e))
-    
+
     # MCP Handlers
-    
+
     async def _handle_mcp_call(self, message: AOSMessage) -> AOSMessage:
         """Handle MCP call request."""
         payload = message.payload
         server_name = payload.get("server")
         method = payload.get("method")
         args = payload.get("args", {})
-        
+
         try:
             if self.aos and hasattr(self.aos, 'mcp_client_manager'):
                 result = await self.aos.mcp_client_manager.call(server_name, method, args)
             else:
                 result = {"mock": True, "server": server_name, "method": method}
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.MCP_RESULT,
@@ -410,9 +410,9 @@ class AOSServiceBusHandlers:
             )
         except Exception as e:
             return self._create_error_response(message, "MCP_CALL_ERROR", str(e))
-    
+
     # System Handlers
-    
+
     async def _handle_health_check(self, message: AOSMessage) -> AOSMessage:
         """Handle health check request."""
         try:
@@ -433,7 +433,7 @@ class AOSServiceBusHandlers:
                     "message": "AOS instance not available",
                     "timestamp": datetime.utcnow().isoformat()
                 }
-            
+
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.HEALTH_RESPONSE,
@@ -442,7 +442,7 @@ class AOSServiceBusHandlers:
             )
         except Exception as e:
             return self._create_error_response(message, "HEALTH_CHECK_ERROR", str(e))
-    
+
     async def _handle_ping(self, message: AOSMessage) -> AOSMessage:
         """Handle ping request."""
         return AOSMessage.create_response(

@@ -37,16 +37,16 @@ class AuditEntry(BaseModel):
     outcome: str  # Result of the action
     level: AuditLevel = AuditLevel.INFO
     context: Dict[str, Any] = Field(default_factory=dict)
-    
+
     # Tamper-evident properties
     previous_hash: Optional[str] = None
     entry_hash: Optional[str] = None
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
         }
-    
+
     def calculate_hash(self) -> str:
         """Calculate hash for this entry"""
         content = {
@@ -62,7 +62,7 @@ class AuditEntry(BaseModel):
         }
         content_str = json.dumps(content, sort_keys=True)
         return hashlib.sha256(content_str.encode()).hexdigest()
-    
+
     def verify_integrity(self) -> bool:
         """Verify that this entry has not been tampered with"""
         if self.entry_hash is None:
@@ -73,22 +73,22 @@ class AuditEntry(BaseModel):
 class AuditLogger:
     """
     Append-only audit logger with tamper-evident chain.
-    
+
     All entries are linked via hash chain to detect tampering.
     Supports mandatory logging for all side effects.
     """
-    
+
     def __init__(self, storage_backend: Optional[Any] = None):
         """
         Initialize audit logger.
-        
+
         Args:
             storage_backend: Optional persistent storage backend
         """
         self.storage_backend = storage_backend
         self._entries: List[AuditEntry] = []
         self._last_hash: Optional[str] = None
-    
+
     def log(
         self,
         actor: str,
@@ -100,7 +100,7 @@ class AuditLogger:
     ) -> AuditEntry:
         """
         Log an audit entry.
-        
+
         Args:
             actor: Who performed the action
             action: What was done
@@ -108,12 +108,12 @@ class AuditLogger:
             outcome: Result of the action
             level: Severity level
             context: Additional contextual information
-            
+
         Returns:
             Created audit entry
         """
         import uuid
-        
+
         entry = AuditEntry(
             entry_id=str(uuid.uuid4()),
             actor=actor,
@@ -124,27 +124,27 @@ class AuditLogger:
             context=context or {},
             previous_hash=self._last_hash
         )
-        
+
         # Calculate and store hash
         entry.entry_hash = entry.calculate_hash()
         self._last_hash = entry.entry_hash
-        
+
         # Store entry
         self._entries.append(entry)
-        
+
         # Persist if backend available
         if self.storage_backend:
             try:
                 self.storage_backend.store_audit_entry(entry)
             except Exception as e:
                 logger.error(f"Failed to persist audit entry: {e}")
-        
+
         logger.debug(
             f"Audit: {actor} performed {action} on {resource} -> {outcome}"
         )
-        
+
         return entry
-    
+
     def log_command(
         self,
         actor: str,
@@ -164,7 +164,7 @@ class AuditLogger:
             level=level,
             context=context
         )
-    
+
     def log_decision(
         self,
         actor: str,
@@ -182,7 +182,7 @@ class AuditLogger:
             level=AuditLevel.INFO,
             context=context
         )
-    
+
     def log_policy_evaluation(
         self,
         actor: str,
@@ -199,7 +199,7 @@ class AuditLogger:
             level=AuditLevel.INFO,
             context=context
         )
-    
+
     def query_entries(
         self,
         actor: Optional[str] = None,
@@ -212,7 +212,7 @@ class AuditLogger:
     ) -> List[AuditEntry]:
         """
         Query audit entries with filters.
-        
+
         Args:
             actor: Filter by actor
             action: Filter by action
@@ -221,12 +221,12 @@ class AuditLogger:
             start_time: Filter by start time
             end_time: Filter by end time
             limit: Maximum number of entries to return
-            
+
         Returns:
             List of matching audit entries
         """
         results = []
-        
+
         for entry in self._entries:
             # Apply filters
             if actor and entry.actor != actor:
@@ -241,18 +241,18 @@ class AuditLogger:
                 continue
             if end_time and entry.timestamp > end_time:
                 continue
-            
+
             results.append(entry)
-            
+
             if len(results) >= limit:
                 break
-        
+
         return results
-    
+
     def verify_chain_integrity(self) -> tuple[bool, Optional[str]]:
         """
         Verify integrity of the entire audit chain.
-        
+
         Returns:
             Tuple of (is_valid, error_message)
         """
@@ -260,15 +260,15 @@ class AuditLogger:
             # Verify entry hash
             if not entry.verify_integrity():
                 return False, f"Entry {i} (ID: {entry.entry_id}) hash mismatch"
-            
+
             # Verify chain linkage
             if i > 0:
                 expected_prev_hash = self._entries[i-1].entry_hash
                 if entry.previous_hash != expected_prev_hash:
                     return False, f"Entry {i} (ID: {entry.entry_id}) chain broken"
-        
+
         return True, None
-    
+
     def export_audit_pack(
         self,
         start_time: datetime,
@@ -277,12 +277,12 @@ class AuditLogger:
     ) -> Dict[str, Any]:
         """
         Export audit pack for compliance reporting.
-        
+
         Args:
             start_time: Start of audit period
             end_time: End of audit period
             scope: Optional list of resources to include
-            
+
         Returns:
             Audit pack as dictionary
         """
@@ -291,14 +291,14 @@ class AuditLogger:
             end_time=end_time,
             limit=100000
         )
-        
+
         # Filter by scope if provided
         if scope:
             entries = [e for e in entries if any(s in e.resource for s in scope)]
-        
+
         # Verify integrity
         is_valid, error = self.verify_chain_integrity()
-        
+
         return {
             "audit_pack_id": str(uuid.uuid4()),
             "period_start": start_time.isoformat(),
@@ -310,16 +310,16 @@ class AuditLogger:
             "chain_error": error,
             "generated_at": datetime.utcnow().isoformat()
         }
-    
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get audit log statistics"""
         level_counts = {}
         actor_counts = {}
-        
+
         for entry in self._entries:
             level_counts[entry.level.value] = level_counts.get(entry.level.value, 0) + 1
             actor_counts[entry.actor] = actor_counts.get(entry.actor, 0) + 1
-        
+
         return {
             "total_entries": len(self._entries),
             "by_level": level_counts,

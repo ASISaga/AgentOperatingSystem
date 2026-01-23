@@ -1,12 +1,12 @@
 """
 AOS Core - Autonomous Orchestration
 
-A perpetual, fully autonomous orchestration of agents comprising Investor, Founder, 
-and C-Suite members. Each agent possesses legendary domain knowledge through 
+A perpetual, fully autonomous orchestration of agents comprising Investor, Founder,
+and C-Suite members. Each agent possesses legendary domain knowledge through
 LoRA adapters from FineTunedLLM AML, connected to AOS via Azure Service Bus.
 
-The orchestration operates continuously, making strategic decisions, monitoring 
-performance, and executing business operations through integration with 
+The orchestration operates continuously, making strategic decisions, monitoring
+performance, and executing business operations through integration with
 conventional business systems via MCP servers.
 
 Orchestration and decision-making components.
@@ -58,12 +58,12 @@ __all__ = [
     "DecisionEngine",
     "OrchestrationEngine",
     "AgentRegistry",
-    "MultiAgentCoordinator", 
+    "MultiAgentCoordinator",
     "CoordinationMode",
     "UnifiedOrchestrator",
     "ExecutionMode",
-    "RequestType", 
-    # "AzureIntegration",  # Temporarily disabled  
+    "RequestType",
+    # "AzureIntegration",  # Temporarily disabled
     # "AzureServiceType",  # Temporarily disabled
     "MCPClientManager",
     "ModelOrchestrator",

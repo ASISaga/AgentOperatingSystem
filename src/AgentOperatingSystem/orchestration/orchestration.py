@@ -50,11 +50,11 @@ class Orchestration():
             await self.orchestrator.initialize()
             await self.storage_manager.initialize()
             await self.ml_pipeline.initialize()
-            
+
             # Initialize LoRAx if enabled
             if self.config.get("enable_lorax", True):
                 await self._initialize_lorax()
-            
+
             await self._load_boardroom_state()
             await self._start_boardroom_operations()
             self.state = State.ACTIVE
@@ -200,11 +200,11 @@ class Orchestration():
         try:
             # Start LoRAx server
             success = await self.ml_pipeline.start_lorax_server()
-            
+
             if success:
                 self.lorax_enabled = True
                 self.logger.info("LoRAx multi-adapter serving enabled")
-                
+
                 # Register adapters for all board members
                 for member_id, member in self.members.items():
                     # Register LoRA adapter for this member's role
@@ -212,17 +212,17 @@ class Orchestration():
             else:
                 self.logger.warning("LoRAx server failed to start, falling back to standard inference")
                 self.lorax_enabled = False
-                
+
         except Exception as e:
             self.logger.warning(f"LoRAx initialization failed: {e}, using standard inference")
             self.lorax_enabled = False
-    
+
     async def _register_member_adapter(self, member: Member):
         """Register LoRA adapter for a board member"""
         try:
             # Adapter path based on member role
             adapter_path = f"/models/{member.role.value.lower()}_lora_adapter"
-            
+
             self.ml_pipeline.register_lorax_adapter(
                 agent_role=member.role.value,
                 adapter_path=adapter_path,
@@ -231,9 +231,9 @@ class Orchestration():
                     "expertise": member.expertise_domains
                 }
             )
-            
+
             self.logger.info(f"Registered LoRAx adapter for {member.role.value}")
-            
+
         except Exception as e:
             self.logger.warning(f"Failed to register adapter for {member.agent_id}: {e}")
 
@@ -244,11 +244,11 @@ class Orchestration():
             "orchestrator": await self.orchestrator.health_check(),
             "ml_pipeline": await self.ml_pipeline.health_check()
         }
-        
+
         # Add LoRAx status if enabled
         if self.lorax_enabled:
             health["lorax"] = self.ml_pipeline.get_lorax_status()
-        
+
         return health
 
 async def create_autonomous_boardroom(aos_instance=None) -> Orchestration:

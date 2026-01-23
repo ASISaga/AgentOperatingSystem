@@ -17,29 +17,29 @@ class EnvironmentError(Exception):
 class EnvironmentManager:
     """
     Unified environment manager for AOS.
-    
+
     Provides centralized access to environment variables and configuration
     with validation, fallbacks, and type conversion.
     """
-    
+
     def __init__(self):
         self.logger = logging.getLogger("AOS.EnvironmentManager")
         self._cache = {}
-    
-    def get(self, key: str, default: Any = None, required: bool = False, 
+
+    def get(self, key: str, default: Any = None, required: bool = False,
             env_type: type = str) -> Any:
         """
         Get environment variable with type conversion and validation.
-        
+
         Args:
             key: Environment variable name
             default: Default value if not found
             required: Whether the variable is required
             env_type: Type to convert to (str, int, bool, float)
-            
+
         Returns:
             Environment variable value
-            
+
         Raises:
             EnvironmentError: If required variable is missing or conversion fails
         """
@@ -47,15 +47,15 @@ class EnvironmentManager:
         cache_key = f"{key}_{env_type.__name__}"
         if cache_key in self._cache:
             return self._cache[cache_key]
-        
+
         value = os.environ.get(key, default)
-        
+
         if required and value is None:
             raise EnvironmentError(f"Required environment variable '{key}' is not set")
-        
+
         if value is None:
             return None
-        
+
         # Convert type
         try:
             if env_type == bool:
@@ -66,25 +66,25 @@ class EnvironmentManager:
                 converted_value = float(value)
             else:
                 converted_value = str(value)
-            
+
             # Cache the result
             self._cache[cache_key] = converted_value
             return converted_value
-            
+
         except (ValueError, TypeError) as e:
             raise EnvironmentError(f"Failed to convert '{key}' to {env_type.__name__}: {e}")
-    
+
     def require_any(self, keys: List[str], error_message: str = None) -> str:
         """
         Require at least one of the specified environment variables.
-        
+
         Args:
             keys: List of environment variable names
             error_message: Custom error message
-            
+
         Returns:
             First found environment variable value
-            
+
         Raises:
             EnvironmentError: If none of the variables are set
         """
@@ -93,17 +93,17 @@ class EnvironmentManager:
             if value:
                 self.logger.debug(f"Found environment variable: {key}")
                 return value
-        
+
         error_msg = error_message or f"At least one of these environment variables is required: {', '.join(keys)}"
         raise EnvironmentError(error_msg)
-    
+
     def get_azure_connection_string(self, service: str = "storage") -> str:
         """
         Get Azure connection string with fallback patterns.
-        
+
         Args:
             service: Azure service name (storage, tables, queues, servicebus)
-            
+
         Returns:
             Connection string
         """
@@ -132,10 +132,10 @@ class EnvironmentManager:
                 "COSMOS_CONNECTION_STRING"
             ]
         }
-        
+
         keys = patterns.get(service, [f"AZURE_{service.upper()}_CONNECTION_STRING"])
         return self.require_any(keys, f"Missing Azure {service} connection string")
-    
+
     def get_ml_config(self) -> Dict[str, Any]:
         """Get Azure ML configuration"""
         return {
@@ -148,7 +148,7 @@ class EnvironmentManager:
             "endpoint": self.get("AZURE_ML_ENDPOINT"),
             "key": self.get("AZURE_ML_KEY")
         }
-    
+
     def get_openai_config(self) -> Dict[str, Any]:
         """Get OpenAI configuration"""
         return {
@@ -159,7 +159,7 @@ class EnvironmentManager:
             "model": self.get("AZURE_OPENAI_MODEL", "gpt-4"),
             "deployment": self.get("AZURE_OPENAI_DEPLOYMENT")
         }
-    
+
     def get_database_config(self, db_type: str = "default") -> Dict[str, Any]:
         """Get database configuration"""
         if db_type == "postgresql":
@@ -191,7 +191,7 @@ class EnvironmentManager:
                 "username": self.get("DATABASE_USER"),
                 "password": self.get("DATABASE_PASSWORD")
             }
-    
+
     def get_auth_config(self) -> Dict[str, Any]:
         """Get authentication configuration"""
         return {
@@ -206,7 +206,7 @@ class EnvironmentManager:
             "linkedin_client_secret": self.get("LINKEDIN_CLIENT_SECRET"),
             "linkedin_redirect_uri": self.get("LINKEDIN_REDIRECT_URI")
         }
-    
+
     def get_logging_config(self) -> Dict[str, Any]:
         """Get logging configuration"""
         return {
@@ -216,14 +216,14 @@ class EnvironmentManager:
             "max_bytes": self.get("LOG_MAX_BYTES", 10485760, env_type=int),  # 10MB
             "backup_count": self.get("LOG_BACKUP_COUNT", 3, env_type=int)
         }
-    
+
     def validate_required_vars(self, required_vars: List[str]) -> List[str]:
         """
         Validate that required environment variables are set.
-        
+
         Args:
             required_vars: List of required environment variable names
-            
+
         Returns:
             List of missing variables
         """
@@ -231,16 +231,16 @@ class EnvironmentManager:
         for var in required_vars:
             if not os.environ.get(var):
                 missing.append(var)
-        
+
         if missing:
             self.logger.warning(f"Missing required environment variables: {missing}")
-        
+
         return missing
-    
+
     def get_all_aos_vars(self) -> Dict[str, str]:
         """Get all AOS-related environment variables"""
         aos_vars = {}
-        
+
         for key, value in os.environ.items():
             if key.startswith(('AOS_', 'AZURE_', 'OPENAI_', 'B2C_', 'LINKEDIN_')):
                 # Don't expose sensitive values in logs
@@ -248,13 +248,13 @@ class EnvironmentManager:
                     aos_vars[key] = "***"
                 else:
                     aos_vars[key] = value
-        
+
         return aos_vars
-    
+
     def set_defaults(self, defaults: Dict[str, str]):
         """
         Set default environment variables if not already set.
-        
+
         Args:
             defaults: Dictionary of default values
         """
@@ -262,7 +262,7 @@ class EnvironmentManager:
             if key not in os.environ:
                 os.environ[key] = value
                 self.logger.debug(f"Set default environment variable: {key}")
-    
+
     def get_ml_config(self) -> Dict[str, Any]:
         """
         Get Azure ML configuration.
@@ -276,7 +276,7 @@ class EnvironmentManager:
             "ml_url": self.get("MLENDPOINT_URL"),
             "ml_key": self.get("MLENDPOINT_KEY")
         }
-    
+
     def get_agent_endpoints(self) -> Dict[str, Dict[str, str]]:
         """
         Get agent endpoint configurations.
@@ -308,7 +308,7 @@ class EnvironmentManager:
                 "key": self.get("AML_CHRO_KEY", "")
             }
         }
-    
+
     def get_list(self, key: str, separator: str = ",", default: List[str] = None) -> List[str]:
         """
         Get environment variable as a list.
@@ -318,7 +318,7 @@ class EnvironmentManager:
         if value is None:
             return default or []
         return [item.strip() for item in value.split(separator) if item.strip()]
-    
+
     def get_json(self, key: str, default: Any = None) -> Any:
         """
         Get environment variable as JSON.
@@ -333,14 +333,14 @@ class EnvironmentManager:
         except json.JSONDecodeError as e:
             self.logger.warning(f"Failed to parse JSON from {key}: {e}")
             return default
-    
+
     def get_env_vars_by_prefix(self, prefix: str) -> Dict[str, str]:
         """
         Get environment variables with a specific prefix.
         Enhanced from old environment.py functionality.
         """
         return {k: v for k, v in os.environ.items() if k.startswith(prefix)}
-    
+
     def validate_environment(self) -> Dict[str, Any]:
         """
         Validate environment configuration comprehensively.
@@ -348,29 +348,29 @@ class EnvironmentManager:
         """
         issues = []
         warnings = []
-        
+
         # Check Azure Storage connection
         try:
             self.get_azure_connection_string("storage")
         except EnvironmentError:
             issues.append("Missing Azure Storage connection string")
-        
+
         # Check ML configuration
         ml_config = self.get_ml_config()
         missing_ml = [k for k, v in ml_config.items() if not v]
         if missing_ml:
             warnings.append(f"Missing ML configuration: {', '.join(missing_ml)}")
-        
+
         # Check agent endpoints
         agent_endpoints = self.get_agent_endpoints()
         configured_agents = [
             agent for agent, config in agent_endpoints.items()
             if config["scoring_uri"] and config["key"]
         ]
-        
+
         if not configured_agents:
             warnings.append("No agent endpoints configured")
-        
+
         # Check authentication configuration
         auth_config = self.get_auth_config()
         missing_auth = []
@@ -378,10 +378,10 @@ class EnvironmentManager:
             missing_auth.append("JWT_SECRET")
         if not all([auth_config.get("azure_b2c_tenant"), auth_config.get("azure_b2c_client_id")]):
             missing_auth.append("Azure B2C configuration incomplete")
-        
+
         if missing_auth:
             warnings.append(f"Authentication configuration issues: {', '.join(missing_auth)}")
-        
+
         return {
             "valid": len(issues) == 0,
             "issues": issues,

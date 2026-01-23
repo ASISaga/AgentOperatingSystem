@@ -29,7 +29,7 @@ class ControlMapping(BaseModel):
     control_name: str
     description: str
     requirements: List[str] = Field(default_factory=list)
-    
+
     class Config:
         use_enum_values = True
 
@@ -43,17 +43,17 @@ class ComplianceAssertion(BaseModel):
     action: str  # Action being asserted
     resource: str  # Resource affected
     actor: str  # Who performed the action
-    
+
     # Control mappings
     controls: List[ControlMapping] = Field(default_factory=list)
-    
+
     # Assertion details
     is_compliant: bool
     pre_conditions_met: bool
     post_conditions_met: bool
     evidence: List[str] = Field(default_factory=list)  # Evidence links
     notes: Optional[str] = None
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -64,12 +64,12 @@ class ComplianceEngine:
     """
     Engine for managing compliance assertions and control mappings.
     """
-    
+
     def __init__(self):
         """Initialize compliance engine"""
         self._control_mappings: Dict[str, List[ControlMapping]] = {}
         self._assertions: List[ComplianceAssertion] = []
-    
+
     def register_control_mapping(
         self,
         action_pattern: str,
@@ -77,7 +77,7 @@ class ComplianceEngine:
     ):
         """
         Register a control mapping for an action pattern.
-        
+
         Args:
             action_pattern: Pattern matching actions (e.g., "decision:*")
             control: Control to map
@@ -85,18 +85,18 @@ class ComplianceEngine:
         if action_pattern not in self._control_mappings:
             self._control_mappings[action_pattern] = []
         self._control_mappings[action_pattern].append(control)
-    
+
     def get_controls_for_action(self, action: str) -> List[ControlMapping]:
         """Get all controls applicable to an action"""
         controls = []
-        
+
         for pattern, pattern_controls in self._control_mappings.items():
             # Simple pattern matching (exact or wildcard)
             if pattern == action or pattern.endswith("*") and action.startswith(pattern[:-1]):
                 controls.extend(pattern_controls)
-        
+
         return controls
-    
+
     def assert_compliance(
         self,
         action: str,
@@ -108,7 +108,7 @@ class ComplianceEngine:
     ) -> ComplianceAssertion:
         """
         Create a compliance assertion for an action.
-        
+
         Args:
             action: Action being performed
             resource: Resource affected
@@ -116,16 +116,16 @@ class ComplianceEngine:
             pre_conditions: Pre-condition check results
             post_conditions: Post-condition check results
             evidence: Links to supporting evidence
-            
+
         Returns:
             Compliance assertion
         """
         controls = self.get_controls_for_action(action)
-        
+
         pre_met = all(pre_conditions.values())
         post_met = all(post_conditions.values())
         is_compliant = pre_met and post_met
-        
+
         assertion = ComplianceAssertion(
             action=action,
             resource=resource,
@@ -136,10 +136,10 @@ class ComplianceEngine:
             post_conditions_met=post_met,
             evidence=evidence or []
         )
-        
+
         self._assertions.append(assertion)
         return assertion
-    
+
     def query_assertions(
         self,
         action: Optional[str] = None,
@@ -151,7 +151,7 @@ class ComplianceEngine:
     ) -> List[ComplianceAssertion]:
         """
         Query compliance assertions with filters.
-        
+
         Args:
             action: Filter by action
             framework: Filter by framework
@@ -159,12 +159,12 @@ class ComplianceEngine:
             start_time: Filter by start time
             end_time: Filter by end time
             limit: Maximum number to return
-            
+
         Returns:
             List of matching assertions
         """
         results = []
-        
+
         for assertion in self._assertions:
             if action and assertion.action != action:
                 continue
@@ -178,45 +178,45 @@ class ComplianceEngine:
                 # Check if any control matches the framework
                 if not any(c.framework == framework for c in assertion.controls):
                     continue
-            
+
             results.append(assertion)
-            
+
             if len(results) >= limit:
                 break
-        
+
         return results
-    
+
     def get_compliance_summary(
         self,
         framework: Optional[ComplianceFramework] = None
     ) -> Dict[str, Any]:
         """
         Get compliance summary statistics.
-        
+
         Args:
             framework: Optional framework to filter by
-            
+
         Returns:
             Summary statistics
         """
         assertions = self._assertions
-        
+
         if framework:
             assertions = [
                 a for a in assertions
                 if any(c.framework == framework for c in a.controls)
             ]
-        
+
         total = len(assertions)
         compliant = sum(1 for a in assertions if a.is_compliant)
         non_compliant = total - compliant
-        
+
         # Control coverage
         control_ids = set()
         for assertion in assertions:
             for control in assertion.controls:
                 control_ids.add(control.control_id)
-        
+
         return {
             "framework": framework.value if framework else "all",
             "total_assertions": total,
@@ -245,7 +245,7 @@ def register_soc2_controls(engine: ComplianceEngine):
             ]
         )
     )
-    
+
     # CC7.2 - System Monitoring
     engine.register_control_mapping(
         "*",
@@ -278,7 +278,7 @@ def register_iso27001_controls(engine: ComplianceEngine):
             ]
         )
     )
-    
+
     # A.12.4.1 - Event logging
     engine.register_control_mapping(
         "*",

@@ -8,7 +8,7 @@ from .models import Envelope, MessageType, MessagesQuery, UiAction
 
 __all__ = [
     'Envelope',
-    'MessageType', 
+    'MessageType',
     'MessagesQuery',
     'UiAction'
 ]

@@ -14,7 +14,7 @@ class MessageEnvelope:
     - Timestamp and actor information
     - Payload with schema validation
     """
-    
+
     def __init__(
         self,
         message_type: str,
@@ -34,7 +34,7 @@ class MessageEnvelope:
         self.actor = actor
         self.attributes = attributes or {}
         self.payload = payload
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert envelope to dictionary."""
         return {
@@ -48,7 +48,7 @@ class MessageEnvelope:
             "attributes": self.attributes,
             "payload": self.payload
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'MessageEnvelope':
         """Create envelope from dictionary."""

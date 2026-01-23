@@ -29,12 +29,12 @@ class Span(BaseModel):
     duration_ms: Optional[float] = None
     tags: Dict[str, Any] = Field(default_factory=dict)
     logs: List[Dict[str, Any]] = Field(default_factory=list)
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
         }
-    
+
     def finish(self):
         """Mark span as finished"""
         self.end_time = datetime.utcnow()
@@ -48,7 +48,7 @@ class TracingContext(BaseModel):
     correlation_id: str  # Links related operations
     causation_id: Optional[str] = None  # What caused this trace
     spans: List[Span] = Field(default_factory=list)
-    
+
     def create_span(self, operation_name: str, parent_span_id: Optional[str] = None) -> Span:
         """Create a new span in this trace"""
         span = Span(
@@ -57,7 +57,7 @@ class TracingContext(BaseModel):
         )
         self.spans.append(span)
         return span
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
