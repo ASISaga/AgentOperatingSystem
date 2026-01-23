@@ -127,10 +127,12 @@ def main():
         content = f.read()
     assert 'CMOAgent' in content, "❌ CMOAgent not documented in agents.instructions.md"
     # Check for purpose-adapter or purpose to adapter mapping
-    purpose_adapter_found = ('purpose-adapter' in content.lower() or 
-                            'purpose adapter' in content.lower() or
-                            'purpose to adapter' in content.lower() or
-                            'purposes to lora adapters' in content.lower())
+    purpose_adapter_found = (
+        'purpose-adapter' in content.lower() or 
+        'purpose adapter' in content.lower() or
+        'purpose to adapter' in content.lower() or
+        'purposes to lora adapters' in content.lower()
+    )
     assert purpose_adapter_found, \
         "❌ Purpose-adapter mapping not documented in agents.instructions.md"
     assert 'LeadershipAgent' in content, "❌ LeadershipAgent not documented in agents.instructions.md"
