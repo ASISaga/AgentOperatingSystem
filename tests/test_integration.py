@@ -12,10 +12,9 @@ sys.path.insert(0, src_path)
 try:
     # Import AOS components
     from AgentOperatingSystem.agent_operating_system import AgentOperatingSystem
-    from AgentOperatingSystem.agents.base import BaseAgent
-    from AgentOperatingSystem.agents.leadership import LeadershipAgent
+    from AgentOperatingSystem.agents import BaseAgent, LeadershipAgent
     try:
-        from AgentOperatingSystem.agents.self_learning import SelfLearningAgent
+        from AgentOperatingSystem.learning import SelfLearningAgent
         SELF_LEARNING_AVAILABLE = True
     except ImportError:
         SELF_LEARNING_AVAILABLE = False

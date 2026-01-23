@@ -9,8 +9,13 @@ import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from .base import BaseAgent, Agent, StatefulAgent
-from ..learning.self_learning_mixin import SelfLearningMixin
+from ..agents.purpose_driven import BaseAgent, PurposeDrivenAgent
+from .self_learning_mixin import SelfLearningMixin
+
+# Legacy Agent and StatefulAgent classes for backward compatibility
+# These can be replaced with PurposeDrivenAgent in the future
+Agent = PurposeDrivenAgent
+StatefulAgent = PurposeDrivenAgent
 
 
 class SelfLearningAgent(SelfLearningMixin, Agent):

@@ -1,39 +1,30 @@
 """
 AOS Agent Module
 
-Base agent classes and agent-related functionality.
+Core agent classes for the Agent Operating System.
 
-Includes PurposeDrivenAgent - the fundamental building block of AOS.
-PurposeDrivenAgentFoundry extends it with Microsoft Foundry Agent Service runtime.
+Contains only the fundamental agent classes:
+- PurposeDrivenAgent: The fundamental building block of AOS (standalone, consolidated class)
+- LeadershipAgent: Leadership agent extending PurposeDrivenAgent
+- CMOAgent: Chief Marketing Officer agent extending LeadershipAgent
+
+All orchestration-related classes have been moved to the orchestration module.
 """
 
-# v2.0.0 - Canonical implementations
-from .base_agent import BaseAgent
+# v3.0.0 - Refactored agent classes
+from .purpose_driven import PurposeDrivenAgent
 from .leadership_agent import LeadershipAgent
 from .cmo_agent import CMOAgent
-from .perpetual import PerpetualAgent
-from .purpose_driven import PurposeDrivenAgent
-from .purpose_driven_foundry import PurposeDrivenAgentFoundry
-from .multi_agent import (
-    MultiAgentSystem, 
-    BusinessAnalystAgent, 
-    SoftwareEngineerAgent, 
-    ProductOwnerAgent,
-    ApprovalTerminationStrategy
-)
-from .manager import UnifiedAgentManager
+
+# Backward compatibility aliases
+# BaseAgent and PerpetualAgent have been merged into PurposeDrivenAgent
+BaseAgent = PurposeDrivenAgent
+PerpetualAgent = PurposeDrivenAgent
 
 __all__ = [
-    "BaseAgent",
+    "PurposeDrivenAgent",
     "LeadershipAgent",
     "CMOAgent",
-    "PerpetualAgent",
-    "PurposeDrivenAgent",
-    "PurposeDrivenAgentFoundry",
-    "MultiAgentSystem",
-    "BusinessAnalystAgent",
-    "SoftwareEngineerAgent", 
-    "ProductOwnerAgent",
-    "ApprovalTerminationStrategy",
-    "UnifiedAgentManager"
+    "BaseAgent",  # Backward compatibility
+    "PerpetualAgent",  # Backward compatibility
 ]

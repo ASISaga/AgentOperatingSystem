@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 import json
 
-from ..agents.leadership_agent import LeadershipAgent
+from ..agents import LeadershipAgent
 from .multi_agent_coordinator import MultiAgentCoordinator, CoordinationMode
 from .agent_registry import AgentRegistry
 

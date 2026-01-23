@@ -13,11 +13,16 @@ from .self_learning_mixin import SelfLearningMixin
 from .domain_expert import DomainExpert
 from .learning_pipeline import LearningPipeline
 
+# Self-learning agent implementations (moved from agents module)
+from .self_learning_agents import SelfLearningAgent, SelfLearningStatefulAgent
+
 __all__ = [
     "KnowledgeManager",
     "RAGEngine", 
     "InteractionLearner",
     "SelfLearningMixin",
     "DomainExpert",
-    "LearningPipeline"
+    "LearningPipeline",
+    "SelfLearningAgent",
+    "SelfLearningStatefulAgent",
 ]

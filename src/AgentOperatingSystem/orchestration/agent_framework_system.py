@@ -43,7 +43,7 @@ except ImportError:
         """Fallback logging setup"""
         pass
 
-from .base import BaseAgent
+from ..agents.purpose_driven import BaseAgent
 
 
 class AgentFrameworkSystem:

@@ -7,12 +7,28 @@ Provides core infrastructure including messaging, orchestration, storage, and mo
 
 from .agent_operating_system import AgentOperatingSystem
 from .config import AOSConfig, default_config
+
+# Core agent classes (consolidated)
 from .agents import (
-    BaseAgent, LeadershipAgent, PerpetualAgent,
-    MultiAgentSystem, BusinessAnalystAgent, SoftwareEngineerAgent, ProductOwnerAgent
+    BaseAgent,
+    PerpetualAgent,
+    PurposeDrivenAgent,
+    LeadershipAgent,
+    CMOAgent
 )
-from .agents.agent_framework_system import AgentFrameworkSystem
-from .agents.self_learning import SelfLearningAgent, SelfLearningStatefulAgent
+
+# Agent orchestration (moved from agents module)
+from .orchestration import (
+    UnifiedAgentManager,
+    MultiAgentSystem,
+    BusinessAnalystAgent,
+    SoftwareEngineerAgent,
+    ProductOwnerAgent,
+    AgentFrameworkSystem
+)
+
+# Self-learning agents (moved from agents to learning module)
+from .learning import SelfLearningAgent, SelfLearningStatefulAgent
 from .messaging.types import Message, MessageType, MessagePriority
 from .messaging.bus import MessageBus
 from .messaging.router import MessageRouter
@@ -50,17 +66,24 @@ __all__ = [
     "AOSConfig",
     "default_config",
     
-    # Base agent classes
+    # Core agent classes (consolidated in agents module)
     "BaseAgent",
-    "LeadershipAgent",
-    "SelfLearningAgent",
-    "SelfLearningStatefulAgent",
     "PerpetualAgent",
+    "PurposeDrivenAgent",
+    "LeadershipAgent",
+    "CMOAgent",
+    
+    # Agent orchestration (moved to orchestration module)
+    "UnifiedAgentManager",
     "MultiAgentSystem",
-    "AgentFrameworkSystem",
     "BusinessAnalystAgent",
     "SoftwareEngineerAgent", 
     "ProductOwnerAgent",
+    "AgentFrameworkSystem",
+    
+    # Self-learning agents (in learning module)
+    "SelfLearningAgent",
+    "SelfLearningStatefulAgent",
     
     # Messaging
     "Message",

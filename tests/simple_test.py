@@ -27,8 +27,12 @@ async def simple_test():
         print("✅ Configuration: SUCCESS")
         
         # Test base agent
-        from AgentOperatingSystem.agents.base import BaseAgent, Agent
-        agent = Agent(agent_id="test", name="Test Agent")
+        from AgentOperatingSystem.agents import BaseAgent, PurposeDrivenAgent
+        agent = PurposeDrivenAgent(
+            agent_id="test",
+            purpose="Test purpose",
+            adapter_name="test"
+        )
         print("✅ Base Agent: SUCCESS")
         
         # Test message types

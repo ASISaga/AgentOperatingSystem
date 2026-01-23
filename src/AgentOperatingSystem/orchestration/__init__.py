@@ -37,6 +37,17 @@ from .scheduler import IntelligentScheduler, WorkflowPriority, ResourcePredictor
 from .events import EventDrivenOrchestrator, EventPattern
 from .optimization import WorkflowOptimizer, LearningEngine
 
+# Agent orchestration and management (moved from agents module)
+from .agent_manager import UnifiedAgentManager
+from .multi_agent import (
+    MultiAgentSystem,
+    BusinessAnalystAgent,
+    SoftwareEngineerAgent,
+    ProductOwnerAgent,
+    ApprovalTerminationStrategy
+)
+from .agent_framework_system import AgentFrameworkSystem
+
 __all__ = [
     "State",
     "Role",
@@ -68,5 +79,13 @@ __all__ = [
     "EventDrivenOrchestrator",
     "EventPattern",
     "WorkflowOptimizer",
-    "LearningEngine"
+    "LearningEngine",
+    # Agent orchestration (moved from agents module)
+    "UnifiedAgentManager",
+    "MultiAgentSystem",
+    "BusinessAnalystAgent",
+    "SoftwareEngineerAgent",
+    "ProductOwnerAgent",
+    "ApprovalTerminationStrategy",
+    "AgentFrameworkSystem",
 ]

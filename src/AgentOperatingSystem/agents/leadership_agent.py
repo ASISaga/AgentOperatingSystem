@@ -1,17 +1,17 @@
 """
-Leadership Agent - Agent with decision-making and coordination capabilities.
-Extends PurposeDrivenAgent with collaborative decision-making patterns.
+LeadershipAgent - Leadership and decision-making capabilities.
+Extends PurposeDrivenAgent with leadership-specific functionality.
 
-Architecture:
-- LoRA adapter provides leadership domain knowledge (language, vocabulary, concepts, agent persona)
-- Core leadership purpose added to primary LLM context
-- MCP provides context management and domain-specific tools
+The Leadership purpose is mapped to the "leadership" LoRA adapter, which provides
+leadership-specific domain knowledge and agent persona. The core purpose is added
+to the primary LLM context to guide agent behavior.
 """
 
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import uuid
 from .purpose_driven import PurposeDrivenAgent
+
 
 class LeadershipAgent(PurposeDrivenAgent):
     """
@@ -30,15 +30,15 @@ class LeadershipAgent(PurposeDrivenAgent):
     def __init__(
         self,
         agent_id: str,
-        name: str = None,
-        role: str = None,
-        purpose: str = None,
-        purpose_scope: str = None,
-        success_criteria: List[str] = None,
-        tools: List[Any] = None,
-        system_message: str = None,
-        adapter_name: str = None,
-        config: Dict[str, Any] = None
+        name: Optional[str] = None,
+        role: Optional[str] = None,
+        purpose: Optional[str] = None,
+        purpose_scope: Optional[str] = None,
+        success_criteria: Optional[List[str]] = None,
+        tools: Optional[List[Any]] = None,
+        system_message: Optional[str] = None,
+        adapter_name: Optional[str] = None,
+        config: Optional[Dict[str, Any]] = None
     ):
         # Default leadership purpose and adapter if not provided
         if purpose is None:
@@ -48,6 +48,7 @@ class LeadershipAgent(PurposeDrivenAgent):
         if purpose_scope is None:
             purpose_scope = "Leadership and decision-making domain"
         
+        # Pass all parameters to parent, including legacy compatibility attributes
         super().__init__(
             agent_id=agent_id,
             purpose=purpose,
@@ -55,13 +56,11 @@ class LeadershipAgent(PurposeDrivenAgent):
             success_criteria=success_criteria,
             tools=tools,
             system_message=system_message,
-            adapter_name=adapter_name
+            adapter_name=adapter_name,
+            name=name,
+            role=role or "leader",
+            config=config
         )
-        
-        # Legacy compatibility
-        self.name = name or agent_id
-        self.role = role or "leader"
-        self.config = config or {}
         
         self.decisions_made = []
         self.stakeholders = []
