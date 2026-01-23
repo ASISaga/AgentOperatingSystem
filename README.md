@@ -39,7 +39,7 @@ The **Agent Operating System (AOS)** is a complete, production-grade operating s
 pip install git+https://github.com/ASISaga/AgentOperatingSystem.git
 ```
 
-### Basic Example
+### Basic Example - Code-Based Configuration
 
 ```python
 from AgentOperatingSystem import AgentOperatingSystem
@@ -60,6 +60,57 @@ await agent.start()       # Runs perpetually
 alignment = await agent.evaluate_purpose_alignment(action)
 decision = await agent.make_purpose_driven_decision(context)
 ```
+
+### YAML-Based Configuration (Recommended)
+
+Agents can be configured using YAML files that define purposes, LoRA adapters, MCP tools, and capabilities:
+
+```python
+from AgentOperatingSystem.agents import PurposeDrivenAgent, CMOAgent
+
+# Load agent from YAML configuration
+ceo_agent = PurposeDrivenAgent.from_yaml("config/agents/ceo_agent.yaml")
+await ceo_agent.initialize()
+await ceo_agent.start()
+
+# Load multi-purpose agent (e.g., CMO with marketing + leadership)
+cmo_agent = CMOAgent.from_yaml("config/agents/cmo_agent.yaml")
+await cmo_agent.initialize()
+
+# Execute tasks with specific purpose/adapter
+await cmo_agent.execute_with_purpose(task, purpose_type="marketing")
+await cmo_agent.execute_with_purpose(task, purpose_type="leadership")
+```
+
+#### Example agent.yaml Structure
+
+```yaml
+agent_id: cmo
+agent_type: cmo
+
+# Multiple purposes, each mapped to a LoRA adapter
+purposes:
+  - name: marketing
+    description: "Marketing: Brand strategy and customer acquisition"
+    adapter_name: marketing  # Maps to "marketing" LoRA adapter
+    
+  - name: leadership
+    description: "Leadership: Strategic decision-making"
+    adapter_name: leadership  # Maps to "leadership" LoRA adapter
+
+# MCP tools required
+mcp_tools:
+  - server_name: "analytics"
+    tool_name: "get_marketing_metrics"
+
+# Agent capabilities
+capabilities:
+  - "Marketing strategy development"
+  - "Brand management"
+  - "Team leadership"
+```
+
+See [Agent Configuration Schema](docs/agent-configuration-schema.md) for complete details.
 
 📖 **[Full Quick Start Guide](docs/getting-started/quickstart.md)**
 
@@ -117,6 +168,54 @@ AOS provides a complete operating system architecture:
 
 ---
 
+## 🎯 Agent Configuration System
+
+### YAML-Based Agent Definition
+
+AOS introduces a **declarative agent configuration system** using `agent.yaml` files. Each agent defines:
+
+- **Purposes** - Long-term objectives that guide agent behavior
+- **LoRA Adapters** - Domain-specific knowledge mapped to each purpose  
+- **MCP Tools** - Model Context Protocol tools for domain-specific capabilities
+- **Capabilities** - List of agent capabilities and responsibilities
+
+#### Purpose-to-Adapter Mapping
+
+The key architectural concept is **mapping purposes to LoRA adapters**:
+
+1. **LoRA Adapters** provide domain-specific knowledge (language, vocabulary, concepts, agent persona)
+2. **Core Purposes** are added to the primary LLM context to guide behavior
+3. **MCP Integration** provides context management and domain-specific tools
+
+#### Single-Purpose Agent Example
+
+```yaml
+agent_id: ceo
+purposes:
+  - name: strategic_oversight
+    description: "Strategic oversight and decision-making"
+    adapter_name: ceo  # Maps to "ceo" LoRA adapter
+    success_criteria:
+      - "Achieve quarterly revenue targets"
+      - "Maintain strategic alignment"
+```
+
+#### Multi-Purpose Agent Example
+
+```yaml
+agent_id: cmo
+purposes:
+  - name: marketing
+    adapter_name: marketing  # Marketing domain knowledge
+  - name: leadership  
+    adapter_name: leadership  # Leadership domain knowledge
+```
+
+📖 **[Agent Configuration Schema](docs/agent-configuration-schema.md)** - Complete YAML schema reference  
+📖 **[Example Configurations](config/agents/)** - CEO, CMO, Leadership agent examples
+
+---
+
 ## 🔌 Plug-and-Play Infrastructure
 
 ### RealmOfAgents - Configuration-Driven Agent Deployment
@@ -162,6 +261,7 @@ Add MCP servers with **zero code** - just configuration:
 - **[Vision & Why "Operating System"](docs/overview/vision.md)** - The OS for AI agents
 - **[Core Principles](docs/overview/principles.md)** - Design principles and philosophy
 - **[Perpetual vs Task-Based Agents](docs/overview/perpetual-agents.md)** - Key architectural difference
+- **[Agent Configuration Schema](docs/agent-configuration-schema.md)** - YAML-based agent configuration
 - **[Operating System Services](docs/overview/services.md)** - Core OS services
 
 ### Development & Integration

@@ -72,7 +72,24 @@ This directory contains specialized skills for working with the Agent Operating 
 - Design patterns (Circuit Breaker, State Machine, etc.)
 - Data flow and event processing
 
-### 5. [Code Refactoring](code-refactoring/SKILL.md)
+### 5. [Agent Configuration](agent-configuration/SKILL.md)
+**Expert knowledge for configuring Purpose-Driven Agents using YAML.**
+
+**Use this skill when**:
+- Creating new agent configurations
+- Understanding purpose-to-adapter mapping
+- Configuring multi-purpose agents
+- Setting up MCP tools for agents
+- Loading agents from YAML files
+
+**Key topics**:
+- YAML configuration schema
+- Purpose-to-LoRA adapter mapping
+- Multi-purpose agent patterns
+- MCP tool configuration
+- Backward compatibility with code-based config
+
+### 6. [Code Refactoring](code-refactoring/SKILL.md)
 **Expert knowledge for performing major version refactoring and removing backward compatibility.**
 
 **Use this skill when**:
@@ -117,6 +134,7 @@ Skills are designed to be discovered and used by AI coding agents. Each skill fo
 
 **For agent development**:
 - Use [Perpetual Agents](perpetual-agents/SKILL.md) for agent implementation
+- Use [Agent Configuration](agent-configuration/SKILL.md) for YAML-based agent setup
 - Reference [AOS Architecture](aos-architecture/SKILL.md) for system integration
 
 ## Skill Format
