@@ -51,6 +51,9 @@ pytest tests/ --cov=src/AgentOperatingSystem
 - Use type hints where possible
 - Write async functions for I/O operations
 - Use meaningful variable names
+- Run Pylint checks before committing: `pylint src/AgentOperatingSystem`
+- Maintain code quality score above 5.0/10
+- See [Code Quality Instructions](.github/instructions/code-quality.instructions.md) for details
 
 ## Common Commands
 
@@ -60,6 +63,9 @@ pytest tests/test_integration.py -v
 
 # Check Python syntax
 python -m py_compile src/AgentOperatingSystem/agents/*.py
+
+# Run Pylint for code quality
+pylint src/AgentOperatingSystem
 
 # List all test files
 find tests/ -name "test_*.py"

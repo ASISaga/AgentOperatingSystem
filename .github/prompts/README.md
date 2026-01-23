@@ -57,6 +57,24 @@ This directory contains specialized agent prompts/personas for working with the 
 - Testing async code
 - Integration testing
 
+### 4. [Code Quality Expert](code-quality-expert.md)
+**Specialization**: Code quality and Pylint
+
+**Expertise**:
+- Pylint configuration and usage
+- Python code quality best practices
+- Type hints and static analysis
+- Refactoring for quality
+- AOS-specific quality patterns
+
+**Use for**:
+- Analyzing code quality
+- Fixing Pylint warnings
+- Improving code readability
+- Adding type hints
+- Pre-commit quality checks
+- Code review assistance
+
 ## How to Use These Prompts
 
 ### For AI Coding Agents
@@ -102,9 +120,11 @@ Each prompt includes:
 | Writing tests | Testing Expert |
 | Debugging test failures | Testing Expert |
 | Deployment issues | Azure & Cloud Expert |
-| Code quality improvements | Python Expert |
+| Code quality improvements | Code Quality Expert |
+| Fixing Pylint warnings | Code Quality Expert |
 | Performance optimization | Azure & Cloud Expert |
 | Mocking strategies | Testing Expert |
+| Adding type hints | Code Quality Expert |
 
 ## Combining Prompts
 
