@@ -126,8 +126,19 @@ class CMOAgent(LeadershipAgent):
             
         Returns:
             LoRA adapter name for the specified purpose
+            
+        Raises:
+            ValueError: If purpose_type is not recognized
         """
-        return self.purpose_adapter_mapping.get(purpose_type.lower())
+        adapter_name = self.purpose_adapter_mapping.get(purpose_type.lower())
+        
+        if adapter_name is None:
+            valid_types = list(self.purpose_adapter_mapping.keys())
+            raise ValueError(
+                f"Unknown purpose type '{purpose_type}'. Valid types: {valid_types}"
+            )
+        
+        return adapter_name
     
     async def execute_with_purpose(
         self, 
@@ -143,11 +154,12 @@ class CMOAgent(LeadershipAgent):
             
         Returns:
             Task execution result
+            
+        Raises:
+            ValueError: If purpose_type is not recognized
         """
+        # This will raise ValueError if purpose_type is invalid
         adapter_name = self.get_adapter_for_purpose(purpose_type)
-        
-        if adapter_name is None:
-            raise ValueError(f"Unknown purpose type: {purpose_type}")
         
         self.logger.info(
             f"Executing task with {purpose_type} purpose using adapter: {adapter_name}"
