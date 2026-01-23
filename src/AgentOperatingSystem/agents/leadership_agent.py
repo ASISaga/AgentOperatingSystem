@@ -1,14 +1,19 @@
 """
 Leadership Agent - Agent with decision-making and coordination capabilities.
-Extends BaseAgent with collaborative decision-making patterns.
+Extends PurposeDrivenAgent with collaborative decision-making patterns.
+
+Architecture:
+- LoRA adapter provides leadership domain knowledge (language, vocabulary, concepts, agent persona)
+- Core leadership purpose added to primary LLM context
+- MCP provides context management and domain-specific tools
 """
 
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import uuid
-from .base_agent import BaseAgent
+from .purpose_driven import PurposeDrivenAgent
 
-class LeadershipAgent(BaseAgent):
+class LeadershipAgent(PurposeDrivenAgent):
     """
     Leadership agent providing:
     - Decision-making capabilities
@@ -16,16 +21,48 @@ class LeadershipAgent(BaseAgent):
     - Consensus building
     - Delegation patterns
     - Decision provenance
+    
+    The Leadership purpose is mapped to the "leadership" LoRA adapter, which provides
+    leadership-specific domain knowledge and agent persona. The core purpose is added
+    to the primary LLM context to guide agent behavior.
     """
     
     def __init__(
         self,
         agent_id: str,
-        name: str,
-        role: str,
+        name: str = None,
+        role: str = None,
+        purpose: str = None,
+        purpose_scope: str = None,
+        success_criteria: List[str] = None,
+        tools: List[Any] = None,
+        system_message: str = None,
+        adapter_name: str = None,
         config: Dict[str, Any] = None
     ):
-        super().__init__(agent_id, name, role, config)
+        # Default leadership purpose and adapter if not provided
+        if purpose is None:
+            purpose = "Leadership: Strategic decision-making, team coordination, and organizational guidance"
+        if adapter_name is None:
+            adapter_name = "leadership"
+        if purpose_scope is None:
+            purpose_scope = "Leadership and decision-making domain"
+        
+        super().__init__(
+            agent_id=agent_id,
+            purpose=purpose,
+            purpose_scope=purpose_scope,
+            success_criteria=success_criteria,
+            tools=tools,
+            system_message=system_message,
+            adapter_name=adapter_name
+        )
+        
+        # Legacy compatibility
+        self.name = name or agent_id
+        self.role = role or "leader"
+        self.config = config or {}
+        
         self.decisions_made = []
         self.stakeholders = []
         
