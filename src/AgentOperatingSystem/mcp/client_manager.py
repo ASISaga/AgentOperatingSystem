@@ -6,20 +6,20 @@ Handles connections to LinkedIn, Reddit, ERPNext, and other MCP servers through 
 """
 
 import asyncio
-import logging
 import json
+import logging
 import os
 import uuid
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime, timedelta
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 # Azure Service Bus imports
 try:
-    from azure.servicebus.aio import ServiceBusClient
-    from azure.servicebus import ServiceBusMessage  # pylint: disable=unused-import
     from azure.identity.aio import DefaultAzureCredential
+    from azure.servicebus import ServiceBusMessage  # pylint: disable=unused-import
+    from azure.servicebus.aio import ServiceBusClient
     AZURE_SERVICE_BUS_AVAILABLE = True
 except ImportError:
     AZURE_SERVICE_BUS_AVAILABLE = False
@@ -27,7 +27,10 @@ except ImportError:
 
 # MCP Protocol imports
 try:
-    from mcp import ClientSession, StdioServerParameters  # pylint: disable=unused-import
+    from mcp import (  # pylint: disable=unused-import
+        ClientSession,
+        StdioServerParameters,
+    )
     from mcp.client.stdio import stdio_client  # pylint: disable=unused-import
     MCP_AVAILABLE = True
 except ImportError:
@@ -149,8 +152,8 @@ class MCPClientManager:
 
             self.logger.info("MCP Client Manager initialized successfully")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize MCP Client Manager: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize MCP Client Manager: %s", str(error))
             raise
 
     async def _initialize_service_bus(self):
@@ -169,8 +172,8 @@ class MCPClientManager:
 
             self.logger.info("Azure Service Bus client initialized")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Service Bus: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Service Bus: %s", str(error))
             raise
 
     async def _load_server_configurations(self):
@@ -186,8 +189,8 @@ class MCPClientManager:
             # Load custom configurations from environment or config file
             custom_config_path = os.getenv("MCP_SERVER_CONFIG_PATH", "config/mcp_servers.json")
             if os.path.exists(custom_config_path):
-                with open(custom_config_path, 'r', encoding='utf-8') as f:
-                    custom_configs = json.load(f)
+                with open(custom_config_path, 'r', encoding='utf-8') as file_obj:
+                    custom_configs = json.load(file_obj)
 
                 for config_data in custom_configs:
                     config = MCPServerConfig(
@@ -206,10 +209,10 @@ class MCPClientManager:
                     self.server_configs[config.server_id] = config
                     self.connection_status[config.server_id] = MCPConnectionStatus.DISCONNECTED
 
-            self.logger.info(f"Loaded {len(self.server_configs)} MCP server configurations")
+            self.logger.info("Loaded %s MCP server configurations", len(self.server_configs))
 
-        except Exception as e:
-            self.logger.error(f"Failed to load server configurations: {e}")
+        except Exception as error:
+            self.logger.error("Failed to load server configurations: %s", str(error))
 
     def _get_builtin_server_configs(self) -> List[MCPServerConfig]:
         """Get built-in MCP server configurations"""
@@ -266,15 +269,15 @@ class MCPClientManager:
             await asyncio.sleep(0.1)
 
             self.connection_status[server_id] = MCPConnectionStatus.CONNECTED
-            self.logger.info(f"Connected to MCP server: {config.server_name}")
+            self.logger.info("Connected to MCP server: %s", config.server_name)
 
-        except Exception as e:
+        except Exception as error:
             self.connection_status[server_id] = MCPConnectionStatus.ERROR
-            self.logger.error(f"Failed to connect to MCP server {server_id}: {e}")
+            self.logger.error("Failed to connect to MCP server %s: %s", server_id, str(error))
 
     async def _start_response_processors(self):
         """Start response processors for each server"""
-        for server_id in self.server_configs.keys():
+        for server_id in self.server_configs:
             task = asyncio.create_task(self._process_responses(server_id))
             self.response_processors[server_id] = task
 
@@ -287,8 +290,8 @@ class MCPClientManager:
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
-                self.logger.error(f"Error processing responses for {server_id}: {e}")
+            except Exception as error:
+                self.logger.error("Error processing responses for %s: %s", server_id, str(error))
 
     async def send_request(self, server_id: str, method: str, params: Dict[str, Any] = None,
                           callback: Callable = None, timeout_seconds: int = 30) -> str:
@@ -315,7 +318,7 @@ class MCPClientManager:
             self.request_callbacks[request_id] = callback
 
         # Send request (placeholder - would integrate with actual MCP protocol)
-        self.logger.debug(f"Sending MCP request {request_id} to {server_id}: {method}")
+        self.logger.debug("Sending MCP request %s to %s: %s", request_id, server_id, method)
 
         self.stats["total_requests"] += 1
 
@@ -375,5 +378,5 @@ class MCPClientManager:
 
             self.logger.info("MCP Client Manager shutdown complete")
 
-        except Exception as e:
-            self.logger.error(f"Error during MCP Client Manager shutdown: {e}")
+        except Exception as error:
+            self.logger.error("Error during MCP Client Manager shutdown: %s", str(error))

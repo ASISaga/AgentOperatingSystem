@@ -5,9 +5,9 @@ Provides ML-based predictive alerting and anomaly detection.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
 from collections import deque
+from datetime import datetime
+from typing import Any, Dict, List
 
 
 class AnomalyDetector:
@@ -164,7 +164,7 @@ class PredictiveAlerter:
             Prediction result
         """
         self.logger.info(
-            f"Predicting {metric_name} for next {forecast_minutes} minutes"
+            "Predicting %s for next %s minutes", metric_name, forecast_minutes
         )
 
         # Get historical data
@@ -302,13 +302,13 @@ class PredictiveAlerter:
 
         if action == "notify":
             # Send notification
-            self.logger.info(f"Sending predictive alert notification")
+            self.logger.info("Sending predictive alert notification")
         elif action == "auto_scale":
             # Trigger auto-scaling
-            self.logger.info(f"Triggering auto-scaling")
+            self.logger.info("Triggering auto-scaling")
         elif action == "remediate":
             # Execute remediation
-            self.logger.info(f"Executing remediation")
+            self.logger.info("Executing remediation")
 
 
 class CapacityPlanner:
@@ -342,7 +342,7 @@ class CapacityPlanner:
             Capacity forecast
         """
         self.logger.info(
-            f"Forecasting capacity for {resource} over {time_horizon_days} days"
+            "Forecasting capacity for %s over %s days", resource, time_horizon_days
         )
 
         # Predict usage

@@ -1,15 +1,17 @@
-from dataclasses import dataclass, field
-from typing import Dict, Any
-import os
 import json
-from .messagebus import MessageBusConfig
+import os
+from dataclasses import dataclass, field
+from typing import Any, Dict
+
+from .auth import AuthConfig
 from .decision import DecisionConfig
+from .learning import LearningConfig
+from .messagebus import MessageBusConfig
+from .ml import MLConfig
+from .monitoring import MonitoringConfig
 from .orchestration import OrchestrationConfig
 from .storage import StorageConfig
-from .monitoring import MonitoringConfig
-from .ml import MLConfig
-from .auth import AuthConfig
-from .learning import LearningConfig
+
 
 @dataclass
 class AOSConfig:
@@ -43,8 +45,8 @@ class AOSConfig:
 
     @classmethod
     def from_file(cls, config_path: str):
-        with open(config_path, 'r') as f:
-            config_data = json.load(f)
+        with open(config_path, 'r', encoding="utf-8") as file_obj:
+            config_data = json.load(file_obj)
         config_classes = {
             'message_bus_config': MessageBusConfig,
             'decision_config': DecisionConfig,
@@ -76,8 +78,8 @@ class AOSConfig:
         }
 
     def save_to_file(self, config_path: str):
-        with open(config_path, 'w') as f:
-            json.dump(self.to_dict(), f, indent=2)
+        with open(config_path, 'w', encoding="utf-8") as file_obj:
+            json.dump(self.to_dict(), file_obj, indent=2)
 
 # Default configuration instance
 default_config = AOSConfig.from_env()

@@ -7,21 +7,16 @@ and sends back responses.
 """
 
 import logging
-import asyncio
-from typing import Any, Dict, Optional, Callable, Awaitable
 from datetime import datetime
+from typing import Callable, Dict
 
 from .contracts import (
+    AgentResponsePayload,
     AOSMessage,
     AOSMessageType,
-    AOSQueues,
-    AgentQueryPayload,
-    AgentResponsePayload,
-    WorkflowExecutePayload,
-    WorkflowResultPayload,
-    StorageOperationPayload,
-    StorageResultPayload,
     ErrorPayload,
+    StorageResultPayload,
+    WorkflowResultPayload,
 )
 
 logger = logging.getLogger("AOS.ServiceBusHandlers")
@@ -78,7 +73,7 @@ class AOSServiceBusHandlers:
         handler = self._handlers.get(message_type)
 
         if not handler:
-            self.logger.warning(f"No handler for message type: {message_type}")
+            self.logger.warning("No handler for message type: %s", message_type)
             return self._create_error_response(
                 message,
                 "UNKNOWN_MESSAGE_TYPE",
@@ -86,14 +81,14 @@ class AOSServiceBusHandlers:
             )
 
         try:
-            self.logger.info(f"Processing message: {message_type} (id={message.header.message_id})")
+            self.logger.info("Processing message: %s (id=%s)", message_type, message.header.message_id)
             return await handler(message)
-        except Exception as e:
-            self.logger.error(f"Error processing message {message_type}: {e}")
+        except Exception as error:
+            self.logger.error("Error processing message %s: %s", message_type, str(error))
             return self._create_error_response(
                 message,
                 "PROCESSING_ERROR",
-                str(e)
+                str(error)
             )
 
     def _create_error_response(
@@ -165,9 +160,9 @@ class AOSServiceBusHandlers:
                 source="aos"
             )
 
-        except Exception as e:
-            self.logger.error(f"Agent query error: {e}")
-            return self._create_error_response(message, "AGENT_QUERY_ERROR", str(e))
+        except Exception as error:
+            self.logger.error("Agent query error: %s", str(error))
+            return self._create_error_response(message, "AGENT_QUERY_ERROR", str(error))
 
     async def _handle_agent_list(self, message: AOSMessage) -> AOSMessage:
         """Handle agent list request."""
@@ -188,8 +183,8 @@ class AOSServiceBusHandlers:
                 {"agents": agents},
                 source="aos"
             )
-        except Exception as e:
-            return self._create_error_response(message, "AGENT_LIST_ERROR", str(e))
+        except Exception as error:
+            return self._create_error_response(message, "AGENT_LIST_ERROR", str(error))
 
     async def _handle_agent_status(self, message: AOSMessage) -> AOSMessage:
         """Handle agent status request."""
@@ -207,8 +202,8 @@ class AOSServiceBusHandlers:
                 status,
                 source="aos"
             )
-        except Exception as e:
-            return self._create_error_response(message, "AGENT_STATUS_ERROR", str(e))
+        except Exception as error:
+            return self._create_error_response(message, "AGENT_STATUS_ERROR", str(error))
 
     # Workflow Handlers
 
@@ -250,15 +245,15 @@ class AOSServiceBusHandlers:
                 source="aos"
             )
 
-        except Exception as e:
-            self.logger.error(f"Workflow execution error: {e}")
+        except Exception as error:
+            self.logger.error("Workflow execution error: %s", str(error))
             return AOSMessage.create_response(
                 message,
                 AOSMessageType.WORKFLOW_RESULT,
                 WorkflowResultPayload(
                     workflow_id=workflow_id,
                     status="failed",
-                    error=str(e)
+                    error=str(error)
                 ).to_dict(),
                 source="aos"
             )
@@ -279,8 +274,8 @@ class AOSServiceBusHandlers:
                 status,
                 source="aos"
             )
-        except Exception as e:
-            return self._create_error_response(message, "WORKFLOW_STATUS_ERROR", str(e))
+        except Exception as error:
+            return self._create_error_response(message, "WORKFLOW_STATUS_ERROR", str(error))
 
     # Storage Handlers
 
@@ -308,8 +303,8 @@ class AOSServiceBusHandlers:
                 ).to_dict(),
                 source="aos"
             )
-        except Exception as e:
-            return self._create_error_response(message, "STORAGE_GET_ERROR", str(e))
+        except Exception as error:
+            return self._create_error_response(message, "STORAGE_GET_ERROR", str(error))
 
     async def _handle_storage_set(self, message: AOSMessage) -> AOSMessage:
         """Handle storage set request."""
@@ -334,8 +329,8 @@ class AOSServiceBusHandlers:
                 ).to_dict(),
                 source="aos"
             )
-        except Exception as e:
-            return self._create_error_response(message, "STORAGE_SET_ERROR", str(e))
+        except Exception as error:
+            return self._create_error_response(message, "STORAGE_SET_ERROR", str(error))
 
     async def _handle_storage_delete(self, message: AOSMessage) -> AOSMessage:
         """Handle storage delete request."""
@@ -359,8 +354,8 @@ class AOSServiceBusHandlers:
                 ).to_dict(),
                 source="aos"
             )
-        except Exception as e:
-            return self._create_error_response(message, "STORAGE_DELETE_ERROR", str(e))
+        except Exception as error:
+            return self._create_error_response(message, "STORAGE_DELETE_ERROR", str(error))
 
     async def _handle_storage_list(self, message: AOSMessage) -> AOSMessage:
         """Handle storage list request."""
@@ -384,8 +379,8 @@ class AOSServiceBusHandlers:
                 ).to_dict(),
                 source="aos"
             )
-        except Exception as e:
-            return self._create_error_response(message, "STORAGE_LIST_ERROR", str(e))
+        except Exception as error:
+            return self._create_error_response(message, "STORAGE_LIST_ERROR", str(error))
 
     # MCP Handlers
 
@@ -408,8 +403,8 @@ class AOSServiceBusHandlers:
                 {"result": result},
                 source="aos"
             )
-        except Exception as e:
-            return self._create_error_response(message, "MCP_CALL_ERROR", str(e))
+        except Exception as error:
+            return self._create_error_response(message, "MCP_CALL_ERROR", str(error))
 
     # System Handlers
 
@@ -440,8 +435,8 @@ class AOSServiceBusHandlers:
                 health,
                 source="aos"
             )
-        except Exception as e:
-            return self._create_error_response(message, "HEALTH_CHECK_ERROR", str(e))
+        except Exception as error:
+            return self._create_error_response(message, "HEALTH_CHECK_ERROR", str(error))
 
     async def _handle_ping(self, message: AOSMessage) -> AOSMessage:
         """Handle ping request."""

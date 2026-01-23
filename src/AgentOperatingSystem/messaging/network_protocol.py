@@ -8,17 +8,16 @@ and coordination mechanisms.
 This is the OS-level networking infrastructure for AOS.
 """
 
-import json
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Set
-from datetime import datetime, timedelta
-from dataclasses import dataclass, field
-from enum import Enum
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
-from aos.messaging.message_bus import MessageBus, Message
-from aos.monitoring.audit_trail import audit_log, AuditEventType, AuditSeverity
+from aos.messaging.message_bus import Message, MessageBus
+from aos.monitoring.audit_trail import AuditEventType, AuditSeverity, audit_log
 
 
 class NetworkMessageType(Enum):
@@ -138,7 +137,7 @@ class NetworkProtocol:
         self.message_timeout = 300  # seconds
         self.max_message_queue_size = 1000
 
-        self.logger.info(f"Network protocol initialized for node {local_node.identity.node_id}")
+        self.logger.info("Network protocol initialized for node %s", local_node.identity.node_id)
 
     async def initialize(self):
         """Initialize the network protocol"""
@@ -160,14 +159,14 @@ class NetworkProtocol:
                 severity=AuditSeverity.INFO
             )
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize network protocol: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize network protocol: %s", str(error))
             raise
 
     async def join_network(self, network_endpoint: str = None) -> bool:
         """Join the AOS network"""
         try:
-            self.logger.info(f"Joining network as {self.local_node.identity.node_name}")
+            self.logger.info("Joining network as %s", self.local_node.identity.node_name)
 
             # Send discovery message to announce presence
             discovery_message = NetworkMessage(
@@ -203,8 +202,8 @@ class NetworkProtocol:
             self.logger.info("Successfully joined network")
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to join network: {e}")
+        except Exception as error:
+            self.logger.error("Failed to join network: %s", str(error))
             return False
 
     async def discover_nodes(self, criteria: Dict[str, Any] = None) -> List[NetworkNode]:
@@ -234,11 +233,11 @@ class NetworkProtocol:
                 if self._matches_criteria(node, criteria or {})
             ]
 
-            self.logger.info(f"Discovered {len(discovered_nodes)} nodes")
+            self.logger.info("Discovered %s nodes", len(discovered_nodes))
             return discovered_nodes
 
-        except Exception as e:
-            self.logger.error(f"Failed to discover nodes: {e}")
+        except Exception as error:
+            self.logger.error("Failed to discover nodes: %s", str(error))
             return []
 
     async def initiate_negotiation(self, target_node_id: str, negotiation_type: str,
@@ -293,8 +292,8 @@ class NetworkProtocol:
 
             return negotiation_id
 
-        except Exception as e:
-            self.logger.error(f"Failed to initiate negotiation: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initiate negotiation: %s", str(error))
             raise
 
     async def send_heartbeat(self):
@@ -317,8 +316,8 @@ class NetworkProtocol:
             await self._send_message(heartbeat_message)
             self.local_node.last_heartbeat = datetime.now()
 
-        except Exception as e:
-            self.logger.error(f"Failed to send heartbeat: {e}")
+        except Exception as error:
+            self.logger.error("Failed to send heartbeat: %s", str(error))
 
     async def _send_message(self, message: NetworkMessage):
         """Send a network message"""
@@ -351,8 +350,8 @@ class NetworkProtocol:
             else:
                 await self.message_bus.send(internal_message, message.to_node_id)
 
-        except Exception as e:
-            self.logger.error(f"Failed to send message {message.message_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to send message %s: %s", message.message_id, str(error))
             raise
 
     async def _setup_message_handlers(self):
@@ -380,8 +379,8 @@ class NetworkProtocol:
                 # Respond to discovery request
                 await self._respond_to_discovery(message)
 
-        except Exception as e:
-            self.logger.error(f"Error handling discovery message: {e}")
+        except Exception as error:
+            self.logger.error("Error handling discovery message: %s", str(error))
 
     async def _handle_node_join(self, message: Message):
         """Handle a node joining the network"""
@@ -405,10 +404,10 @@ class NetworkProtocol:
 
             self.connected_nodes[message.sender] = node
 
-            self.logger.info(f"Node joined network: {node.identity.node_name}")
+            self.logger.info("Node joined network: %s", node.identity.node_name)
 
-        except Exception as e:
-            self.logger.error(f"Error handling node join: {e}")
+        except Exception as error:
+            self.logger.error("Error handling node join: %s", str(error))
 
     async def _respond_to_discovery(self, message: Message):
         """Respond to a discovery request"""
@@ -435,13 +434,12 @@ class NetworkProtocol:
 
             await self._send_message(response_message)
 
-        except Exception as e:
-            self.logger.error(f"Error responding to discovery: {e}")
+        except Exception as error:
+            self.logger.error("Error responding to discovery: %s", str(error))
 
     async def _handle_negotiation(self, message: Message):
         """Handle negotiation messages"""
         # Implementation for negotiation handling
-        pass
 
     async def _handle_heartbeat(self, message: Message):
         """Handle heartbeat messages"""
@@ -463,16 +461,14 @@ class NetworkProtocol:
                 if "resource_usage" in content:
                     node.resource_usage = content["resource_usage"]
 
-        except Exception as e:
-            self.logger.error(f"Error handling heartbeat from {message.sender}: {e}")
+        except Exception as error:
+            self.logger.error("Error handling heartbeat from %s: %s", message.sender, str(error))
 
     async def _handle_status_update(self, message: Message):
         """Handle status update messages"""
-        pass
 
     async def _handle_capability_announcement(self, message: Message):
         """Handle capability announcement messages"""
-        pass
 
     async def _start_background_tasks(self):
         """Start background maintenance tasks"""
@@ -491,8 +487,8 @@ class NetworkProtocol:
             try:
                 await self.send_heartbeat()
                 await asyncio.sleep(self.heartbeat_interval)
-            except Exception as e:
-                self.logger.error(f"Error in heartbeat task: {e}")
+            except Exception as error:
+                self.logger.error("Error in heartbeat task: %s", str(error))
                 await asyncio.sleep(self.heartbeat_interval)
 
     async def _monitor_node_health(self):
@@ -507,13 +503,13 @@ class NetworkProtocol:
 
                 # Remove unhealthy nodes
                 for node_id in unhealthy_nodes:
-                    self.logger.warning(f"Removing unhealthy node: {node_id}")
+                    self.logger.warning("Removing unhealthy node: %s", node_id)
                     del self.connected_nodes[node_id]
 
                 await asyncio.sleep(60)  # Check every minute
 
-            except Exception as e:
-                self.logger.error(f"Error monitoring node health: {e}")
+            except Exception as error:
+                self.logger.error("Error monitoring node health: %s", str(error))
                 await asyncio.sleep(60)
 
     async def _cleanup_expired_messages(self):
@@ -537,8 +533,8 @@ class NetworkProtocol:
 
                 await asyncio.sleep(300)  # Clean up every 5 minutes
 
-            except Exception as e:
-                self.logger.error(f"Error cleaning up messages: {e}")
+            except Exception as error:
+                self.logger.error("Error cleaning up messages: %s", str(error))
                 await asyncio.sleep(300)
 
     def _matches_criteria(self, node: NetworkNode, criteria: Dict[str, Any]) -> bool:

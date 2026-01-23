@@ -4,16 +4,14 @@ Advanced State Machine
 Provides distributed state machine capabilities for workflow management.
 """
 
-import logging
 import asyncio
-from typing import Dict, Any, List, Optional, Callable
+import logging
 from datetime import datetime
-from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 
 class StateTransitionError(Exception):
     """Raised when an invalid state transition is attempted"""
-    pass
 
 
 class DistributedStateMachine:
@@ -52,7 +50,7 @@ class DistributedStateMachine:
     def add_state(self, state: str):
         """Add a state to the machine"""
         self.states.add(state)
-        self.logger.debug(f"Added state: {state}")
+        self.logger.debug("Added state: %s", state)
 
     def add_transition(
         self,
@@ -87,7 +85,7 @@ class DistributedStateMachine:
             self.actions[transition_key] = action
 
         self.logger.debug(
-            f"Added transition: {from_state} --[{event}]--> {to_state}"
+            "Added transition: %s --[%s]--> %s", from_state, event, to_state
         )
 
     async def trigger(
@@ -119,8 +117,8 @@ class DistributedStateMachine:
         guard = self.guards.get(transition_key)
         if guard and not await self._execute_guard(guard, context):
             self.logger.info(
-                f"Guard prevented transition from {self.current_state} on {event}"
-            )
+            "Guard prevented transition from %s on %s", self.current_state, event
+        )
             return False
 
         # Get target state
@@ -146,7 +144,7 @@ class DistributedStateMachine:
         self.current_state = to_state
 
         self.logger.info(
-            f"Transitioned: {old_state} --[{event}]--> {to_state}"
+            "Transitioned: %s --[%s]--> %s", old_state, event, to_state
         )
 
         # Persist state
@@ -166,8 +164,8 @@ class DistributedStateMachine:
                 return await guard(self, context)
             else:
                 return guard(self, context)
-        except Exception as e:
-            self.logger.error(f"Error in guard: {e}")
+        except Exception as error:
+            self.logger.error("Error in guard: %s", str(error))
             return False
 
     async def _execute_action(
@@ -181,8 +179,8 @@ class DistributedStateMachine:
                 await action(self, context)
             else:
                 action(self, context)
-        except Exception as e:
-            self.logger.error(f"Error in action: {e}")
+        except Exception as error:
+            self.logger.error("Error in action: %s", str(error))
             raise
 
     async def _persist_state(self):
@@ -205,7 +203,7 @@ class DistributedStateMachine:
 
     async def restore_from_events(self):
         """Restore state machine from event log (event sourcing)"""
-        self.logger.info(f"Restoring state from {len(self.event_log)} events")
+        self.logger.info("Restoring state from %s events", len(self.event_log))
 
         # Reset to initial state
         # Would restore from storage in real implementation
@@ -226,7 +224,7 @@ class DistributedStateMachine:
         }
 
         self.snapshots.append(snapshot)
-        self.logger.debug(f"Created snapshot at state {self.current_state}")
+        self.logger.debug("Created snapshot at state %s", self.current_state)
 
         return snapshot
 

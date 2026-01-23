@@ -1,10 +1,11 @@
 """
 Envelope data model - represents a message envelope for agent communication
 """
-from pydantic import BaseModel, Field
-from typing import Any, Dict, Literal
 import time
 import uuid
+from typing import Any, Dict, Literal
+
+from pydantic import BaseModel, Field
 
 MessageType = Literal["chat", "toolResult", "status", "error"]
 

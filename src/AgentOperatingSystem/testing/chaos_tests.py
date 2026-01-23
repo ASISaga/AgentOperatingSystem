@@ -5,12 +5,12 @@ Simulates failures and degraded conditions to verify system resilience,
 graceful degradation, and recovery mechanisms.
 """
 
-from typing import Dict, Any, List, Optional, Callable, Awaitable
-from datetime import datetime, timedelta
 import asyncio
-import random
 import logging
+import random
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 
 class FailureType(str, Enum):
@@ -108,7 +108,7 @@ class FailureSimulator:
 
         self.active_failures[failure_id] = failure_config
         self.logger.warning(
-            f"Injecting storage outage ({storage_type}) for {duration_seconds}s"
+            "Injecting storage outage (%s) for %ss", storage_type, duration_seconds
         )
 
         asyncio.create_task(self._cleanup_failure(failure_id, duration_seconds))
@@ -143,7 +143,7 @@ class FailureSimulator:
 
         self.active_failures[failure_id] = failure_config
         self.logger.warning(
-            f"Injecting message bus delay: {delay_ms}ms for {duration_seconds}s"
+            "Injecting message bus delay: %sms for %ss", delay_ms, duration_seconds
         )
 
         asyncio.create_task(self._cleanup_failure(failure_id, duration_seconds))
@@ -252,7 +252,7 @@ class FailureSimulator:
             self.failure_history.append(failure.copy())
             del self.active_failures[failure_id]
 
-            self.logger.info(f"Failure cleaned up: {failure_id}")
+            self.logger.info("Failure cleaned up: %s", failure_id)
 
     def should_fail(self, failure_type: FailureType) -> bool:
         """
@@ -345,8 +345,8 @@ class ChaosTestFramework:
 
         try:
             self.logger.info(
-                f"Testing graceful degradation: {component} under {failure_scenario.value}"
-            )
+            "Testing graceful degradation: %s under %s", component, failure_scenario.value
+        )
 
             # Inject failure
             if failure_scenario == FailureType.NETWORK_DELAY:
@@ -374,12 +374,12 @@ class ChaosTestFramework:
 
             result["test_result"] = test_result
             result["status"] = "passed"
-            self.logger.info(f"✅ Graceful degradation test passed for {component}")
+            self.logger.info("✅ Graceful degradation test passed for %s", component)
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Graceful degradation test failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Graceful degradation test failed: %s", str(error))
 
         finally:
             result["completed_at"] = datetime.utcnow().isoformat()
@@ -416,7 +416,7 @@ class ChaosTestFramework:
         }
 
         try:
-            self.logger.info(f"Testing recovery for: {component}")
+            self.logger.info("Testing recovery for: %s", component)
 
             # Inject failure
             failure_id = await self.simulator.inject_storage_outage(
@@ -460,12 +460,12 @@ class ChaosTestFramework:
             else:
                 result["status"] = "failed"
                 result["error"] = "Component did not recover"
-                self.logger.error(f"❌ Recovery test failed for {component}")
+                self.logger.error("❌ Recovery test failed for %s", component)
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Recovery test failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Recovery test failed: %s", str(error))
 
         finally:
             result["completed_at"] = datetime.utcnow().isoformat()
@@ -500,7 +500,7 @@ class ChaosTestFramework:
         }
 
         try:
-            self.logger.info(f"Testing circuit breaker for: {component}")
+            self.logger.info("Testing circuit breaker for: %s", component)
 
             # Inject failures
             await self.simulator.inject_policy_engine_failure(failure_rate=1.0)
@@ -521,24 +521,24 @@ class ChaosTestFramework:
                         circuit_opened = True
                         result["circuit_opened_at_call"] = i + 1
                         self.logger.info(
-                            f"Circuit breaker opened after {failures} failures"
-                        )
+            "Circuit breaker opened after %s failures", failures
+        )
 
             result["total_failures"] = failures
             result["circuit_opened"] = circuit_opened
 
             if circuit_opened:
                 result["status"] = "passed"
-                self.logger.info(f"✅ Circuit breaker test passed for {component}")
+                self.logger.info("✅ Circuit breaker test passed for %s", component)
             else:
                 result["status"] = "failed"
                 result["error"] = "Circuit breaker did not open"
-                self.logger.error(f"❌ Circuit breaker test failed for {component}")
+                self.logger.error("❌ Circuit breaker test failed for %s", component)
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Circuit breaker test failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Circuit breaker test failed: %s", str(error))
 
         finally:
             result["completed_at"] = datetime.utcnow().isoformat()

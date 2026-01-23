@@ -5,11 +5,10 @@ Enhanced versions of base agent classes that integrate self-learning capabilitie
 These classes combine the original AOS agent functionality with learning features.
 """
 
-import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any, Dict, List
 
-from ..agents.purpose_driven import BaseAgent, PurposeDrivenAgent
+from ..agents.purpose_driven import PurposeDrivenAgent
 from .self_learning_mixin import SelfLearningMixin
 
 # Legacy Agent and StatefulAgent classes for backward compatibility
@@ -54,7 +53,7 @@ class SelfLearningAgent(SelfLearningMixin, Agent):
         if self.aos_context:
             await self._initialize_learning_components(self.aos_context)
 
-        self.logger.info(f"Self-Learning Agent {self.agent_id} started with domains: {self.domains}")
+        self.logger.info("Self-Learning Agent %s started with domains: %s", self.agent_id, self.domains)
 
     async def _handle_user_request_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
         """Handle user request messages with learning capabilities"""
@@ -68,11 +67,11 @@ class SelfLearningAgent(SelfLearningMixin, Agent):
             # Return just the response to avoid nested serialization
             return result
 
-        except Exception as e:
-            self.logger.error(f"Error handling user request: {e}")
+        except Exception as error:
+            self.logger.error("Error handling user request: %s", str(error))
             return {
                 "status": "error",
-                "error": str(e),
+                "error": str(error),
                 "agent_id": self.agent_id
             }
 
@@ -91,11 +90,11 @@ class SelfLearningAgent(SelfLearningMixin, Agent):
                 "agent_id": self.agent_id
             }
 
-        except Exception as e:
-            self.logger.error(f"Error rating interaction: {e}")
+        except Exception as error:
+            self.logger.error("Error rating interaction: %s", str(error))
             return {
                 "status": "error",
-                "error": str(e),
+                "error": str(error),
                 "agent_id": self.agent_id
             }
 
@@ -114,11 +113,11 @@ class SelfLearningAgent(SelfLearningMixin, Agent):
                 "agent_id": self.agent_id
             }
 
-        except Exception as e:
-            self.logger.error(f"Error adding knowledge: {e}")
+        except Exception as error:
+            self.logger.error("Error adding knowledge: %s", str(error))
             return {
                 "status": "error",
-                "error": str(e),
+                "error": str(error),
                 "agent_id": self.agent_id
             }
 
@@ -135,11 +134,11 @@ class SelfLearningAgent(SelfLearningMixin, Agent):
                 "agent_id": self.agent_id
             }
 
-        except Exception as e:
-            self.logger.error(f"Error getting insights: {e}")
+        except Exception as error:
+            self.logger.error("Error getting insights: %s", str(error))
             return {
                 "status": "error",
-                "error": str(e),
+                "error": str(error),
                 "agent_id": self.agent_id
             }
 
@@ -197,7 +196,7 @@ class SelfLearningStatefulAgent(SelfLearningMixin, StatefulAgent):
         if self.aos_context:
             await self._initialize_learning_components(self.aos_context)
 
-        self.logger.info(f"Self-Learning Stateful Agent {self.agent_id} started")
+        self.logger.info("Self-Learning Stateful Agent %s started", self.agent_id)
 
     async def handle_user_request(self, user_input: str, domain: str = None,
                                 conversation_id: str = None, **kwargs) -> Dict[str, Any]:
@@ -251,11 +250,11 @@ class SelfLearningStatefulAgent(SelfLearningMixin, StatefulAgent):
             # Return just the result to avoid nested serialization
             return result
 
-        except Exception as e:
-            self.logger.error(f"Error handling user request: {e}")
+        except Exception as error:
+            self.logger.error("Error handling user request: %s", str(error))
             return {
                 "status": "error",
-                "error": str(e),
+                "error": str(error),
                 "agent_id": self.agent_id
             }
 
@@ -275,11 +274,11 @@ class SelfLearningStatefulAgent(SelfLearningMixin, StatefulAgent):
                 "updated_state": self.get_state()
             }
 
-        except Exception as e:
-            self.logger.error(f"Error rating interaction: {e}")
+        except Exception as error:
+            self.logger.error("Error rating interaction: %s", str(error))
             return {
                 "status": "error",
-                "error": str(e),
+                "error": str(error),
                 "agent_id": self.agent_id
             }
 
@@ -297,11 +296,11 @@ class SelfLearningStatefulAgent(SelfLearningMixin, StatefulAgent):
                 "agent_id": self.agent_id
             }
 
-        except Exception as e:
-            self.logger.error(f"Error updating learning state: {e}")
+        except Exception as error:
+            self.logger.error("Error updating learning state: %s", str(error))
             return {
                 "status": "error",
-                "error": str(e),
+                "error": str(error),
                 "agent_id": self.agent_id
             }
 

@@ -4,11 +4,12 @@ Evidence retrieval interface for AgentOperatingSystem
 Standard API for fetching documents, metrics, prior decisions, and external references.
 """
 
-from typing import Dict, Any, Optional, List
+import uuid
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-import uuid
 
 
 class EvidenceType(str, Enum):

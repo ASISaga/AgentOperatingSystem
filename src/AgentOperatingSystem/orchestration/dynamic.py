@@ -5,8 +5,9 @@ Provides runtime workflow generation and adaptive orchestration capabilities.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+from typing import Any, Dict, List
+
 from .workflow import Workflow
 from .workflow_step import WorkflowStep
 
@@ -43,7 +44,7 @@ class DynamicWorkflowComposer:
         Returns:
             Generated workflow instance
         """
-        self.logger.info(f"Generating workflow for goal: {goal}")
+        self.logger.info("Generating workflow for goal: %s", goal)
 
         # Analyze goal and break down into steps
         steps = await self._decompose_goal(goal, constraints, context)
@@ -66,7 +67,7 @@ class DynamicWorkflowComposer:
             "generated_at": datetime.utcnow().isoformat()
         }
 
-        self.logger.info(f"Generated workflow with {len(optimized_workflow)} steps")
+        self.logger.info("Generated workflow with %s steps", len(optimized_workflow))
         return workflow
 
     async def from_intent(self, intent: Dict[str, Any]) -> Workflow:
@@ -79,7 +80,7 @@ class DynamicWorkflowComposer:
         Returns:
             Generated workflow
         """
-        self.logger.info(f"Creating workflow from intent: {intent.get('objective')}")
+        self.logger.info("Creating workflow from intent: %s", intent.get('objective'))
 
         objective = intent.get("objective", "")
         stakeholders = intent.get("stakeholders", [])
@@ -190,8 +191,8 @@ class DynamicWorkflowComposer:
     ) -> List[WorkflowStep]:
         """Optimize workflow structure based on constraints"""
         # Apply optimizations
-        budget = constraints.get("budget")
-        timeline_days = constraints.get("timeline_days")
+        constraints.get("budget")
+        constraints.get("timeline_days")
 
         # For now, return as-is
         # Can add parallelization, resource optimization, etc.
@@ -200,7 +201,7 @@ class DynamicWorkflowComposer:
     def register_template(self, template_id: str, template: Dict[str, Any]):
         """Register a reusable workflow template"""
         self.workflow_templates[template_id] = template
-        self.logger.info(f"Registered workflow template: {template_id}")
+        self.logger.info("Registered workflow template: %s", template_id)
 
     def register_agent_capabilities(
         self,
@@ -209,4 +210,4 @@ class DynamicWorkflowComposer:
     ):
         """Register agent capabilities for intelligent assignment"""
         self.agent_capabilities[agent_id] = capabilities
-        self.logger.debug(f"Registered capabilities for {agent_id}: {capabilities}")
+        self.logger.debug("Registered capabilities for %s: %s", agent_id, capabilities)

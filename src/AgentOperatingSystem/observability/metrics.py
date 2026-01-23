@@ -5,12 +5,13 @@ Tracks decision latency (p50/p95), SLA compliance, incident MTTR,
 policy evaluation time, and event lag.
 """
 
-from typing import Dict, Any, Optional, List
+import statistics
+from collections import defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-from collections import defaultdict
-import statistics
 
 
 class MetricType(str, Enum):

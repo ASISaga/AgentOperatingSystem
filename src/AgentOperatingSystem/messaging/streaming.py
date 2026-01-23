@@ -4,11 +4,11 @@ Event Streaming and Stream Processing
 Provides real-time event streaming and complex event processing capabilities.
 """
 
-import logging
 import asyncio
-from typing import Dict, Any, List, Optional, Callable
+import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
 
 
 @dataclass
@@ -202,16 +202,16 @@ class StreamProcessor:
                 try:
                     result = processor_func(window_events)
                     self.logger.debug(
-                        f"Processed window with {len(window_events)} events: {result}"
-                    )
+            "Processed window with %s events: %s", len(window_events), result
+        )
 
                     # Output to stream if specified
                     if output_stream and result:
                         # Would publish to output stream
                         pass
 
-                except Exception as e:
-                    self.logger.error(f"Error processing window: {e}")
+                except Exception as error:
+                    self.logger.error("Error processing window: %s", str(error))
 
     async def _process_sliding_window(
         self,
@@ -221,7 +221,6 @@ class StreamProcessor:
     ):
         """Process stream with sliding windows"""
         # Implementation similar to tumbling but with overlapping windows
-        pass
 
     @staticmethod
     async def join_streams(
@@ -288,7 +287,7 @@ class ComplexEventProcessor:
             pattern_definition: Pattern definition (SQL-like syntax)
             action: Function to call when pattern matches
         """
-        self.logger.info(f"Registering CEP pattern: {pattern_name}")
+        self.logger.info("Registering CEP pattern: %s", pattern_name)
 
         self.patterns[pattern_name] = {
             "definition": pattern_definition,
@@ -312,7 +311,7 @@ class ComplexEventProcessor:
             max_time_span: Maximum time between events
             on_pattern_match: Callback when pattern detected
         """
-        self.logger.info(f"Detecting {pattern_type} pattern: {events}")
+        self.logger.info("Detecting %s pattern: %s", pattern_type, events)
 
         # Store pattern for detection
         pattern_id = f"{pattern_type}_{len(self.patterns)}"
@@ -339,10 +338,10 @@ class ComplexEventProcessor:
                 if callback:
                     try:
                         await callback(event)
-                    except Exception as e:
+                    except Exception as error:
                         self.logger.error(
-                            f"Error in pattern callback for {pattern_id}: {e}"
-                        )
+            "Error in pattern callback for %s: %s", pattern_id, error
+        )
 
     async def _matches_pattern(
         self,
@@ -354,8 +353,8 @@ class ComplexEventProcessor:
 
         if pattern_type == "sequence":
             # Check for event sequence
-            expected_events = pattern.get("events", [])
-            max_time_span = pattern.get("max_time_span")
+            pattern.get("events", [])
+            pattern.get("max_time_span")
 
             # Find matching sequence in buffer
             # Simplified implementation

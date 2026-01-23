@@ -3,8 +3,9 @@ Observability - Structured logging, metrics, tracing.
 """
 
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict
+
 
 class StructuredLogger:
     """Structured logger with context and correlation."""

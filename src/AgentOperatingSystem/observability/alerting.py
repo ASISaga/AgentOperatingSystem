@@ -4,11 +4,12 @@ Alerting system for AgentOperatingSystem
 Threshold monitoring on key SLOs with routing and playbook attachments.
 """
 
-from typing import Dict, Any, Optional, List, Callable
+import uuid
 from datetime import datetime
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-import uuid
 
 
 class AlertSeverity(str, Enum):
@@ -158,8 +159,8 @@ class AlertingSystem:
         for handler in self._alert_handlers:
             try:
                 handler(alert)
-            except Exception as e:
-                print(f"Error in alert handler: {e}")
+            except Exception as error:
+                print(f"Error in alert handler: {error}")
 
     def register_handler(self, handler: Callable[[Alert], None]):
         """Register an alert handler"""

@@ -13,10 +13,9 @@ the Agent Service's enterprise-grade infrastructure.
 
 import logging
 import os
-from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
-import asyncio
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("AOS.FoundryAgentService")
 
@@ -229,15 +228,15 @@ class FoundryAgentServiceClient:
 
             return response
 
-        except Exception as e:
-            self.logger.error(f"Failed to send message to Foundry Agent Service: {e}")
+        except Exception as error:
+            self.logger.error("Failed to send message to Foundry Agent Service: %s", str(error))
             latency = (datetime.utcnow() - start_time).total_seconds()
             self._update_metrics(success=False, latency=latency)
 
             return FoundryResponse(
                 content="",
                 success=False,
-                error=str(e)
+                error=str(error)
             )
 
     def _prepare_request_payload(
@@ -299,7 +298,7 @@ class FoundryAgentServiceClient:
 
         # This would be replaced with actual HTTP request
         # For now, return a simulated response
-        self.logger.info(f"Calling Foundry Agent Service with payload: {payload}")
+        self.logger.info("Calling Foundry Agent Service with payload: %s", payload)
 
         # Simulated response structure
         return {
@@ -373,7 +372,7 @@ class FoundryAgentServiceClient:
             metadata=metadata or {}
         )
 
-        self.logger.info(f"Created stateful thread: {thread_id}")
+        self.logger.info("Created stateful thread: %s", thread_id)
         return thread_id
 
     async def get_thread_info(self, thread_id: str) -> Optional[ThreadInfo]:
@@ -385,7 +384,7 @@ class FoundryAgentServiceClient:
 
         if thread_id in self.active_threads:
             del self.active_threads[thread_id]
-            self.logger.info(f"Deleted stateful thread: {thread_id}")
+            self.logger.info("Deleted stateful thread: %s", thread_id)
             return True
 
         return False
@@ -401,6 +400,6 @@ class FoundryAgentServiceClient:
             # Send a simple health check message
             response = await self.send_message("health check", domain="system")
             return response.success
-        except Exception as e:
-            self.logger.error(f"Health check failed: {e}")
+        except Exception as error:
+            self.logger.error("Health check failed: %s", str(error))
             return False

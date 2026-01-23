@@ -6,9 +6,8 @@ Handles domain-specific reasoning, context, and best practices.
 """
 
 import logging
-import asyncio
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict
 
 from .knowledge_manager import KnowledgeManager
 from .rag_engine import RAGEngine
@@ -44,10 +43,10 @@ class DomainExpert:
             await self._load_domain_capabilities()
             await self._load_domain_context()
 
-            self.logger.info(f"Domain Expert initialized for {self.domain}")
+            self.logger.info("Domain Expert initialized for %s", self.domain)
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Domain Expert for {self.domain}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Domain Expert for %s: %s", self.domain, str(error))
             raise
 
     async def _load_domain_capabilities(self):
@@ -55,13 +54,13 @@ class DomainExpert:
         self._capabilities_cache = await self.knowledge_manager.get_domain_knowledge(self.domain)
         self._last_cache_update = datetime.utcnow()
 
-        self.logger.debug(f"Loaded {len(self._capabilities_cache)} capabilities for {self.domain}")
+        self.logger.debug("Loaded %s capabilities for %s", len(self._capabilities_cache), self.domain)
 
     async def _load_domain_context(self):
         """Load domain context and directives"""
         self._context_cache = await self.knowledge_manager.get_domain_context(self.domain)
 
-        self.logger.debug(f"Loaded context for {self.domain}")
+        self.logger.debug("Loaded context for %s", self.domain)
 
     async def process_domain_query(self, query: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
         """Process a query specific to this domain"""
@@ -86,12 +85,12 @@ class DomainExpert:
                 "success": True
             }
 
-        except Exception as e:
-            self.logger.error(f"Error processing domain query: {e}")
+        except Exception as error:
+            self.logger.error("Error processing domain query: %s", str(error))
             return {
                 "domain": self.domain,
                 "query": query,
-                "error": str(e),
+                "error": str(error),
                 "success": False
             }
 
@@ -124,8 +123,8 @@ class DomainExpert:
                 similar_interactions = await self.rag_engine.get_similar_interactions(query, self.domain)
                 context["similar_interactions"] = similar_interactions
 
-            except Exception as e:
-                self.logger.warning(f"Failed to get RAG context: {e}")
+            except Exception as error:
+                self.logger.warning("Failed to get RAG context: %s", str(error))
                 context["knowledge_snippets"] = []
                 context["similar_interactions"] = []
 
@@ -154,7 +153,7 @@ class DomainExpert:
                     response_parts.append(f"• {snippet['content']}")
 
         # Add domain-specific guidance
-        key_metrics = context.get("key_metrics", [])
+        context.get("key_metrics", [])
         responsibilities = context.get("responsibilities", [])
 
         if responsibilities:
@@ -314,7 +313,7 @@ class DomainExpert:
         # Refresh capabilities cache
         await self._load_domain_capabilities()
 
-        self.logger.info(f"Added knowledge entry to {self.domain} domain")
+        self.logger.info("Added knowledge entry to %s domain", self.domain)
 
     async def update_domain_context(self, context_updates: Dict[str, Any]):
         """Update domain context and directives"""
@@ -325,7 +324,7 @@ class DomainExpert:
         # For now, we'll update the cache
         self._context_cache = current_context
 
-        self.logger.info(f"Updated context for {self.domain} domain")
+        self.logger.info("Updated context for %s domain", self.domain)
 
     async def get_domain_status(self) -> Dict[str, Any]:
         """Get status information for this domain expert"""
@@ -342,7 +341,7 @@ class DomainExpert:
             try:
                 rag_stats = await self.rag_engine.get_domain_statistics(self.domain)
                 status["rag_statistics"] = rag_stats
-            except Exception as e:
-                self.logger.warning(f"Failed to get RAG statistics: {e}")
+            except Exception as error:
+                self.logger.warning("Failed to get RAG statistics: %s", str(error))
 
         return status

@@ -8,9 +8,11 @@ PerpetualAgents (and PurposeDrivenAgents that inherit from them) are the
 fundamental building blocks.
 """
 
-from typing import Dict, Any, List, Optional
 import logging
+from typing import Any, Dict, List, Optional
+
 from ..agents.purpose_driven import BaseAgent
+
 
 class UnifiedAgentManager:
     """
@@ -76,8 +78,8 @@ class UnifiedAgentManager:
                 )
 
             return True
-        except Exception as e:
-            self.logger.error(f"Failed to register agent {agent.agent_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to register agent %s: %s", agent.agent_id, str(error))
             return False
 
     async def deregister_agent(self, agent_id: str) -> bool:
@@ -100,13 +102,13 @@ class UnifiedAgentManager:
                 # Also remove from perpetual registry if present
                 if agent_id in self.perpetual_agents:
                     del self.perpetual_agents[agent_id]
-                    self.logger.info(f"Deregistered perpetual agent: {agent_id}")
+                    self.logger.info("Deregistered perpetual agent: %s", agent_id)
                 else:
-                    self.logger.info(f"Deregistered task-based agent: {agent_id}")
+                    self.logger.info("Deregistered task-based agent: %s", agent_id)
 
                 return True
-            except Exception as e:
-                self.logger.error(f"Failed to deregister agent {agent_id}: {e}")
+            except Exception as error:
+                self.logger.error("Failed to deregister agent %s: %s", agent_id, str(error))
                 return False
         return False
 

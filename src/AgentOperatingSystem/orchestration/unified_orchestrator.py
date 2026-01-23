@@ -5,16 +5,14 @@ Enhanced orchestration system integrated from SelfLearningAgent.
 Provides comprehensive coordination between agents, MCP clients, and Azure services.
 """
 
-import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Callable, Union
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-import json
+from typing import Any, Callable, Dict, List, Optional
 
 from ..agents import LeadershipAgent
-from .multi_agent_coordinator import MultiAgentCoordinator, CoordinationMode
 from .agent_registry import AgentRegistry
+from .multi_agent_coordinator import CoordinationMode, MultiAgentCoordinator
 
 
 class ExecutionMode(Enum):
@@ -137,15 +135,15 @@ class UnifiedOrchestrator:
 
             return enhanced_result
 
-        except Exception as e:
-            self.logger.error(f"Orchestration failed for execution {execution_id}: {e}")
+        except Exception as error:
+            self.logger.error("Orchestration failed for execution %s: %s", execution_id, str(error))
             execution_time = (datetime.utcnow() - start_time).total_seconds()
-            await self._record_execution_failure(execution_id, str(e), execution_time)
+            await self._record_execution_failure(execution_id, str(error), execution_time)
 
             return {
                 "execution_id": execution_id,
                 "success": False,
-                "error": str(e),
+                "error": str(error),
                 "execution_time": execution_time,
                 "source": "unified_orchestrator"
             }
@@ -444,15 +442,15 @@ class UnifiedOrchestrator:
                     "timestamp": datetime.utcnow().isoformat()
                 })
 
-            except Exception as e:
-                self.logger.error(f"MCP operation failed for {mcp_id}: {e}")
-                results[mcp_id] = {"error": str(e)}
+            except Exception as error:
+                self.logger.error("MCP operation failed for %s: %s", mcp_id, str(error))
+                results[mcp_id] = {"error": str(error)}
 
                 context["steps"].append({
                     "step": "mcp_operation",
                     "mcp_client": mcp_id,
                     "status": "failed",
-                    "error": str(e),
+                    "error": str(error),
                     "timestamp": datetime.utcnow().isoformat()
                 })
 
@@ -551,9 +549,9 @@ class UnifiedOrchestrator:
         if self.send_message_func:
             try:
                 return await self.send_message_func("orchestrator", agent_id, message)
-            except Exception as e:
-                self.logger.error(f"Failed to send message to {agent_id}: {e}")
-                return {"error": f"Failed to communicate with {agent_id}: {str(e)}"}
+            except Exception as error:
+                self.logger.error("Failed to send message to %s: %s", agent_id, str(error))
+                return {"error": f"Failed to communicate with {agent_id}: {str(error)}"}
         else:
             # Fallback: direct agent invocation
             if agent_id in self.registered_agents:

@@ -6,7 +6,8 @@ Routes messages based on content, agent capabilities, and routing rules.
 """
 
 import logging
-from typing import Dict, Callable
+from typing import Callable, Dict
+
 from .bus import MessageBus
 from .types import Message, MessageType
 
@@ -32,7 +33,7 @@ class MessageRouter:
         message_types = list(handlers.keys())
         await self.message_bus.subscribe(agent_id, message_types)
 
-        self.logger.info(f"Registered handlers for agent {agent_id}: {message_types}")
+        self.logger.info("Registered handlers for agent %s: %s", agent_id, message_types)
 
     async def unregister_agent(self, agent_id: str):
         """Unregister agent handlers"""
@@ -40,12 +41,12 @@ class MessageRouter:
             del self.agent_handlers[agent_id]
 
         await self.message_bus.unregister_agent(agent_id)
-        self.logger.info(f"Unregistered agent {agent_id}")
+        self.logger.info("Unregistered agent %s", agent_id)
 
     async def register_handler(self, message_type: str, handler: Callable):
         """Register a global message handler"""
         self.routing_rules[message_type] = handler
-        self.logger.info(f"Registered global handler for {message_type}")
+        self.logger.info("Registered global handler for %s", message_type)
 
     def add_routing_rule(self, rule_name: str, rule_func: Callable):
         """Add custom routing rule"""
@@ -76,14 +77,14 @@ class MessageRouter:
                         try:
                             await handlers[message.type.value](message)
                             success_count += 1
-                        except Exception as e:
-                            self.logger.error(f"Error routing message to {agent_id}: {e}")
+                        except Exception as error:
+                            self.logger.error("Error routing message to %s: %s", agent_id, str(error))
 
                 return success_count > 0
 
-            self.logger.warning(f"No handler found for message {message.id} of type {message.type.value}")
+            self.logger.warning("No handler found for message %s of type %s", message.id, message.type.value)
             return False
 
-        except Exception as e:
-            self.logger.error(f"Error routing message {message.id}: {e}")
+        except Exception as error:
+            self.logger.error("Error routing message %s: %s", message.id, str(error))
             return False

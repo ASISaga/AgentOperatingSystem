@@ -6,52 +6,81 @@ Provides core infrastructure including messaging, orchestration, storage, and mo
 """
 
 from .agent_operating_system import AgentOperatingSystem
-from .config import AOSConfig, default_config
 
 # Core agent classes (consolidated)
 from .agents import (
     BaseAgent,
+    CMOAgent,
+    LeadershipAgent,
     PerpetualAgent,
     PurposeDrivenAgent,
-    LeadershipAgent,
-    CMOAgent
+)
+from .auth.manager import AuthManager
+from .config import AOSConfig, default_config
+from .environment.manager import EnvironmentManager, env_manager
+
+# Self-learning agents (moved from agents to learning module)
+from .learning import (
+    DomainExpert,
+    InteractionLearner,
+    KnowledgeManager,
+    LearningPipeline,
+    RAGEngine,
+    SelfLearningAgent,
+    SelfLearningMixin,
+    SelfLearningStatefulAgent,
+)
+from .mcp import MCPClient, MCPClientManager, MCPServerConfig, MCPServerType
+from .messaging.bus import MessageBus
+from .messaging.router import MessageRouter
+from .messaging.servicebus_manager import ServiceBusManager
+from .messaging.types import Message, MessagePriority, MessageType
+from .ml.pipeline import MLPipelineManager
+from .monitoring.audit_trail_generic import AuditEvent as AuditEventNew
+from .monitoring.audit_trail_generic import AuditSeverity
+from .monitoring.audit_trail_generic import AuditTrailManager as AuditTrailManagerNew
+from .monitoring.monitor import SystemMonitor
+from .observability.structured import StructuredLogger as StructuredLoggerNew
+from .observability.structured import (
+    correlation_scope,
+    get_health_check,
+    get_metrics_collector,
 )
 
 # Agent orchestration (moved from agents module)
 from .orchestration import (
-    UnifiedAgentManager,
-    MultiAgentSystem,
+    AgentFrameworkSystem,
     BusinessAnalystAgent,
-    SoftwareEngineerAgent,
+    MultiAgentSystem,
     ProductOwnerAgent,
-    AgentFrameworkSystem
+    SoftwareEngineerAgent,
+    UnifiedAgentManager,
 )
-
-# Self-learning agents (moved from agents to learning module)
-from .learning import SelfLearningAgent, SelfLearningStatefulAgent
-from .messaging.types import Message, MessageType, MessagePriority
-from .messaging.bus import MessageBus
-from .messaging.router import MessageRouter
-from .messaging.servicebus_manager import ServiceBusManager
 from .orchestration.engine import DecisionEngine
 from .orchestration.orchestrator import OrchestrationEngine
 from .orchestration.workflow import Workflow
+from .orchestration.workflow_orchestrator import (
+    WorkflowOrchestrator,
+    WorkflowOrchestratorFactory,
+)
 from .orchestration.workflow_step import WorkflowStep
-from .orchestration.workflow_orchestrator import WorkflowOrchestrator, WorkflowOrchestratorFactory
-from .storage.manager import StorageManager
-from .monitoring.monitor import SystemMonitor
-from .ml.pipeline import MLPipelineManager
-from .mcp import MCPClient, MCPClientManager, MCPServerType, MCPServerConfig
-from .auth.manager import AuthManager
-from .environment.manager import EnvironmentManager, env_manager
-from .shared.models import Envelope, MessagesQuery, UiAction
-from .learning import KnowledgeManager, RAGEngine, InteractionLearner, SelfLearningMixin, DomainExpert, LearningPipeline
 
 # Infrastructure components from migration
-from .reliability.patterns import CircuitBreaker, RetryPolicy, IdempotencyHandler, with_retry, with_circuit_breaker
-from .observability.structured import StructuredLogger as StructuredLoggerNew, correlation_scope, get_metrics_collector, get_health_check
-from .services.service_interfaces import IStorageService, IMessagingService, IWorkflowService, IAuthService
-from .monitoring.audit_trail_generic import AuditTrailManager as AuditTrailManagerNew, AuditEvent as AuditEventNew, AuditSeverity
+from .reliability.patterns import (
+    CircuitBreaker,
+    IdempotencyHandler,
+    RetryPolicy,
+    with_circuit_breaker,
+    with_retry,
+)
+from .services.service_interfaces import (
+    IAuthService,
+    IMessagingService,
+    IStorageService,
+    IWorkflowService,
+)
+from .shared.models import Envelope, MessagesQuery, UiAction
+from .storage.manager import StorageManager
 
 __version__ = "1.1.0"
 __author__ = "ASISaga"

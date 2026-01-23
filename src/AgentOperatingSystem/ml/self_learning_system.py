@@ -13,20 +13,17 @@ Key Features:
 - Knowledge preservation and transfer
 """
 
-import os
-import json
 import asyncio
 import logging
-import numpy as np
-from typing import Dict, Any, List, Optional, Tuple, Union
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-import hashlib
-import uuid
+from typing import Any, Dict, List, Optional
 
+import numpy as np
 from aos.core.base import AOSComponent
-from aos.monitoring.audit_trail import audit_log, AuditEventType, AuditSeverity
+from aos.monitoring.audit_trail import AuditEventType, AuditSeverity, audit_log
 from aos.storage.manager import StorageManager
 
 logger = logging.getLogger(__name__)
@@ -220,8 +217,8 @@ class SelfLearningSystem(AOSComponent):
                 severity=AuditSeverity.INFO
             )
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize self-learning system: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize self-learning system: %s", str(error))
             raise
 
     async def record_episode(self, episode: LearningEpisode) -> bool:
@@ -259,8 +256,8 @@ class SelfLearningSystem(AOSComponent):
 
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to record learning episode: {e}")
+        except Exception as error:
+            self.logger.error("Failed to record learning episode: %s", str(error))
             return False
 
     async def collect_feedback(self, episode_id: str, feedback_type: FeedbackType,
@@ -269,7 +266,7 @@ class SelfLearningSystem(AOSComponent):
         try:
             episode = self.learning_episodes.get(episode_id)
             if not episode:
-                self.logger.warning(f"Episode not found: {episode_id}")
+                self.logger.warning("Episode not found: %s", episode_id)
                 return False
 
             # Process feedback based on type
@@ -306,8 +303,8 @@ class SelfLearningSystem(AOSComponent):
 
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to collect feedback: {e}")
+        except Exception as error:
+            self.logger.error("Failed to collect feedback: %s", str(error))
             return False
 
     async def analyze_patterns(self, agent_id: Optional[str] = None) -> List[LearningPattern]:
@@ -341,11 +338,11 @@ class SelfLearningSystem(AOSComponent):
                         pattern.__dict__
                     )
 
-            self.logger.info(f"Identified {len(patterns)} learning patterns")
+            self.logger.info("Identified %s learning patterns", len(patterns))
             return patterns
 
-        except Exception as e:
-            self.logger.error(f"Failed to analyze patterns: {e}")
+        except Exception as error:
+            self.logger.error("Failed to analyze patterns: %s", str(error))
             return []
 
     async def create_adaptation_plan(self, pattern: LearningPattern) -> Optional[AdaptationPlan]:
@@ -397,8 +394,8 @@ class SelfLearningSystem(AOSComponent):
 
             return plan
 
-        except Exception as e:
-            self.logger.error(f"Failed to create adaptation plan: {e}")
+        except Exception as error:
+            self.logger.error("Failed to create adaptation plan: %s", str(error))
             return None
 
     async def execute_adaptation_plan(self, plan_id: str) -> bool:
@@ -406,12 +403,12 @@ class SelfLearningSystem(AOSComponent):
         try:
             plan = self.adaptation_plans.get(plan_id)
             if not plan:
-                self.logger.error(f"Adaptation plan not found: {plan_id}")
+                self.logger.error("Adaptation plan not found: %s", plan_id)
                 return False
 
             # Check if approval is required
             if self.config["adaptation_approval_required"] and plan.status != "approved":
-                self.logger.warning(f"Adaptation plan {plan_id} requires approval")
+                self.logger.warning("Adaptation plan %s requires approval", plan_id)
                 return False
 
             plan.status = "executing"
@@ -446,8 +443,8 @@ class SelfLearningSystem(AOSComponent):
 
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to execute adaptation plan {plan_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to execute adaptation plan %s: %s", plan_id, str(error))
             return False
 
     async def get_learning_metrics(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
@@ -488,8 +485,8 @@ class SelfLearningSystem(AOSComponent):
                 "learning_efficiency": self._calculate_learning_efficiency()
             }
 
-        except Exception as e:
-            self.logger.error(f"Failed to get learning metrics: {e}")
+        except Exception as error:
+            self.logger.error("Failed to get learning metrics: %s", str(error))
             return {}
 
     def _validate_episode(self, episode: LearningEpisode) -> bool:
@@ -512,8 +509,8 @@ class SelfLearningSystem(AOSComponent):
                 # Convert back to LearningPattern objects
                 pass
 
-        except Exception as e:
-            self.logger.warning(f"Could not load learning state: {e}")
+        except Exception as error:
+            self.logger.warning("Could not load learning state: %s", str(error))
 
     async def _start_learning_tasks(self):
         """Start background learning tasks"""
@@ -526,8 +523,8 @@ class SelfLearningSystem(AOSComponent):
             try:
                 await self.analyze_patterns()
                 await asyncio.sleep(3600)  # Run every hour
-            except Exception as e:
-                self.logger.error(f"Error in continuous analysis: {e}")
+            except Exception as error:
+                self.logger.error("Error in continuous analysis: %s", str(error))
                 await asyncio.sleep(3600)
 
     async def _adaptation_monitoring_task(self):
@@ -541,14 +538,13 @@ class SelfLearningSystem(AOSComponent):
                         await self.execute_adaptation_plan(plan.plan_id)
 
                 await asyncio.sleep(300)  # Check every 5 minutes
-            except Exception as e:
-                self.logger.error(f"Error in adaptation monitoring: {e}")
+            except Exception as error:
+                self.logger.error("Error in adaptation monitoring: %s", str(error))
                 await asyncio.sleep(300)
 
     async def _analyze_recent_episodes(self):
         """Analyze recent episodes for immediate insights"""
         # Implementation for real-time episode analysis
-        pass
 
     async def _analyze_performance_patterns(self, episodes) -> List[LearningPattern]:
         """Analyze performance patterns in episodes"""
@@ -593,7 +589,6 @@ class SelfLearningSystem(AOSComponent):
     async def _execute_focus_area_adaptation(self, plan: AdaptationPlan, focus_area: LearningFocus):
         """Execute adaptation for a specific focus area"""
         # Implementation for focus area specific adaptations
-        pass
 
     def _calculate_learning_efficiency(self) -> float:
         """Calculate overall learning efficiency metric"""

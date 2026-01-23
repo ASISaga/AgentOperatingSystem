@@ -5,11 +5,12 @@ Tracks risks with likelihood, impact, owner, mitigation plans, and review cadenc
 Linked to decisions and incidents.
 """
 
-from typing import Dict, Any, Optional, List
+import uuid
 from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-import uuid
 
 
 class RiskLevel(str, Enum):

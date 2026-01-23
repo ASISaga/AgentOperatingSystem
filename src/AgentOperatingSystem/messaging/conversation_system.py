@@ -8,16 +8,16 @@ This provides the OS-level conversation and coordination mechanisms
 that agents can use for structured interactions.
 """
 
-import uuid
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Set
+import uuid
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from dataclasses import dataclass, field
-from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
 
-from aos.monitoring.audit_trail import audit_log, AuditEventType, AuditSeverity
+from aos.monitoring.audit_trail import AuditEventType, AuditSeverity, audit_log
 
 
 class ConversationType(Enum):
@@ -265,39 +265,32 @@ class ConversationSystem(ABC):
     @abstractmethod
     async def create_conversation(self, conversation: Conversation) -> str:
         """Create a new conversation"""
-        pass
 
     @abstractmethod
     async def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
         """Retrieve a conversation by ID"""
-        pass
 
     @abstractmethod
     async def update_conversation(self, conversation: Conversation) -> None:
         """Update an existing conversation"""
-        pass
 
     @abstractmethod
     async def list_conversations_by_role(self, role: ConversationRole) -> List[Conversation]:
         """List conversations where role is participant"""
-        pass
 
     @abstractmethod
     async def list_pending_signatures(self, signer: ConversationRole) -> List[Conversation]:
         """List conversations pending signature from a specific role"""
-        pass
 
     @abstractmethod
     async def sign_conversation(self, conversation_id: str, signer_role: ConversationRole,
                               signer_name: str) -> bool:
         """Sign a conversation"""
-        pass
 
     @abstractmethod
     async def add_message(self, conversation_id: str, sender_role: ConversationRole,
                          sender_name: str, content: str, message_type: str = "standard") -> Optional[str]:
         """Add a message to a conversation"""
-        pass
 
 
 class AOSConversationSystem(ConversationSystem):
@@ -353,11 +346,11 @@ class AOSConversationSystem(ConversationSystem):
                 }
             )
 
-            self.logger.info(f"Created conversation {conversation.id} of type {conversation.type.value}")
+            self.logger.info("Created conversation %s of type %s", conversation.id, conversation.type.value)
             return conversation.id
 
-        except Exception as e:
-            self.logger.error(f"Failed to create conversation: {e}")
+        except Exception as error:
+            self.logger.error("Failed to create conversation: %s", str(error))
             raise
 
     async def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
@@ -370,10 +363,10 @@ class AOSConversationSystem(ConversationSystem):
             conversation.updated_at = datetime.now(timezone.utc)
             self.conversations[conversation.id] = conversation
 
-            self.logger.info(f"Updated conversation {conversation.id}")
+            self.logger.info("Updated conversation %s", conversation.id)
 
-        except Exception as e:
-            self.logger.error(f"Failed to update conversation {conversation.id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to update conversation %s: %s", conversation.id, str(error))
             raise
 
     async def list_conversations_by_role(self, role: ConversationRole) -> List[Conversation]:
@@ -399,15 +392,15 @@ class AOSConversationSystem(ConversationSystem):
         try:
             conversation = self.conversations.get(conversation_id)
             if not conversation:
-                self.logger.warning(f"Conversation {conversation_id} not found")
+                self.logger.warning("Conversation %s not found", conversation_id)
                 return False
 
             if signer_role not in conversation.required_signers:
-                self.logger.warning(f"Role {signer_role.value} not required to sign conversation {conversation_id}")
+                self.logger.warning("Role %s not required to sign conversation %s", signer_role.value, conversation_id)
                 return False
 
             if conversation.is_signed_by(signer_role):
-                self.logger.warning(f"Conversation {conversation_id} already signed by {signer_role.value}")
+                self.logger.warning("Conversation %s already signed by %s", conversation_id, signer_role.value)
                 return False
 
             success = conversation.add_signature(signer_role, signer_name)
@@ -427,12 +420,12 @@ class AOSConversationSystem(ConversationSystem):
                     }
                 )
 
-                self.logger.info(f"Conversation {conversation_id} signed by {signer_name}[{signer_role.value}]")
+                self.logger.info("Conversation %s signed by %s[%s]", conversation_id, signer_name, signer_role.value)
 
             return success
 
-        except Exception as e:
-            self.logger.error(f"Failed to sign conversation {conversation_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to sign conversation %s: %s", conversation_id, str(error))
             return False
 
     async def add_message(self, conversation_id: str, sender_role: ConversationRole,
@@ -441,16 +434,16 @@ class AOSConversationSystem(ConversationSystem):
         try:
             conversation = self.conversations.get(conversation_id)
             if not conversation:
-                self.logger.warning(f"Conversation {conversation_id} not found")
+                self.logger.warning("Conversation %s not found", conversation_id)
                 return None
 
             message_id = conversation.add_message(sender_role, sender_name, content, message_type)
 
-            self.logger.debug(f"Added message to conversation {conversation_id}")
+            self.logger.debug("Added message to conversation %s", conversation_id)
             return message_id
 
-        except Exception as e:
-            self.logger.error(f"Failed to add message to conversation {conversation_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to add message to conversation %s: %s", conversation_id, str(error))
             return None
 
     async def get_active_conversations(self) -> List[Conversation]:
@@ -502,13 +495,13 @@ class AOSConversationSystem(ConversationSystem):
                     )
 
                 if expired_ids:
-                    self.logger.info(f"Marked {len(expired_ids)} conversations as expired")
+                    self.logger.info("Marked %s conversations as expired", len(expired_ids))
 
                 # Sleep for 5 minutes
                 await asyncio.sleep(300)
 
-            except Exception as e:
-                self.logger.error(f"Error in conversation cleanup task: {e}")
+            except Exception as error:
+                self.logger.error("Error in conversation cleanup task: %s", str(error))
                 await asyncio.sleep(300)
 
     async def health_check(self) -> Dict[str, Any]:
@@ -521,11 +514,11 @@ class AOSConversationSystem(ConversationSystem):
                 "active_conversations": metrics["active_conversations"],
                 "status": "healthy"
             }
-        except Exception as e:
+        except Exception as error:
             return {
                 "initialized": self._initialized,
                 "status": "error",
-                "error": str(e)
+                "error": str(error)
             }
 
 

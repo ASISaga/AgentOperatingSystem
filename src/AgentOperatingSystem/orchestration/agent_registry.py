@@ -7,8 +7,8 @@ implementation tracking, and status management capabilities.
 
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional
 
 from ..agents import LeadershipAgent
 
@@ -50,7 +50,7 @@ class AgentRegistry:
             "capabilities": capabilities or []
         }
 
-        self.logger.info(f"Registered domain agent for: {domain} (Agent ID: {agent.agent_id})")
+        self.logger.info("Registered domain agent for: %s (Agent ID: %s)", domain, agent.agent_id)
 
         return {
             "success": True,
@@ -72,7 +72,7 @@ class AgentRegistry:
         else:
             self.agent_capabilities[domain] = [function_name]
 
-        self.logger.debug(f"Registered function {function_name} for domain {domain}")
+        self.logger.debug("Registered function %s for domain %s", function_name, domain)
 
     async def get_domain_agent(self, domain: str) -> Optional[LeadershipAgent]:
         """Get the agent for a specific domain"""
@@ -104,8 +104,8 @@ class AgentRegistry:
 
             return result
 
-        except Exception as e:
-            self.logger.error(f"Error invoking {domain}.{function_name}: {e}")
+        except Exception as error:
+            self.logger.error("Error invoking %s.%s: %s", domain, function_name, str(error))
             raise
 
     async def track_implementation(self, impl_id: str, domain: str, function_name: str,
@@ -119,12 +119,12 @@ class AgentRegistry:
             "metadata": metadata or {}
         }
 
-        self.logger.info(f"Tracking implementation {impl_id} for {domain}.{function_name}")
+        self.logger.info("Tracking implementation %s for %s.%s", impl_id, domain, function_name)
 
     async def mark_implementation_complete(self, impl_id: str, result: Dict[str, Any] = None) -> None:
         """Mark an implementation as complete"""
         if impl_id not in self.pending_implementations:
-            self.logger.warning(f"Implementation {impl_id} not found in pending list")
+            self.logger.warning("Implementation %s not found in pending list", impl_id)
             return
 
         impl_data = self.pending_implementations.pop(impl_id)
@@ -135,7 +135,7 @@ class AgentRegistry:
 
         self.completed_implementations[impl_id] = impl_data
 
-        self.logger.info(f"Implementation {impl_id} marked as complete")
+        self.logger.info("Implementation %s marked as complete", impl_id)
 
     async def check_implementation_status(self, mcp_clients: Dict[str, Any] = None) -> Dict[str, Any]:
         """Check status of all pending implementations"""
@@ -198,7 +198,7 @@ class AgentRegistry:
             self.agent_status[domain].update(status_update)
             self.last_activity[domain] = datetime.utcnow()
         else:
-            self.logger.warning(f"Cannot update status for unregistered domain: {domain}")
+            self.logger.warning("Cannot update status for unregistered domain: %s", domain)
 
     async def deregister_agent(self, domain: str) -> bool:
         """Deregister an agent and clean up associated data"""
@@ -214,11 +214,11 @@ class AgentRegistry:
             for key in keys_to_remove:
                 del self.agent_functions[key]
 
-            self.logger.info(f"Deregistered agent for domain: {domain}")
+            self.logger.info("Deregistered agent for domain: %s", domain)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error deregistering agent for {domain}: {e}")
+        except Exception as error:
+            self.logger.error("Error deregistering agent for %s: %s", domain, str(error))
             return False
 
     async def list_domains(self) -> List[str]:

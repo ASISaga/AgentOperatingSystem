@@ -5,7 +5,9 @@ Provides a stable abstraction for all AOS and BusinessInfinity executors.
 Note: In agent-framework >= 1.0.0b251218, use WorkflowBuilder.register_executor()
 or WorkflowBuilder.register_agent() instead of the deprecated add_executor() method.
 """
-from agent_framework import Executor, WorkflowContext as _WorkflowContext, handler as _handler
+from agent_framework import Executor
+from agent_framework import WorkflowContext as _WorkflowContext
+from agent_framework import handler as _handler
 
 # Re-export for downstream executors
 WorkflowContext = _WorkflowContext

@@ -5,10 +5,10 @@ Standard message types and message structure for AOS inter-agent communication.
 """
 
 import uuid
-from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, Optional
 
 
 class MessageType(Enum):

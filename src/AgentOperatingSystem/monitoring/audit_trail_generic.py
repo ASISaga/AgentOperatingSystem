@@ -29,16 +29,16 @@ Usage:
     events = audit.query_events(subject_id="agent_123", limit=10)
 """
 
+import hashlib
 import json
 import logging
-import hashlib
+import threading
 import uuid
-from typing import Dict, Any, List, Optional, Set
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
-from dataclasses import dataclass, field, asdict
 from enum import Enum
 from pathlib import Path
-import threading
+from typing import Any, Dict, List, Optional, Set
 
 
 class AuditSeverity(Enum):
@@ -288,16 +288,16 @@ class AuditTrailManager:
         log_file = self.storage_path / f"audit_{today}.jsonl"
 
         try:
-            with open(log_file, 'a') as f:
+            with open(log_file, 'a', encoding="utf-8") as file_obj:
                 for event in self._event_buffer:
                     json_line = json.dumps(event.to_dict())
-                    f.write(json_line + '\n')
+                    file_obj.write(json_line + '\n')
 
-            self.logger.debug(f"Flushed {len(self._event_buffer)} events to {log_file}")
+            self.logger.debug("Flushed %s events to %s", len(self._event_buffer), log_file)
             self._event_buffer.clear()
 
-        except Exception as e:
-            self.logger.error(f"Failed to flush audit events: {e}")
+        except Exception as error:
+            self.logger.error("Failed to flush audit events: %s", str(error))
 
     def flush(self):
         """Manually flush buffered events"""
@@ -345,7 +345,7 @@ class AuditTrailManager:
                 continue
 
             try:
-                with open(log_file, 'r') as f:
+                with open(log_file, 'r', encoding="utf-8") as file_obj:
                     for line in f:
                         try:
                             data = json.loads(line)
@@ -388,12 +388,12 @@ class AuditTrailManager:
                             if len(events) >= limit:
                                 return events
 
-                        except Exception as e:
-                            self.logger.warning(f"Failed to parse audit event: {e}")
+                        except Exception as error:
+                            self.logger.warning("Failed to parse audit event: %s", str(error))
                             continue
 
-            except Exception as e:
-                self.logger.error(f"Failed to read audit log {log_file}: {e}")
+            except Exception as error:
+                self.logger.error("Failed to read audit log %s: %s", log_file, str(error))
 
         return events[:limit]
 
@@ -413,7 +413,7 @@ class AuditTrailManager:
 
         for log_file in self.storage_path.glob('audit_*.jsonl'):
             try:
-                with open(log_file, 'r') as f:
+                with open(log_file, 'r', encoding="utf-8") as file_obj:
                     for line in f:
                         try:
                             data = json.loads(line)
@@ -444,11 +444,11 @@ class AuditTrailManager:
                             if event_id and event.event_id == event_id:
                                 break
 
-                        except Exception as e:
-                            self.logger.warning(f"Failed to verify event: {e}")
+                        except Exception as error:
+                            self.logger.warning("Failed to verify event: %s", str(error))
 
-            except Exception as e:
-                self.logger.error(f"Failed to read audit log {log_file}: {e}")
+            except Exception as error:
+                self.logger.error("Failed to read audit log %s: %s", log_file, str(error))
 
         return {
             "total_verified": total,
@@ -472,7 +472,7 @@ class AuditTrailManager:
             temp_file = log_file.with_suffix('.tmp')
 
             try:
-                with open(log_file, 'r') as infile, open(temp_file, 'w') as outfile:
+                with open(log_file, 'r', encoding="utf-8") as infile, open(temp_file, 'w', encoding="utf-8") as outfile:
                     for line in infile:
                         try:
                             data = json.loads(line)
@@ -490,17 +490,17 @@ class AuditTrailManager:
                             # Keep this event
                             outfile.write(line)
 
-                        except Exception as e:
-                            self.logger.warning(f"Failed to process event during cleanup: {e}")
+                        except Exception as error:
+                            self.logger.warning("Failed to process event during cleanup: %s", str(error))
                             outfile.write(line)  # Keep on error
 
                 # Replace original with cleaned file
                 temp_file.replace(log_file)
 
-            except Exception as e:
-                self.logger.error(f"Failed to cleanup audit log {log_file}: {e}")
+            except Exception as error:
+                self.logger.error("Failed to cleanup audit log %s: %s", log_file, str(error))
                 if temp_file.exists():
                     temp_file.unlink()
 
-        self.logger.info(f"Removed {removed} expired audit events")
+        self.logger.info("Removed %s expired audit events", removed)
         return removed

@@ -5,11 +5,12 @@ Provides intelligent decision-making capabilities for the Agent Operating System
 Integrates with ML models, decision trees, and scoring algorithms.
 """
 
-import logging
 import json
+import logging
 import os
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List
+
 from ..config.decision import DecisionConfig
 
 
@@ -42,23 +43,23 @@ class DecisionEngine:
         try:
             # Load principles
             if os.path.exists(self.config.principles_path):
-                with open(self.config.principles_path, 'r') as f:
-                    self.principles = json.load(f)
+                with open(self.config.principles_path, 'r', encoding="utf-8") as file_obj:
+                    self.principles = json.load(file_obj)
 
             # Load decision tree
             if os.path.exists(self.config.decision_tree_path):
-                with open(self.config.decision_tree_path, 'r') as f:
-                    self.decision_tree = json.load(f)
+                with open(self.config.decision_tree_path, 'r', encoding="utf-8") as file_obj:
+                    self.decision_tree = json.load(file_obj)
 
             # Load adapters
             if os.path.exists(self.config.adapters_path):
-                with open(self.config.adapters_path, 'r') as f:
-                    self.adapters = json.load(f)
+                with open(self.config.adapters_path, 'r', encoding="utf-8") as file_obj:
+                    self.adapters = json.load(file_obj)
 
             self.logger.info("Decision engine configuration loaded successfully")
 
-        except Exception as e:
-            self.logger.warning(f"Could not load decision config: {e}")
+        except Exception as error:
+            self.logger.warning("Could not load decision config: %s", str(error))
             # Use default empty configurations
             self.principles = {"principles": []}
             self.decision_tree = {"root": {"type": "default", "action": "approve"}}
@@ -126,16 +127,16 @@ class DecisionEngine:
             if len(self.decision_history) > 1000:  # Limit history size
                 self.decision_history = self.decision_history[-1000:]
 
-            self.logger.info(f"Decision made: {decision_id} -> {action} (score: {final_score})")
+            self.logger.info("Decision made: %s -> %s (score: %s)", decision_id, action, final_score)
             return result
 
-        except Exception as e:
-            self.logger.error(f"Error making decision: {e}")
+        except Exception as error:
+            self.logger.error("Error making decision: %s", str(error))
             return {
                 "decision_id": f"error_{datetime.utcnow().timestamp()}",
                 "action": "error",
                 "score": {"error": 1.0},
-                "error": str(e)
+                "error": str(error)
             }
 
     def _score_by_principles(self, evidence: Dict[str, Any], criteria: List[str]) -> Dict[str, float]:

@@ -7,12 +7,12 @@ Defines the message contracts for communication between applications
 These contracts ensure consistent message formats across the distributed system.
 """
 
-from dataclasses import dataclass, field, asdict
+import json
+import uuid
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
-import json
-import uuid
 
 
 class AOSMessageType(str, Enum):

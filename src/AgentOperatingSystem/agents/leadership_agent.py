@@ -7,9 +7,10 @@ leadership-specific domain knowledge and agent persona. The core purpose is adde
 to the primary LLM context to guide agent behavior.
 """
 
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from .purpose_driven import PurposeDrivenAgent
 
 

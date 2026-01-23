@@ -5,11 +5,12 @@ Structured memos captured alongside decisions for precedent and audit.
 Queryable for historical context and decision patterns.
 """
 
-from typing import Dict, Any, Optional, List
+import uuid
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-import uuid
 
 
 class DecisionOutcome(str, Enum):

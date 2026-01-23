@@ -5,9 +5,9 @@ Provides real-time metrics aggregation and dashboard capabilities.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
 from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 
 class MetricType:
@@ -262,7 +262,7 @@ class DashboardBuilder:
             name: Dashboard name
             widgets: List of widget configurations
         """
-        self.logger.info(f"Creating dashboard: {name}")
+        self.logger.info("Creating dashboard: %s", name)
 
         dashboard = {
             "id": dashboard_id,

@@ -4,39 +4,36 @@ AOS Messaging Module
 Messaging infrastructure for inter-agent communication.
 """
 
-from .types import Message, MessageType, MessagePriority
 from .bus import MessageBus
-from .router import MessageRouter
-from .servicebus_manager import ServiceBusManager
-# New refactored classes
-from .envelope import MessageEnvelope
-from .reliability import RetryPolicy, CircuitBreaker
+
 # Azure Functions Service Bus contracts and handlers
 from .contracts import (
-    AOSMessageType,
-    AOSMessageHeader,
-    AOSMessage,
-    AOSQueues,
-    AOSTopics,
     AgentQueryPayload,
     AgentQueryResponse,
-    WorkflowExecutePayload,
-    WorkflowExecuteResponse,
-    StorageOperationPayload,
-    StorageOperationResponse,
-    MCPCallPayload,
-    MCPCallResponse,
+    AOSMessage,
+    AOSMessageHeader,
+    AOSMessageType,
+    AOSQueues,
+    AOSTopics,
     HealthCheckPayload,
     HealthCheckResponse,
+    MCPCallPayload,
+    MCPCallResponse,
+    StorageOperationPayload,
+    StorageOperationResponse,
+    WorkflowExecutePayload,
+    WorkflowExecuteResponse,
 )
+
+# New refactored classes
+from .envelope import MessageEnvelope
+from .reliability import CircuitBreaker, RetryPolicy
+from .router import MessageRouter
 from .servicebus_handlers import AOSServiceBusHandlers
+from .servicebus_manager import ServiceBusManager
+from .types import Message, MessagePriority, MessageType
 
 try:
-    from .conversation_system import (
-        AOSConversationSystem, Conversation, ConversationType, ConversationRole,
-        create_conversation_system, create_agent_coordination_conversation, create_decision_conversation
-    )
-    from .network_protocol import NetworkProtocol, NetworkMessage, NetworkNode
     ADVANCED_MESSAGING_AVAILABLE = True
 except ImportError:
     ADVANCED_MESSAGING_AVAILABLE = False
@@ -81,10 +78,7 @@ if ADVANCED_MESSAGING_AVAILABLE:
 
 # Advanced messaging features (try-except for optional dependencies)
 try:
-    from .streaming import EventStream, StreamProcessor, ComplexEventProcessor
-    from .saga import SagaOrchestrator, SagaStatus, ChoreographyEngine
-    from .routing import IntelligentRouter
-    from .priority import PriorityQueueManager, PriorityLevel
+    pass
 
     __all__.extend([
         "EventStream",

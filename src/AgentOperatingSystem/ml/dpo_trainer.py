@@ -12,10 +12,10 @@ and is more stable during training.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("AOS.DPOTrainer")
 
@@ -102,13 +102,13 @@ class DPOTrainer:
         # Try to import required libraries
         try:
             # Import TRL (Transformer Reinforcement Learning) library
-            from trl import DPOTrainer as TRLDPOTrainer
+            from peft import LoraConfig, PeftModel, get_peft_model
             from transformers import (
                 AutoModelForCausalLM,
                 AutoTokenizer,
-                TrainingArguments
+                TrainingArguments,
             )
-            from peft import LoraConfig, get_peft_model, PeftModel
+            from trl import DPOTrainer as TRLDPOTrainer
             self.trl_available = True
 
             # Store class references for use in methods (enables lazy loading and optional dependencies)
@@ -120,8 +120,8 @@ class DPOTrainer:
             self.get_peft_model = get_peft_model
             self.PeftModel = PeftModel
 
-        except ImportError as e:
-            self.logger.warning(f"TRL or transformers not available: {e}")
+        except ImportError as error:
+            self.logger.warning("TRL or transformers not available: %s", str(error))
             self.trl_available = False
 
     def prepare_preference_dataset(
@@ -153,7 +153,7 @@ class DPOTrainer:
 
         dataset = Dataset.from_dict(dataset_dict)
 
-        self.logger.info(f"Prepared dataset with {len(dataset)} preference pairs")
+        self.logger.info("Prepared dataset with %s preference pairs", len(dataset))
         return dataset
 
     def load_base_model(self) -> Tuple[Any, Any]:
@@ -169,7 +169,7 @@ class DPOTrainer:
         if not self.trl_available:
             raise RuntimeError("TRL library not available")
 
-        self.logger.info(f"Loading base model: {self.config.base_model}")
+        self.logger.info("Loading base model: %s", self.config.base_model)
 
         # Load tokenizer
         tokenizer = self.AutoTokenizer.from_pretrained(self.config.base_model)
@@ -185,7 +185,7 @@ class DPOTrainer:
 
         # If existing LoRA adapter provided, load it
         if self.config.lora_adapter_path:
-            self.logger.info(f"Loading existing LoRA adapter: {self.config.lora_adapter_path}")
+            self.logger.info("Loading existing LoRA adapter: %s", self.config.lora_adapter_path)
             model = self.PeftModel.from_pretrained(
                 model,
                 self.config.lora_adapter_path
@@ -217,7 +217,7 @@ class DPOTrainer:
             task_type="CAUSAL_LM"
         )
 
-        self.logger.info(f"LoRA config: r={self.config.lora_r}, alpha={self.config.lora_alpha}")
+        self.logger.info("LoRA config: r=%s, alpha=%s", self.config.lora_r, self.config.lora_alpha)
         return lora_config
 
     def train(
@@ -256,7 +256,7 @@ class DPOTrainer:
                     "lora_alpha": self.config.lora_alpha,
                     "batch_size": self.config.batch_size
                 })
-                self.logger.info(f"MLflow tracking enabled: {mlflow_experiment_name}")
+                self.logger.info("MLflow tracking enabled: %s", mlflow_experiment_name)
             except ImportError:
                 self.logger.warning("MLflow not available, skipping experiment tracking")
 
@@ -323,7 +323,7 @@ class DPOTrainer:
         train_result = dpo_trainer.train()
 
         # Save final model
-        self.logger.info(f"Saving final model to {output_dir}")
+        self.logger.info("Saving final model to %s", output_dir)
         dpo_trainer.save_model(output_dir)
         tokenizer.save_pretrained(output_dir)
 
@@ -343,13 +343,13 @@ class DPOTrainer:
                 mlflow.log_metrics(metrics)
                 mlflow.log_artifact(output_dir)
                 mlflow.end_run()
-            except Exception as e:
-                self.logger.warning(f"MLflow logging failed: {e}")
+            except Exception as error:
+                self.logger.warning("MLflow logging failed: %s", str(error))
 
         self.training_state["status"] = "completed"
         self.training_state["metrics"] = metrics
 
-        self.logger.info(f"Training completed. Metrics: {metrics}")
+        self.logger.info("Training completed. Metrics: %s", metrics)
         return {
             "status": "success",
             "output_dir": output_dir,
@@ -420,7 +420,7 @@ class PreferenceDataCollector:
         )
 
         self.preferences.append(pref_data)
-        self.logger.info(f"Added human preference. Total: {len(self.preferences)}")
+        self.logger.info("Added human preference. Total: %s", len(self.preferences))
 
     async def add_teacher_model_preference(
         self,
@@ -521,17 +521,17 @@ class PreferenceDataCollector:
         save_path = Path(save_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(save_path, 'w') as f:
+        with open(save_path, 'w', encoding="utf-8") as file_obj:
             for pref in self.preferences:
                 json.dump({
                     "prompt": pref.prompt,
                     "chosen": pref.chosen_response,
                     "rejected": pref.rejected_response,
                     "metadata": pref.metadata
-                }, f)
-                f.write('\n')
+                }, file_obj)
+                file_obj.write('\n')
 
-        self.logger.info(f"Saved {len(self.preferences)} preferences to {save_path}")
+        self.logger.info("Saved %s preferences to %s", len(self.preferences), save_path)
         return str(save_path)
 
     def load_preferences(self, path: Optional[str] = None) -> int:
@@ -552,11 +552,11 @@ class PreferenceDataCollector:
 
         load_path = Path(load_path)
         if not load_path.exists():
-            self.logger.warning(f"Preference file not found: {load_path}")
+            self.logger.warning("Preference file not found: %s", load_path)
             return 0
 
         loaded_count = 0
-        with open(load_path, 'r') as f:
+        with open(load_path, 'r', encoding="utf-8") as file_obj:
             for line in f:
                 data = json.loads(line)
                 pref = PreferenceData(
@@ -568,5 +568,5 @@ class PreferenceDataCollector:
                 self.preferences.append(pref)
                 loaded_count += 1
 
-        self.logger.info(f"Loaded {loaded_count} preferences from {load_path}")
+        self.logger.info("Loaded %s preferences from %s", loaded_count, load_path)
         return loaded_count

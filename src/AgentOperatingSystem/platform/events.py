@@ -12,11 +12,12 @@ Defines standard event types as specified in features.md:
 All events follow versioned schemas with backward compatibility.
 """
 
-from enum import Enum
-from typing import Dict, Any, Optional, List
-from datetime import datetime
-from pydantic import BaseModel, Field
 import uuid
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class EventType(str, Enum):

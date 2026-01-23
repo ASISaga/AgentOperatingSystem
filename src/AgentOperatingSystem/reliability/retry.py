@@ -7,14 +7,14 @@ Implements retry policies with:
 - Poison message quarantine
 """
 
-from typing import Callable, TypeVar, Optional, List
-from enum import Enum
-from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
 import asyncio
-import random
 import logging
+import random
+from datetime import datetime
+from enum import Enum
+from typing import Callable, List, Optional, TypeVar
 
+from pydantic import BaseModel, Field
 
 T = TypeVar('T')
 logger = logging.getLogger(__name__)
@@ -138,23 +138,21 @@ class RetryHandler:
         """
         classifier = failure_classifier or self._default_classifier
         attempt = 0
-        last_exception = None
 
         while True:
             try:
                 result = await operation()
                 if attempt > 0:
-                    logger.info(f"Operation succeeded on attempt {attempt + 1}")
+                    logger.info("Operation succeeded on attempt %s", attempt + 1)
                 return result
 
-            except Exception as e:
-                failure_class = classifier(e)
-                last_exception = e
+            except Exception as error:
+                failure_class = classifier(error)
                 max_attempts = self.policy.get_max_attempts(failure_class)
 
                 # Don't retry permanent failures
                 if failure_class == FailureClass.PERMANENT:
-                    logger.error(f"Permanent failure, not retrying: {e}")
+                    logger.error("Permanent failure, not retrying: %s", str(error))
                     raise
 
                 attempt += 1
@@ -168,7 +166,7 @@ class RetryHandler:
                     # Quarantine as poison message if we have message_id
                     if message_id:
                         self._quarantine_message(
-                            message_id, failure_class, attempt, str(e)
+                            message_id, failure_class, attempt, str(error)
                         )
 
                     raise
@@ -176,7 +174,7 @@ class RetryHandler:
                 delay = self.policy.calculate_delay(attempt - 1)
                 logger.warning(
                     f"Attempt {attempt} failed with {failure_class.value}, "
-                    f"retrying in {delay:.2f}s: {e}"
+                    f"retrying in {delay:.2f}s: {error}"
                 )
                 await asyncio.sleep(delay)
 
@@ -204,23 +202,21 @@ class RetryHandler:
 
         classifier = failure_classifier or self._default_classifier
         attempt = 0
-        last_exception = None
 
         while True:
             try:
                 result = operation()
                 if attempt > 0:
-                    logger.info(f"Operation succeeded on attempt {attempt + 1}")
+                    logger.info("Operation succeeded on attempt %s", attempt + 1)
                 return result
 
-            except Exception as e:
-                failure_class = classifier(e)
-                last_exception = e
+            except Exception as error:
+                failure_class = classifier(error)
                 max_attempts = self.policy.get_max_attempts(failure_class)
 
                 # Don't retry permanent failures
                 if failure_class == FailureClass.PERMANENT:
-                    logger.error(f"Permanent failure, not retrying: {e}")
+                    logger.error("Permanent failure, not retrying: %s", str(error))
                     raise
 
                 attempt += 1
@@ -234,7 +230,7 @@ class RetryHandler:
                     # Quarantine as poison message if we have message_id
                     if message_id:
                         self._quarantine_message(
-                            message_id, failure_class, attempt, str(e)
+                            message_id, failure_class, attempt, str(error)
                         )
 
                     raise
@@ -242,7 +238,7 @@ class RetryHandler:
                 delay = self.policy.calculate_delay(attempt - 1)
                 logger.warning(
                     f"Attempt {attempt} failed with {failure_class.value}, "
-                    f"retrying in {delay:.2f}s: {e}"
+                    f"retrying in {delay:.2f}s: {error}"
                 )
                 time.sleep(delay)
 
@@ -276,7 +272,7 @@ class RetryHandler:
             last_error=error
         )
         self.poison_messages.append(poison_msg)
-        logger.warning(f"Message {message_id} quarantined as poison message")
+        logger.warning("Message %s quarantined as poison message", message_id)
 
     def get_poison_messages(self) -> List[PoisonMessage]:
         """Get all quarantined poison messages"""

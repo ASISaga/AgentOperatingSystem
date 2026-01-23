@@ -6,8 +6,9 @@ Provides high-level storage operations with backend abstraction.
 """
 
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from ..config.storage import StorageConfig
 from .file_backend import FileStorageBackend
 
@@ -26,7 +27,7 @@ class StorageManager:
         # Initialize storage backend based on configuration
         self.backend = self._create_backend()
 
-        self.logger.info(f"Storage manager initialized with {config.storage_type} backend")
+        self.logger.info("Storage manager initialized with %s backend", config.storage_type)
 
     def _create_backend(self):
         """Create storage backend based on configuration"""
@@ -45,7 +46,7 @@ class StorageManager:
             return FileStorageBackend(self.config.base_path)
         else:
             # Default to file storage
-            self.logger.warning(f"Unknown storage type {self.config.storage_type}, using file storage")
+            self.logger.warning("Unknown storage type %s, using file storage", self.config.storage_type)
             return FileStorageBackend(self.config.base_path)
 
     async def store_agent_data(self, agent_id: str, data: Dict[str, Any]) -> bool:
@@ -62,9 +63,9 @@ class StorageManager:
 
         success = await self.backend.write(key, storage_data)
         if success:
-            self.logger.debug(f"Stored data for agent {agent_id}")
+            self.logger.debug("Stored data for agent %s", agent_id)
         else:
-            self.logger.error(f"Failed to store data for agent {agent_id}")
+            self.logger.error("Failed to store data for agent %s", agent_id)
 
         return success
 
@@ -74,7 +75,7 @@ class StorageManager:
         storage_data = await self.backend.read(key)
 
         if storage_data and "data" in storage_data:
-            self.logger.debug(f"Loaded data for agent {agent_id}")
+            self.logger.debug("Loaded data for agent %s", agent_id)
             return storage_data["data"]
 
         return None
@@ -92,9 +93,9 @@ class StorageManager:
 
         success = await self.backend.write(key, storage_data)
         if success:
-            self.logger.debug(f"Stored workflow data for {workflow_id}")
+            self.logger.debug("Stored workflow data for %s", workflow_id)
         else:
-            self.logger.error(f"Failed to store workflow data for {workflow_id}")
+            self.logger.error("Failed to store workflow data for %s", workflow_id)
 
         return success
 
@@ -104,7 +105,7 @@ class StorageManager:
         storage_data = await self.backend.read(key)
 
         if storage_data and "data" in storage_data:
-            self.logger.debug(f"Loaded workflow data for {workflow_id}")
+            self.logger.debug("Loaded workflow data for %s", workflow_id)
             return storage_data["data"]
 
         return None
@@ -122,9 +123,9 @@ class StorageManager:
 
         success = await self.backend.write(key, storage_data)
         if success:
-            self.logger.debug(f"Stored system config {config_name}")
+            self.logger.debug("Stored system config %s", config_name)
         else:
-            self.logger.error(f"Failed to store system config {config_name}")
+            self.logger.error("Failed to store system config %s", config_name)
 
         return success
 
@@ -134,7 +135,7 @@ class StorageManager:
         storage_data = await self.backend.read(key)
 
         if storage_data and "data" in storage_data:
-            self.logger.debug(f"Loaded system config {config_name}")
+            self.logger.debug("Loaded system config %s", config_name)
             return storage_data["data"]
 
         return None
@@ -185,7 +186,7 @@ class StorageManager:
         key = f"agents/{agent_id}"
         success = await self.backend.delete(key)
         if success:
-            self.logger.info(f"Deleted data for agent {agent_id}")
+            self.logger.info("Deleted data for agent %s", agent_id)
         return success
 
     async def delete_workflow_data(self, workflow_id: str) -> bool:
@@ -193,7 +194,7 @@ class StorageManager:
         key = f"workflows/{workflow_id}"
         success = await self.backend.delete(key)
         if success:
-            self.logger.info(f"Deleted workflow data for {workflow_id}")
+            self.logger.info("Deleted workflow data for %s", workflow_id)
         return success
 
     async def exists(self, key: str) -> bool:
@@ -233,9 +234,9 @@ class StorageManager:
                 stats["azure_health"] = self.backend.get_health_status()
 
             return stats
-        except Exception as e:
-            self.logger.error(f"Error getting storage stats: {e}")
-            return {"error": str(e)}
+        except Exception as error:
+            self.logger.error("Error getting storage stats: %s", str(error))
+            return {"error": str(error)}
 
     # === Azure-specific operations (when using Azure backend) ===
 

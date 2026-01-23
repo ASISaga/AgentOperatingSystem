@@ -1,8 +1,10 @@
 """
 MCP Request data model - represents MCP request messages
 """
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class MCPRequest(BaseModel):
     """

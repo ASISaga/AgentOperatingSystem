@@ -5,11 +5,12 @@ Declarative mapping between actions and compliance controls (SOC2, ISO 27001, et
 with pre/post enforcement.
 """
 
-from typing import Dict, Any, Optional, List
+import uuid
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-import uuid
 
 
 class ComplianceFramework(str, Enum):

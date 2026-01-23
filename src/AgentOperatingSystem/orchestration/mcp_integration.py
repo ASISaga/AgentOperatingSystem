@@ -7,10 +7,9 @@ Provides advanced MCP client management and GitHub integration capabilities.
 
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Callable, Union
-from datetime import datetime, timedelta
-import json
-from pathlib import Path
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 
 class MCPClientManager:
     """
@@ -83,7 +82,7 @@ class MCPClientManager:
 
             # Validate client instance
             if not hasattr(client_instance, '__call__') and not hasattr(client_instance, 'process_request'):
-                self.logger.warning(f"MCP client {client_id} may not have proper interface")
+                self.logger.warning("MCP client %s may not have proper interface", client_id)
 
             # Register client
             self.mcp_clients[client_id] = client_instance
@@ -105,7 +104,7 @@ class MCPClientManager:
                 "last_request": None
             }
 
-            self.logger.info(f"Registered MCP client: {client_id}")
+            self.logger.info("Registered MCP client: %s", client_id)
 
             return {
                 "success": True,
@@ -114,9 +113,9 @@ class MCPClientManager:
                 "registered_at": datetime.utcnow().isoformat()
             }
 
-        except Exception as e:
-            self.logger.error(f"Failed to register MCP client {client_id}: {e}")
-            return {"success": False, "error": str(e)}
+        except Exception as error:
+            self.logger.error("Failed to register MCP client %s: %s", client_id, str(error))
+            return {"success": False, "error": str(error)}
 
     async def unregister_mcp_client(self, client_id: str) -> Dict[str, Any]:
         """Unregister an MCP client"""
@@ -134,7 +133,7 @@ class MCPClientManager:
             if client_id in self.client_health:
                 del self.client_health[client_id]
 
-            self.logger.info(f"Unregistered MCP client: {client_id}")
+            self.logger.info("Unregistered MCP client: %s", client_id)
 
             return {
                 "success": True,
@@ -142,9 +141,9 @@ class MCPClientManager:
                 "unregistered_at": datetime.utcnow().isoformat()
             }
 
-        except Exception as e:
-            self.logger.error(f"Failed to unregister MCP client {client_id}: {e}")
-            return {"success": False, "error": str(e)}
+        except Exception as error:
+            self.logger.error("Failed to unregister MCP client %s: %s", client_id, str(error))
+            return {"success": False, "error": str(error)}
 
     async def process_mcp_request(self, client_id: str, request: Dict[str, Any]) -> Dict[str, Any]:
         """Process request through specified MCP client"""
@@ -192,14 +191,14 @@ class MCPClientManager:
                 "execution_time": execution_time
             }
 
-        except Exception as e:
+        except Exception as error:
             execution_time = (datetime.utcnow() - start_time).total_seconds()
-            await self._record_request_failure(client_id, str(e), execution_time)
+            await self._record_request_failure(client_id, str(error), execution_time)
 
             return {
                 "success": False,
                 "client_id": client_id,
-                "error": str(e),
+                "error": str(error),
                 "execution_time": execution_time
             }
 
@@ -343,7 +342,7 @@ class MCPClientManager:
         health_results = {}
         overall_health = True
 
-        for client_id in self.mcp_clients.keys():
+        for client_id in self.mcp_clients:
             try:
                 # Simple health check - try to process a basic request
                 health_request = {
@@ -364,10 +363,10 @@ class MCPClientManager:
                 if not result.get("success"):
                     overall_health = False
 
-            except Exception as e:
+            except Exception as error:
                 health_results[client_id] = {
                     "status": "unhealthy",
-                    "error": str(e),
+                    "error": str(error),
                     "last_check": datetime.utcnow().isoformat()
                 }
                 overall_health = False
@@ -401,7 +400,7 @@ class MCPClientManager:
             # Return metrics for all clients
             all_metrics = {}
 
-            for cid in self.mcp_clients.keys():
+            for cid in self.mcp_clients:
                 all_metrics[cid] = {
                     "config": self.client_configs.get(cid, {}),
                     "status": self.client_status.get(cid, {}),

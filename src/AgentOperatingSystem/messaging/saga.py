@@ -4,11 +4,11 @@ Saga Orchestration and Choreography
 Provides distributed transaction management using the Saga pattern.
 """
 
-import logging
 import asyncio
-from typing import Dict, Any, List, Optional
+import logging
 from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class SagaStatus(Enum):
@@ -50,7 +50,7 @@ class SagaOrchestrator:
             saga_id: Unique saga identifier
             steps: List of saga steps with compensations
         """
-        self.logger.info(f"Defining saga: {saga_id}")
+        self.logger.info("Defining saga: %s", saga_id)
 
         saga = {
             "saga_id": saga_id,
@@ -86,7 +86,7 @@ class SagaOrchestrator:
 
         execution_id = f"{saga_id}_{datetime.utcnow().timestamp()}"
 
-        self.logger.info(f"Executing saga {saga_id}, execution: {execution_id}")
+        self.logger.info("Executing saga %s, execution: %s", saga_id, execution_id)
 
         execution = {
             "execution_id": execution_id,
@@ -119,7 +119,7 @@ class SagaOrchestrator:
             execution["status"] = SagaStatus.COMPLETED
             execution["end_time"] = datetime.utcnow()
 
-            self.logger.info(f"Saga {saga_id} completed successfully")
+            self.logger.info("Saga %s completed successfully", saga_id)
 
             return {
                 "status": "completed",
@@ -127,12 +127,12 @@ class SagaOrchestrator:
                 "completed_steps": execution["completed_steps"]
             }
 
-        except Exception as e:
-            self.logger.error(f"Saga {saga_id} failed: {e}")
+        except Exception as error:
+            self.logger.error("Saga %s failed: %s", saga_id, str(error))
 
             # Execute compensation
             execution["status"] = SagaStatus.COMPENSATING
-            execution["error"] = str(e)
+            execution["error"] = str(error)
 
             await self._compensate(execution, saga)
 
@@ -142,7 +142,7 @@ class SagaOrchestrator:
             return {
                 "status": "failed",
                 "execution_id": execution_id,
-                "error": str(e),
+                "error": str(error),
                 "compensated_steps": execution["compensated_steps"]
             }
 
@@ -156,7 +156,7 @@ class SagaOrchestrator:
         step_name = step["step"]
         service = step["service"]
 
-        self.logger.debug(f"Executing step: {step_name} on service: {service}")
+        self.logger.debug("Executing step: %s on service: %s", step_name, service)
 
         # Send message to service to execute step
         # In real implementation, would call actual service
@@ -183,7 +183,7 @@ class SagaOrchestrator:
             execution: Execution to compensate
             saga: Saga definition
         """
-        self.logger.info(f"Compensating saga execution {execution['execution_id']}")
+        self.logger.info("Compensating saga execution %s", execution['execution_id'])
 
         # Compensate in reverse order
         completed_steps = execution["completed_steps"]
@@ -203,8 +203,8 @@ class SagaOrchestrator:
                 service = step_def["service"]
 
                 self.logger.debug(
-                    f"Compensating step {step_name} with {compensation}"
-                )
+            "Compensating step %s with %s", step_name, compensation
+        )
 
                 # Execute compensation
                 # In real implementation, would call actual service
@@ -260,7 +260,7 @@ class ChoreographyEngine:
             trigger_event: Event that triggers actions
             actions: Actions to perform when event occurs
         """
-        self.logger.info(f"Adding choreography rule for event: {trigger_event}")
+        self.logger.info("Adding choreography rule for event: %s", trigger_event)
 
         rule = {
             "trigger_event": trigger_event,
@@ -291,8 +291,8 @@ class ChoreographyEngine:
                 # and process incoming events
                 await asyncio.sleep(1)
 
-            except Exception as e:
-                self.logger.error(f"Error in choreography engine: {e}")
+            except Exception as error:
+                self.logger.error("Error in choreography engine: %s", str(error))
                 await asyncio.sleep(5)
 
     async def _process_event(self, event: Dict[str, Any]):
@@ -302,8 +302,8 @@ class ChoreographyEngine:
         for rule in self.rules:
             if rule["trigger_event"] == event_type:
                 self.logger.debug(
-                    f"Event {event_type} triggered choreography rule"
-                )
+            "Event %s triggered choreography rule", event_type
+        )
 
                 # Execute actions
                 for action in rule["actions"]:
@@ -318,7 +318,7 @@ class ChoreographyEngine:
         agent = action.get("agent")
         action_type = action.get("action")
 
-        self.logger.debug(f"Executing action {action_type} on agent {agent}")
+        self.logger.debug("Executing action %s on agent %s", action_type, agent)
 
         # Send message to agent
         # In real implementation, would use message bus

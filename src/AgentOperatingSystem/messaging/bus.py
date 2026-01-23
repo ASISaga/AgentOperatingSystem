@@ -7,9 +7,10 @@ Handles message routing, queuing, delivery, and persistence.
 
 import asyncio
 import logging
-from typing import Dict, Any, List, Set
+from typing import Any, Dict, List, Set
+
 from ..config.messagebus import MessageBusConfig
-from .types import Message, MessageType, MessagePriority
+from .types import Message, MessagePriority, MessageType
 
 
 class MessageBus:
@@ -68,14 +69,14 @@ class MessageBus:
         if agent_id not in self.agent_queues:
             self.agent_queues[agent_id] = []
             self.subscriptions[agent_id] = set()
-            self.logger.info(f"Agent {agent_id} registered with message bus")
+            self.logger.info("Agent %s registered with message bus", agent_id)
 
     async def unregister_agent(self, agent_id: str):
         """Unregister an agent from the message bus"""
         if agent_id in self.agent_queues:
             del self.agent_queues[agent_id]
             del self.subscriptions[agent_id]
-            self.logger.info(f"Agent {agent_id} unregistered from message bus")
+            self.logger.info("Agent %s unregistered from message bus", agent_id)
 
     async def subscribe(self, agent_id: str, message_types: List[str]):
         """Subscribe agent to specific message types"""
@@ -83,7 +84,7 @@ class MessageBus:
             await self.register_agent(agent_id)
 
         self.subscriptions[agent_id].update(message_types)
-        self.logger.debug(f"Agent {agent_id} subscribed to {message_types}")
+        self.logger.debug("Agent %s subscribed to %s", agent_id, message_types)
 
     async def unsubscribe(self, agent_id: str, message_types: List[str] = None):
         """Unsubscribe agent from message types"""
@@ -96,7 +97,7 @@ class MessageBus:
         else:
             self.subscriptions[agent_id].difference_update(message_types)
 
-        self.logger.debug(f"Agent {agent_id} unsubscribed from {message_types}")
+        self.logger.debug("Agent %s unsubscribed from %s", agent_id, message_types)
 
     async def send_message(self, from_agent: str, to_agent: str, content: Dict[str, Any],
                           message_type: MessageType = MessageType.AGENT_TO_AGENT,
@@ -222,8 +223,8 @@ class MessageBus:
                 await asyncio.sleep(60)  # Cleanup every minute
             except asyncio.CancelledError:
                 break
-            except Exception as e:
-                self.logger.error(f"Error in message processing: {e}")
+            except Exception as error:
+                self.logger.error("Error in message processing: %s", str(error))
 
     async def _cleanup_expired_messages(self):
         """Remove expired messages from queues"""
@@ -232,4 +233,4 @@ class MessageBus:
             queue[:] = [msg for msg in queue if not msg.is_expired()]
             removed = original_size - len(queue)
             if removed > 0:
-                self.logger.debug(f"Removed {removed} expired messages for agent {agent_id}")
+                self.logger.debug("Removed %s expired messages for agent %s", removed, agent_id)

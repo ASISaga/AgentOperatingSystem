@@ -385,11 +385,11 @@ class HealthCheck:
                 if not (result if isinstance(result, bool) else result.get("healthy", False)):
                     all_healthy = False
 
-            except Exception as e:
-                self.logger.error(f"Health check {name} failed", error=str(e))
+            except Exception as error:
+                self.logger.error("Health check %s failed: %s", name, str(error))
                 results[name] = {
                     "healthy": False,
-                    "error": str(e),
+                    "error": str(error),
                     "timestamp": datetime.utcnow().isoformat()
                 }
                 all_healthy = False

@@ -4,12 +4,13 @@ Structured logging for AgentOperatingSystem
 Context-aware logs with redaction rules and separation of audit/operational logs.
 """
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime
-from enum import Enum
-from pydantic import BaseModel, Field
 import logging
 import re
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class LogLevel(str, Enum):

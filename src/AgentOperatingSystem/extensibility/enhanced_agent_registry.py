@@ -5,10 +5,10 @@ Adds advanced capability discovery, dependency mapping, health status monitoring
 and upgrade orchestration to the existing AgentRegistry.
 """
 
-from typing import Dict, Any, List, Optional, Set
-from datetime import datetime, timedelta
-from enum import Enum
 import logging
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 
 class AgentHealth(str, Enum):
@@ -381,7 +381,7 @@ class EnhancedAgentRegistry:
         if len(self.health_history[agent_id]) > 100:
             self.health_history[agent_id] = self.health_history[agent_id][-100:]
 
-        self.logger.info(f"Recorded health check for {agent_id}: {status.value}")
+        self.logger.info("Recorded health check for %s: %s", agent_id, status.value)
 
         return True
 
@@ -438,7 +438,7 @@ class EnhancedAgentRegistry:
         if available_versions:
             self.available_versions[agent_id] = available_versions
 
-        self.logger.info(f"Set upgrade status for {agent_id}: {status.value}")
+        self.logger.info("Set upgrade status for %s: %s", agent_id, status.value)
 
         return True
 
@@ -527,11 +527,11 @@ class EnhancedAgentRegistry:
                 f"Orchestrated upgrade for {agent_id} to version {target_version}"
             )
 
-        except Exception as e:
+        except Exception as error:
             await self.set_upgrade_status(agent_id, AgentUpgradeStatus.UPGRADE_FAILED)
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"Upgrade failed for {agent_id}: {e}")
+            result["error"] = str(error)
+            self.logger.error("Upgrade failed for %s: %s", agent_id, str(error))
 
         return result
 

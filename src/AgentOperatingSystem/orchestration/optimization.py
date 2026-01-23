@@ -4,10 +4,10 @@ Workflow Optimizer
 Provides autonomous workflow optimization and A/B testing capabilities.
 """
 
-import logging
 import asyncio
-from typing import Dict, Any, List, Optional
+import logging
 from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
 
 class WorkflowOptimizer:
@@ -41,7 +41,7 @@ class WorkflowOptimizer:
             optimization_goals: Goals with metrics and targets
             techniques: Optimization techniques to apply
         """
-        self.logger.info(f"Enabling auto-optimization for workflow {workflow_id}")
+        self.logger.info("Enabling auto-optimization for workflow %s", workflow_id)
 
         config = {
             "workflow_id": workflow_id,
@@ -127,8 +127,8 @@ class WorkflowOptimizer:
                 # Wait before next optimization cycle
                 await asyncio.sleep(300)  # 5 minutes
 
-            except Exception as e:
-                self.logger.error(f"Error in optimization loop: {e}")
+            except Exception as error:
+                self.logger.error("Error in optimization loop: %s", str(error))
                 await asyncio.sleep(60)
 
     async def _apply_optimization(
@@ -139,7 +139,7 @@ class WorkflowOptimizer:
         goals: List[Dict[str, Any]]
     ):
         """Apply a specific optimization technique"""
-        self.logger.debug(f"Applying {technique} optimization to {workflow_id}")
+        self.logger.debug("Applying %s optimization to %s", technique, workflow_id)
 
         if technique == "parallelization":
             # Identify steps that can run in parallel
@@ -168,7 +168,7 @@ class WorkflowOptimizer:
     ):
         """Identify and enable parallel execution opportunities"""
         # Analyze dependency graph to find parallelizable steps
-        self.logger.debug(f"Optimizing parallelization for {workflow_id}")
+        self.logger.debug("Optimizing parallelization for %s", workflow_id)
 
         # Implementation would analyze step dependencies and timings
         optimization = {
@@ -187,7 +187,7 @@ class WorkflowOptimizer:
         executions: List[Dict[str, Any]]
     ):
         """Add intelligent caching"""
-        self.logger.debug(f"Optimizing caching for {workflow_id}")
+        self.logger.debug("Optimizing caching for %s", workflow_id)
 
         optimization = {
             "technique": "caching",
@@ -205,7 +205,7 @@ class WorkflowOptimizer:
         executions: List[Dict[str, Any]]
     ):
         """Reorder steps for better performance"""
-        self.logger.debug(f"Optimizing step order for {workflow_id}")
+        self.logger.debug("Optimizing step order for %s", workflow_id)
 
     async def _optimize_agent_selection(
         self,
@@ -213,7 +213,7 @@ class WorkflowOptimizer:
         executions: List[Dict[str, Any]]
     ):
         """Select optimal agents based on performance history"""
-        self.logger.debug(f"Optimizing agent selection for {workflow_id}")
+        self.logger.debug("Optimizing agent selection for %s", workflow_id)
 
     async def _optimize_resources(
         self,
@@ -221,7 +221,7 @@ class WorkflowOptimizer:
         executions: List[Dict[str, Any]]
     ):
         """Right-size resource allocations"""
-        self.logger.debug(f"Optimizing resources for {workflow_id}")
+        self.logger.debug("Optimizing resources for %s", workflow_id)
 
     async def _complete_ab_test(self, test_id: str, duration_hours: int):
         """Complete A/B test and analyze results"""
@@ -231,7 +231,7 @@ class WorkflowOptimizer:
         if not test:
             return
 
-        self.logger.info(f"Completing A/B test {test_id}")
+        self.logger.info("Completing A/B test %s", test_id)
 
         # Analyze results
         results_a = test["results"]["a"]
@@ -297,7 +297,7 @@ class LearningEngine:
         Returns:
             Analysis insights
         """
-        self.logger.info(f"Analyzing executions for {workflow_type}")
+        self.logger.info("Analyzing executions for %s", workflow_type)
 
         # Filter executions
         start = datetime.fromisoformat(time_range["start"])

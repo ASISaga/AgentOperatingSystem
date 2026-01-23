@@ -5,8 +5,8 @@ Provides ML-based and content-based intelligent message routing.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional
 
 
 class IntelligentRouter:
@@ -43,7 +43,7 @@ class IntelligentRouter:
             model: Optional ML model name
             factors: Factors to consider in routing
         """
-        self.logger.info(f"Configuring routing with strategy: {strategy}")
+        self.logger.info("Configuring routing with strategy: %s", strategy)
 
         self.routing_strategy = strategy
         self.routing_model = model
@@ -107,7 +107,7 @@ class IntelligentRouter:
         best_agent = max(agent_scores.items(), key=lambda x: x[1])[0]
 
         self.logger.debug(
-            f"ML routing selected {best_agent} with score {agent_scores[best_agent]:.2f}"
+            "ML routing selected %s with score %s", best_agent, agent_scores[best_agent]
         )
 
         return best_agent
@@ -213,7 +213,7 @@ class IntelligentRouter:
         }
 
         self.routing_rules.append(rule)
-        self.logger.debug(f"Added routing rule targeting {target}")
+        self.logger.debug("Added routing rule targeting %s", target)
 
     async def configure_geo_routing(
         self,
@@ -229,7 +229,7 @@ class IntelligentRouter:
             latency_budget_ms: Maximum acceptable latency
             fallback_to_any_region: Allow fallback to other regions
         """
-        self.logger.info(f"Configuring geo-routing: {strategy}")
+        self.logger.info("Configuring geo-routing: %s", strategy)
 
         self.geo_routing_config = {
             "strategy": strategy,

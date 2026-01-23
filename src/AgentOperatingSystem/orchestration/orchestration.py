@@ -1,18 +1,22 @@
-import os
-import json
 import asyncio
-import logging
-from typing import Dict, Any, List, Optional
+import os
 from datetime import datetime, timedelta
+from typing import Any, Dict, List
+
 from ..messaging.bus import MessageBus
-from ..monitoring.audit_trail import AuditTrailManager, AuditEventType, AuditSeverity, audit_log
-from .orchestrator import OrchestrationEngine
-from ..storage.manager import StorageManager
 from ..ml.pipeline import MLPipelineManager
-from .state import State
-from .role import Role
-from .member import Member
+from ..monitoring.audit_trail import (
+    AuditEventType,
+    AuditSeverity,
+    AuditTrailManager,
+    audit_log,
+)
+from ..storage.manager import StorageManager
 from .decision import Decision
+from .member import Member
+from .orchestrator import OrchestrationEngine
+from .state import State
+
 
 class Orchestration():
     """
@@ -68,8 +72,8 @@ class Orchestration():
                     "lorax_enabled": self.lorax_enabled
                 }
             )
-        except Exception as e:
-            self.logger.error(f"Failed to initialize boardroom: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize boardroom: %s", str(error))
             self.state = State.SUSPENDED
             raise
 
@@ -96,8 +100,8 @@ class Orchestration():
                 metadata={"member_id": member.agent_id, "role": member.role.value}
             )
             return True
-        except Exception as e:
-            self.logger.error(f"Failed to add member {member.agent_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to add member %s: %s", member.agent_id, str(error))
             return False
 
     async def initiate_decision(self, topic: str, decision_type: str, context: Dict[str, Any]) -> str:
@@ -122,8 +126,8 @@ class Orchestration():
                 metadata={"decision_id": decision_id, "type": decision_type}
             )
             return decision_id
-        except Exception as e:
-            self.logger.error(f"Failed to initiate decision: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initiate decision: %s", str(error))
             raise
 
     async def get_boardroom_status(self) -> Dict[str, Any]:
@@ -150,8 +154,8 @@ class Orchestration():
             state_data = await self.storage_manager.load("boardroom_state")
             if state_data:
                 pass
-        except Exception as e:
-            self.logger.warning(f"Could not load boardroom state: {e}")
+        except Exception as error:
+            self.logger.warning("Could not load boardroom state: %s", str(error))
 
     async def _start_boardroom_operations(self):
         asyncio.create_task(self._monitor_members())
@@ -163,8 +167,8 @@ class Orchestration():
                 for member_id, member in self.members.items():
                     pass
                 await asyncio.sleep(60)
-            except Exception as e:
-                self.logger.error(f"Error monitoring members: {e}")
+            except Exception as error:
+                self.logger.error("Error monitoring members: %s", str(error))
                 await asyncio.sleep(300)
 
     async def _process_decisions(self):
@@ -174,8 +178,8 @@ class Orchestration():
                     if self._is_decision_expired(decision):
                         await self._handle_expired_decision(decision)
                 await asyncio.sleep(30)
-            except Exception as e:
-                self.logger.error(f"Error processing decisions: {e}")
+            except Exception as error:
+                self.logger.error("Error processing decisions: %s", str(error))
                 await asyncio.sleep(60)
 
     def _is_decision_expired(self, decision: Decision) -> bool:
@@ -213,8 +217,8 @@ class Orchestration():
                 self.logger.warning("LoRAx server failed to start, falling back to standard inference")
                 self.lorax_enabled = False
 
-        except Exception as e:
-            self.logger.warning(f"LoRAx initialization failed: {e}, using standard inference")
+        except Exception as error:
+            self.logger.warning("LoRAx initialization failed: %s, using standard inference", str(error))
             self.lorax_enabled = False
 
     async def _register_member_adapter(self, member: Member):
@@ -232,10 +236,10 @@ class Orchestration():
                 }
             )
 
-            self.logger.info(f"Registered LoRAx adapter for {member.role.value}")
+            self.logger.info("Registered LoRAx adapter for %s", member.role.value)
 
-        except Exception as e:
-            self.logger.warning(f"Failed to register adapter for {member.agent_id}: {e}")
+        except Exception as error:
+            self.logger.warning("Failed to register adapter for %s: %s", member.agent_id, str(error))
 
     async def _get_system_health(self) -> Dict[str, Any]:
         health = {

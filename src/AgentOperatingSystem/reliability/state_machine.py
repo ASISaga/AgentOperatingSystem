@@ -5,12 +5,11 @@ Explicit lifecycle states for decisions, approvals, incidents, audits
 with timeout and escalation rules.
 """
 
-from typing import Dict, List, Optional, Callable, Any
-from enum import Enum
-from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
 import logging
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional
 
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +183,7 @@ class StateMachine:
 
         # Validate new state exists
         if new_state not in self._states:
-            logger.error(f"Target state {new_state} not found")
+            logger.error("Target state %s not found", new_state)
             return False
 
         # Call on_exit for old state

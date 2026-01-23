@@ -7,11 +7,12 @@ Provides advanced agent-to-agent communication and coordination capabilities.
 
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 from ..agents import LeadershipAgent
+
 
 class CoordinationMode(Enum):
     """Different coordination modes for multi-agent scenarios"""
@@ -95,15 +96,15 @@ class MultiAgentCoordinator:
                 "source": "multiagent_coordinator"
             }
 
-        except Exception as e:
-            self.logger.error(f"Multi-agent request failed for workflow {workflow_id}: {e}")
-            await self._record_workflow_failure(workflow_id, str(e))
+        except Exception as error:
+            self.logger.error("Multi-agent request failed for workflow %s: %s", workflow_id, str(error))
+            await self._record_workflow_failure(workflow_id, str(error))
 
             return {
                 "conversationId": conv_id,
                 "domain": domain,
                 "workflow_id": workflow_id,
-                "error": str(e),
+                "error": str(error),
                 "success": False,
                 "source": "multiagent_coordinator"
             }
@@ -132,7 +133,7 @@ class MultiAgentCoordinator:
         self.active_workflows[workflow_id] = workflow
         self.agent_assignments[workflow_id] = participating_agents
 
-        self.logger.info(f"Created workflow {workflow_id} with agents: {participating_agents}")
+        self.logger.info("Created workflow %s with agents: %s", workflow_id, participating_agents)
         return workflow
 
     async def _select_agents_for_workflow(self, domain: str, user_input: str, primary_agent_id: str) -> List[str]:
@@ -210,17 +211,17 @@ class MultiAgentCoordinator:
                     "timestamp": datetime.utcnow().isoformat()
                 })
 
-            except Exception as e:
-                self.logger.error(f"Error in sequential workflow step for {agent_id}: {e}")
+            except Exception as error:
+                self.logger.error("Error in sequential workflow step for %s: %s", agent_id, str(error))
                 results.append({
                     "agent_id": agent_id,
-                    "error": str(e),
+                    "error": str(error),
                     "timestamp": datetime.utcnow().isoformat()
                 })
                 workflow["steps"].append({
                     "agent_id": agent_id,
                     "status": "failed",
-                    "error": str(e),
+                    "error": str(error),
                     "timestamp": datetime.utcnow().isoformat()
                 })
 
@@ -305,7 +306,7 @@ class MultiAgentCoordinator:
                     })
 
         except asyncio.TimeoutError:
-            self.logger.error(f"Parallel workflow {workflow['workflow_id']} timed out")
+            self.logger.error("Parallel workflow %s timed out", workflow['workflow_id'])
             # Cancel remaining tasks
             for _, task in tasks:
                 if not task.done():
@@ -342,7 +343,7 @@ class MultiAgentCoordinator:
                 # Get agent role for LoRAx adapter selection
                 agent = self.registered_agents.get(agent_id)
                 if not agent:
-                    self.logger.warning(f"Agent {agent_id} not found in registry")
+                    self.logger.warning("Agent %s not found in registry", agent_id)
                     continue
 
                 # Prepare prompt for this agent
@@ -359,7 +360,7 @@ class MultiAgentCoordinator:
                 })
 
             # Execute batch inference with LoRAx
-            self.logger.info(f"Executing LoRAx batch inference for {len(batch_requests)} agents")
+            self.logger.info("Executing LoRAx batch inference for %s agents", len(batch_requests))
             lorax_results = await self.ml_pipeline.lorax_batch_inference(batch_requests)
 
             # Format results
@@ -378,8 +379,8 @@ class MultiAgentCoordinator:
 
             return results
 
-        except Exception as e:
-            self.logger.error(f"LoRAx batch inference failed: {e}, falling back to standard execution")
+        except Exception as error:
+            self.logger.error("LoRAx batch inference failed: %s, falling back to standard execution", str(error))
             # Fall back to standard parallel execution
             tasks = []
             for agent_id in workflow["agents"]:
@@ -421,9 +422,9 @@ class MultiAgentCoordinator:
         if self.send_message_func:
             try:
                 return await self.send_message_func("coordinator", agent_id, message)
-            except Exception as e:
-                self.logger.error(f"Failed to send message to {agent_id}: {e}")
-                return {"error": f"Failed to communicate with {agent_id}: {str(e)}"}
+            except Exception as error:
+                self.logger.error("Failed to send message to %s: %s", agent_id, str(error))
+                return {"error": f"Failed to communicate with {agent_id}: {str(error)}"}
         else:
             # Fallback: try direct agent invocation if available
             if agent_id in self.registered_agents:

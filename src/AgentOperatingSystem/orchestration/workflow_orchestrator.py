@@ -5,9 +5,8 @@ Generic workflow orchestration capabilities moved from BusinessInfinity.
 Provides Agent Framework-based workflow building and execution for any domain.
 """
 
-import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Union, Callable, TYPE_CHECKING
+from typing import Dict, Any, List, Optional, Union, TYPE_CHECKING
 from datetime import datetime
 
 try:
@@ -52,9 +51,9 @@ class WorkflowOrchestrator:
         try:
             self.workflow_builder = WorkflowBuilder()
             self.is_initialized = True
-            self.logger.info(f"Workflow orchestrator '{self.name}' initialized")
-        except Exception as e:
-            self.logger.error(f"Failed to initialize workflow orchestrator: {e}")
+            self.logger.info("Workflow orchestrator '%s' initialized", self.name)
+        except Exception as error:
+            self.logger.error("Failed to initialize workflow orchestrator: %s", str(error))
             raise
 
     def add_agent(self, name: str, agent: 'ChatAgent') -> str:
@@ -67,7 +66,7 @@ class WorkflowOrchestrator:
         node_id = self.workflow_builder.register_agent(agent)
         self.executors[name] = node_id
 
-        self.logger.info(f"Added agent '{name}' to workflow")
+        self.logger.info("Added agent '%s' to workflow", name)
         return node_id
 
     def add_executor(self, name: str, executor: Any) -> str:
@@ -79,7 +78,7 @@ class WorkflowOrchestrator:
         node_id = self.workflow_builder.register_executor(executor)
         self.executors[name] = node_id
 
-        self.logger.info(f"Added executor '{name}' to workflow")
+        self.logger.info("Added executor '%s' to workflow", name)
         return node_id
 
     def add_workflow_edge(self, from_executor: Union[str, List[str]], to_executor: Union[str, List[str]]):
@@ -92,7 +91,7 @@ class WorkflowOrchestrator:
         to_nodes = self._resolve_executor_nodes(to_executor)
 
         self.workflow_builder.add_edge(from_nodes, to_nodes)
-        self.logger.info(f"Added workflow edge: {from_executor} -> {to_executor}")
+        self.logger.info("Added workflow edge: %s -> %s", from_executor, to_executor)
 
     def _resolve_executor_nodes(self, executor_ref: Union[str, List[str]]) -> Union[str, List[str]]:
         """Resolve executor names to node IDs"""
@@ -116,7 +115,7 @@ class WorkflowOrchestrator:
 
         start_node = self.executors[executor_name]
         self.workflow_builder.set_start_executor(start_node)
-        self.logger.info(f"Set start executor: {executor_name}")
+        self.logger.info("Set start executor: %s", executor_name)
 
     def build_workflow(self):
         """Build the workflow from the configured components"""
@@ -125,9 +124,9 @@ class WorkflowOrchestrator:
 
         try:
             self.workflow = self.workflow_builder.build()
-            self.logger.info(f"Workflow '{self.name}' built successfully")
-        except Exception as e:
-            self.logger.error(f"Failed to build workflow: {e}")
+            self.logger.info("Workflow '%s' built successfully", self.name)
+        except Exception as error:
+            self.logger.error("Failed to build workflow: %s", str(error))
             raise
 
     async def execute_workflow(self, input_data: Any) -> Any:
@@ -138,7 +137,7 @@ class WorkflowOrchestrator:
         start_time = datetime.utcnow()
 
         try:
-            self.logger.info(f"Starting workflow execution: {self.name}")
+            self.logger.info("Starting workflow execution: %s", self.name)
             result = await self.workflow.run(input_data)
 
             # Update statistics
@@ -151,15 +150,15 @@ class WorkflowOrchestrator:
                          (self.stats["successful_executions"] - 1) + execution_time)
             self.stats["average_execution_time"] = total_time / self.stats["successful_executions"]
 
-            self.logger.info(f"Workflow execution completed in {execution_time:.2f}s")
+            self.logger.info("Workflow execution completed in %.2fs", execution_time)
             return result
 
-        except Exception as e:
+        except Exception as error:
             execution_time = (datetime.utcnow() - start_time).total_seconds()
             self.stats["total_workflows_executed"] += 1
             self.stats["failed_executions"] += 1
 
-            self.logger.error(f"Workflow execution failed after {execution_time:.2f}s: {e}")
+            self.logger.error("Workflow execution failed after %.2fs: %s", execution_time, str(error))
             raise
 
     def create_sequential_workflow(self, agents: List['ChatAgent'], agent_names: List[str] = None) -> 'WorkflowOrchestrator':
@@ -247,10 +246,10 @@ class WorkflowOrchestrator:
             self.workflow_builder = None
             self.is_initialized = False
 
-            self.logger.info(f"Workflow orchestrator '{self.name}' shutdown completed")
+            self.logger.info("Workflow orchestrator '%s' shutdown completed", self.name)
 
-        except Exception as e:
-            self.logger.error(f"Error during shutdown: {e}")
+        except Exception as error:
+            self.logger.error("Error during shutdown: %s", str(error))
 
 
 class WorkflowOrchestratorFactory:

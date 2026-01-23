@@ -5,11 +5,12 @@ Central governance for message and model version schemas with migration
 guidance and backward compatibility tracking.
 """
 
-from typing import Dict, Any, List, Optional, Tuple
+import json
+import logging
 from datetime import datetime
 from enum import Enum
-import logging
-import json
+from typing import Any, Dict, List, Optional
+
 from packaging import version
 
 
@@ -141,15 +142,15 @@ class SchemaRegistry:
             # Check if version already exists
             if version_str in self.schemas[schema_id]:
                 self.logger.warning(
-                    f"Schema version already exists: {schema_id} v{version_str}"
-                )
+            "Schema version already exists: %s v%s", schema_id, version_str
+        )
                 return False
 
             # Validate version format
             try:
                 version.parse(version_str)
-            except Exception as e:
-                self.logger.error(f"Invalid version format: {version_str} - {e}")
+            except Exception as error:
+                self.logger.error("Invalid version format: %s - %s", version_str, str(error))
                 return False
 
             # Create schema version
@@ -170,8 +171,8 @@ class SchemaRegistry:
 
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to register schema: {e}")
+        except Exception as error:
+            self.logger.error("Failed to register schema: %s", str(error))
             return False
 
     def activate_schema(self, schema_id: str, version_str: str) -> bool:
@@ -186,14 +187,14 @@ class SchemaRegistry:
             True if activation successful
         """
         if schema_id not in self.schemas or version_str not in self.schemas[schema_id]:
-            self.logger.error(f"Schema not found: {schema_id} v{version_str}")
+            self.logger.error("Schema not found: %s v%s", schema_id, version_str)
             return False
 
         schema_version = self.schemas[schema_id][version_str]
         schema_version.status = SchemaStatus.ACTIVE
         schema_version.updated_at = datetime.utcnow()
 
-        self.logger.info(f"Activated schema: {schema_id} v{version_str}")
+        self.logger.info("Activated schema: %s v%s", schema_id, version_str)
         return True
 
     def deprecate_schema(self, schema_id: str, version_str: str) -> bool:
@@ -208,7 +209,7 @@ class SchemaRegistry:
             True if deprecation successful
         """
         if schema_id not in self.schemas or version_str not in self.schemas[schema_id]:
-            self.logger.error(f"Schema not found: {schema_id} v{version_str}")
+            self.logger.error("Schema not found: %s v%s", schema_id, version_str)
             return False
 
         schema_version = self.schemas[schema_id][version_str]
@@ -216,7 +217,7 @@ class SchemaRegistry:
         schema_version.deprecated_at = datetime.utcnow()
         schema_version.updated_at = datetime.utcnow()
 
-        self.logger.info(f"Deprecated schema: {schema_id} v{version_str}")
+        self.logger.info("Deprecated schema: %s v%s", schema_id, version_str)
         return True
 
     def retire_schema(self, schema_id: str, version_str: str) -> bool:
@@ -231,7 +232,7 @@ class SchemaRegistry:
             True if retirement successful
         """
         if schema_id not in self.schemas or version_str not in self.schemas[schema_id]:
-            self.logger.error(f"Schema not found: {schema_id} v{version_str}")
+            self.logger.error("Schema not found: %s v%s", schema_id, version_str)
             return False
 
         schema_version = self.schemas[schema_id][version_str]
@@ -239,7 +240,7 @@ class SchemaRegistry:
         schema_version.retired_at = datetime.utcnow()
         schema_version.updated_at = datetime.utcnow()
 
-        self.logger.info(f"Retired schema: {schema_id} v{version_str}")
+        self.logger.info("Retired schema: %s v%s", schema_id, version_str)
         return True
 
     def get_schema(self, schema_id: str, version_str: Optional[str] = None) -> Optional[SchemaVersion]:
@@ -340,15 +341,15 @@ class SchemaRegistry:
             True if migration added successfully
         """
         if schema_id not in self.schemas:
-            self.logger.error(f"Schema not found: {schema_id}")
+            self.logger.error("Schema not found: %s", schema_id)
             return False
 
         if from_version not in self.schemas[schema_id]:
-            self.logger.error(f"Source version not found: {schema_id} v{from_version}")
+            self.logger.error("Source version not found: %s v%s", schema_id, from_version)
             return False
 
         if to_version not in self.schemas[schema_id]:
-            self.logger.error(f"Target version not found: {schema_id} v{to_version}")
+            self.logger.error("Target version not found: %s v%s", schema_id, to_version)
             return False
 
         migration = SchemaMigration(
@@ -361,7 +362,7 @@ class SchemaRegistry:
         self.migrations[schema_id].append(migration)
 
         self.logger.info(
-            f"Added migration: {schema_id} v{from_version} -> v{to_version}"
+            "Added migration: %s v%s -> v%s", schema_id, from_version, to_version
         )
 
         return True

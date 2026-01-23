@@ -5,9 +5,10 @@ File-based storage implementation for AOS.
 """
 
 import json
-import os
 import logging
-from typing import Dict, Any, Optional, List
+import os
+from typing import Any, Dict, List, Optional
+
 from .backend import StorageBackend
 
 
@@ -33,10 +34,10 @@ class FileStorageBackend(StorageBackend):
             return None
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            self.logger.error(f"Error reading file {file_path}: {e}")
+            with open(file_path, 'r', encoding='utf-8') as file_obj:
+                return json.load(file_obj)
+        except Exception as error:
+            self.logger.error("Error reading file %s: %s", file_path, str(error))
             return None
 
     async def write(self, key: str, data: Dict[str, Any]) -> bool:
@@ -47,11 +48,11 @@ class FileStorageBackend(StorageBackend):
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         try:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, default=str, ensure_ascii=False)
+            with open(file_path, 'w', encoding='utf-8') as file_obj:
+                json.dump(data, file_obj, indent=2, default=str, ensure_ascii=False)
             return True
-        except Exception as e:
-            self.logger.error(f"Error writing file {file_path}: {e}")
+        except Exception as error:
+            self.logger.error("Error writing file %s: %s", file_path, str(error))
             return False
 
     async def delete(self, key: str) -> bool:
@@ -62,8 +63,8 @@ class FileStorageBackend(StorageBackend):
             if os.path.exists(file_path):
                 os.remove(file_path)
             return True
-        except Exception as e:
-            self.logger.error(f"Error deleting file {file_path}: {e}")
+        except Exception as error:
+            self.logger.error("Error deleting file %s: %s", file_path, str(error))
             return False
 
     async def exists(self, key: str) -> bool:
@@ -84,7 +85,7 @@ class FileStorageBackend(StorageBackend):
 
                     if not prefix or original_key.startswith(prefix):
                         keys.append(original_key)
-        except Exception as e:
-            self.logger.error(f"Error listing keys: {e}")
+        except Exception as error:
+            self.logger.error("Error listing keys: %s", str(error))
 
         return keys

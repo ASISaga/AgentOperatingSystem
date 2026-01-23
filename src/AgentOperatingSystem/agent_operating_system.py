@@ -12,27 +12,27 @@ It provides generic, reusable infrastructure including:
 """
 
 import logging
-from typing import Dict, Any, TYPE_CHECKING
 from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict
 
 if TYPE_CHECKING:
     from .agents.base_agent import BaseAgent
 
+from .auth.manager import AuthManager
+from .config import AOSConfig
+from .environment.manager import EnvironmentManager
+from .learning.interaction_learner import InteractionLearner
+from .learning.knowledge_manager import KnowledgeManager
+from .learning.learning_pipeline import LearningPipeline
+from .learning.rag_engine import RAGEngine
+from .mcp.client import MCPClientManager
 from .messaging.bus import MessageBus
 from .messaging.router import MessageRouter
+from .ml.pipeline import MLPipelineManager
+from .monitoring.monitor import SystemMonitor
 from .orchestration.engine import DecisionEngine
 from .orchestration.orchestrator import OrchestrationEngine
 from .storage.manager import StorageManager
-from .monitoring.monitor import SystemMonitor
-from .ml.pipeline import MLPipelineManager
-from .auth.manager import AuthManager
-from .environment.manager import EnvironmentManager
-from .mcp.client import MCPClientManager
-from .learning.knowledge_manager import KnowledgeManager
-from .learning.rag_engine import RAGEngine
-from .learning.interaction_learner import InteractionLearner
-from .learning.learning_pipeline import LearningPipeline
-from .config import AOSConfig
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +101,8 @@ class AgentOperatingSystem:
 
             self.logger.info("AOS core components initialized successfully")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize AOS core components: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize AOS core components: %s", str(error))
             raise
 
     def _initialize_learning_system(self):
@@ -135,8 +135,8 @@ class AgentOperatingSystem:
 
             self.logger.info("Learning system components initialized")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize learning system: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize learning system: %s", str(error))
             # Don't raise - allow AOS to continue without learning system
 
     async def start(self):
@@ -160,10 +160,10 @@ class AgentOperatingSystem:
             await self._register_system_handlers()
 
             self.is_running = True
-            self.logger.info(f"AOS started successfully at {self.startup_time}")
+            self.logger.info("AOS started successfully at %s", self.startup_time)
 
-        except Exception as e:
-            self.logger.error(f"Failed to start AOS: {e}")
+        except Exception as error:
+            self.logger.error("Failed to start AOS: %s", str(error))
             raise
 
     async def stop(self):
@@ -188,8 +188,8 @@ class AgentOperatingSystem:
             self.is_running = False
             self.logger.info("AOS stopped successfully")
 
-        except Exception as e:
-            self.logger.error(f"Error stopping AOS: {e}")
+        except Exception as error:
+            self.logger.error("Error stopping AOS: %s", str(error))
 
     async def _start_learning_system(self):
         """Start the learning system components"""
@@ -208,8 +208,8 @@ class AgentOperatingSystem:
 
             self.logger.info("Learning system started successfully")
 
-        except Exception as e:
-            self.logger.error(f"Failed to start learning system: {e}")
+        except Exception as error:
+            self.logger.error("Failed to start learning system: %s", str(error))
 
     async def _stop_learning_system(self):
         """Stop the learning system components"""
@@ -222,8 +222,8 @@ class AgentOperatingSystem:
 
             self.logger.info("Learning system stopped successfully")
 
-        except Exception as e:
-            self.logger.error(f"Error stopping learning system: {e}")
+        except Exception as error:
+            self.logger.error("Error stopping learning system: %s", str(error))
 
     async def register_agent(self, agent: 'BaseAgent') -> bool:
         """
@@ -237,7 +237,7 @@ class AgentOperatingSystem:
         """
         try:
             if agent.agent_id in self.agents:
-                self.logger.warning(f"Agent {agent.agent_id} already registered")
+                self.logger.warning("Agent %s already registered", agent.agent_id)
                 return False
 
             # Register agent
@@ -257,11 +257,11 @@ class AgentOperatingSystem:
             # Register agent with message router
             await self.message_router.register_agent(agent.agent_id, agent.get_message_handlers())
 
-            self.logger.info(f"Agent {agent.agent_id} registered successfully")
+            self.logger.info("Agent %s registered successfully", agent.agent_id)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to register agent {agent.agent_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to register agent %s: %s", agent.agent_id, str(error))
             return False
 
     async def unregister_agent(self, agent_id: str) -> bool:
@@ -276,7 +276,7 @@ class AgentOperatingSystem:
         """
         try:
             if agent_id not in self.agents:
-                self.logger.warning(f"Agent {agent_id} not found")
+                self.logger.warning("Agent %s not found", agent_id)
                 return False
 
             agent = self.agents[agent_id]
@@ -290,11 +290,11 @@ class AgentOperatingSystem:
             # Remove from registry
             del self.agents[agent_id]
 
-            self.logger.info(f"Agent {agent_id} unregistered successfully")
+            self.logger.info("Agent %s unregistered successfully", agent_id)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to unregister agent {agent_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to unregister agent %s: %s", agent_id, str(error))
             return False
 
     async def send_message(self, from_agent: str, to_agent: str, message: Dict[str, Any]) -> bool:

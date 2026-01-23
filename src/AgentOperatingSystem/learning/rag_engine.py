@@ -6,9 +6,8 @@ Integrates with ChromaDB or other vector databases for semantic search.
 """
 
 import logging
-import asyncio
-from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
+from typing import Any, Dict, List
 
 try:
     from chromadb import Client as ChromaClient
@@ -60,8 +59,8 @@ class RAGEngine:
             self.logger.info("RAG Engine initialized successfully")
             return True
 
-        except Exception as e:
-            self.logger.warning(f"Failed to initialize RAG Engine: {e}")
+        except Exception as error:
+            self.logger.warning("Failed to initialize RAG Engine: %s", str(error))
             return False
 
     async def _initialize_collections(self):
@@ -75,18 +74,18 @@ class RAGEngine:
                 # Get or create collection
                 try:
                     collection = self.vector_client.get_collection(collection_name)
-                    self.logger.debug(f"Retrieved existing collection: {collection_name}")
+                    self.logger.debug("Retrieved existing collection: %s", collection_name)
                 except:
                     collection = self.vector_client.create_collection(
                         name=collection_name,
                         metadata={"domain": domain, "created_at": datetime.utcnow().isoformat()}
                     )
-                    self.logger.info(f"Created new collection: {collection_name}")
+                    self.logger.info("Created new collection: %s", collection_name)
 
                 self.collections[domain] = collection
 
-            except Exception as e:
-                self.logger.warning(f"Failed to initialize collection for {domain}: {e}")
+            except Exception as error:
+                self.logger.warning("Failed to initialize collection for %s: %s", domain, str(error))
 
     async def add_knowledge_entry(self, domain: str, entry_id: str, content: str, metadata: Dict[str, Any] = None):
         """Add a knowledge entry to the vector database"""
@@ -112,11 +111,11 @@ class RAGEngine:
                 ids=[f"{domain}_{entry_id}_{datetime.utcnow().timestamp()}"]
             )
 
-            self.logger.debug(f"Added knowledge entry to {domain}: {entry_id}")
+            self.logger.debug("Added knowledge entry to %s: %s", domain, entry_id)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to add knowledge entry: {e}")
+        except Exception as error:
+            self.logger.error("Failed to add knowledge entry: %s", str(error))
             return False
 
     async def query_knowledge(self, domain: str, query: str, top_k: int = None) -> List[Dict[str, Any]]:
@@ -154,11 +153,11 @@ class RAGEngine:
                         "rank": i + 1
                     })
 
-            self.logger.debug(f"Retrieved {len(knowledge_entries)} relevant entries for {domain}")
+            self.logger.debug("Retrieved %s relevant entries for %s", len(knowledge_entries), domain)
             return knowledge_entries
 
-        except Exception as e:
-            self.logger.error(f"Failed to query knowledge for {domain}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to query knowledge for %s: %s", domain, str(error))
             return []
 
     async def query_cross_domain(self, query: str, domains: List[str] = None, top_k: int = None) -> Dict[str, List[Dict[str, Any]]]:
@@ -173,7 +172,7 @@ class RAGEngine:
             if domain_results:
                 results[domain] = domain_results
 
-        self.logger.debug(f"Cross-domain query returned results for {len(results)} domains")
+        self.logger.debug("Cross-domain query returned results for %s domains", len(results))
         return results
 
     async def add_interaction_learning(self, user_input: str, response: str, domain: str,
@@ -210,7 +209,7 @@ class RAGEngine:
         """Update the quality score of a knowledge entry (for future filtering)"""
         # This would typically involve updating metadata in the vector database
         # ChromaDB doesn't support direct updates, so we'd need to track this separately
-        self.logger.debug(f"Quality update for {domain}/{entry_id}: {quality_score}")
+        self.logger.debug("Quality update for %s/%s: %s", domain, entry_id, quality_score)
 
         # In a real implementation, you might:
         # 1. Store quality scores in a separate database
@@ -233,8 +232,8 @@ class RAGEngine:
                 "last_updated": datetime.utcnow().isoformat()
             }
 
-        except Exception as e:
-            self.logger.error(f"Failed to get statistics for {domain}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to get statistics for %s: %s", domain, str(error))
             return {}
 
     async def get_system_statistics(self) -> Dict[str, Any]:
@@ -265,5 +264,5 @@ class RAGEngine:
             try:
                 # ChromaDB client doesn't require explicit cleanup
                 self.logger.info("RAG Engine cleaned up")
-            except Exception as e:
-                self.logger.error(f"Error during RAG cleanup: {e}")
+            except Exception as error:
+                self.logger.error("Error during RAG cleanup: %s", str(error))

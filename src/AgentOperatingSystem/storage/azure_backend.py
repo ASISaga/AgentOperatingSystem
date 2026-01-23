@@ -4,17 +4,16 @@ Azure Storage Backend for AOS
 Implements Azure-based storage operations for the AOS StorageManager.
 """
 
-import logging
 import json
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+import logging
 import os
+from typing import Any, Dict, List, Optional
 
 try:
-    from azure.storage.blob import BlobServiceClient
-    from azure.data.tables import TableServiceClient, TableClient
-    from azure.storage.queue import QueueServiceClient, QueueClient
+    from azure.data.tables import TableClient, TableServiceClient
     from azure.identity import DefaultAzureCredential
+    from azure.storage.blob import BlobServiceClient
+    from azure.storage.queue import QueueClient, QueueServiceClient
     AZURE_AVAILABLE = True
 except ImportError:
     AZURE_AVAILABLE = False
@@ -77,8 +76,8 @@ class AzureStorageBackend:
 
             self.logger.debug("Azure storage clients initialized")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Azure storage clients: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Azure storage clients: %s", str(error))
             # In development, continue with None clients rather than failing
             if self.connection_string and self.connection_string not in ['test', 'mock', 'development']:
                 raise
@@ -97,7 +96,7 @@ class AzureStorageBackend:
     async def write(self, key: str, data: Dict[str, Any]) -> bool:
         """Write data to Azure Blob Storage"""
         if not self._check_clients_available():
-            self.logger.warning(f"Mock write operation for key: {key}")
+            self.logger.warning("Mock write operation for key: %s", key)
             return True
 
         try:
@@ -116,17 +115,17 @@ class AzureStorageBackend:
             json_data = json.dumps(data, indent=2)
             blob_client.upload_blob(json_data, overwrite=True)
 
-            self.logger.debug(f"Wrote data to blob: {key}")
+            self.logger.debug("Wrote data to blob: %s", key)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to write data for key '{key}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to write data for key '%s': %s", key, str(error))
             return False
 
     async def read(self, key: str) -> Optional[Dict[str, Any]]:
         """Read data from Azure Blob Storage"""
         if not self._check_clients_available():
-            self.logger.warning(f"Mock read operation for key: {key}")
+            self.logger.warning("Mock read operation for key: %s", key)
             return {"mock": True, "key": key}
 
         try:
@@ -145,11 +144,11 @@ class AzureStorageBackend:
             content = blob_data.readall().decode('utf-8')
 
             data = json.loads(content)
-            self.logger.debug(f"Read data from blob: {key}")
+            self.logger.debug("Read data from blob: %s", key)
             return data
 
-        except Exception as e:
-            self.logger.error(f"Failed to read data for key '{key}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to read data for key '%s': %s", key, str(error))
             return None
 
     async def delete(self, key: str) -> bool:
@@ -165,12 +164,12 @@ class AzureStorageBackend:
 
             if blob_client.exists():
                 blob_client.delete_blob()
-                self.logger.debug(f"Deleted blob: {key}")
+                self.logger.debug("Deleted blob: %s", key)
 
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to delete data for key '{key}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to delete data for key '%s': %s", key, str(error))
             return False
 
     async def exists(self, key: str) -> bool:
@@ -186,8 +185,8 @@ class AzureStorageBackend:
 
             return blob_client.exists()
 
-        except Exception as e:
-            self.logger.error(f"Failed to check existence for key '{key}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to check existence for key '%s': %s", key, str(error))
             return False
 
     async def list_keys(self, prefix: str = "") -> List[str]:
@@ -211,8 +210,8 @@ class AzureStorageBackend:
 
             return keys
 
-        except Exception as e:
-            self.logger.error(f"Failed to list keys with prefix '{prefix}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to list keys with prefix '%s': %s", prefix, str(error))
             return []
 
     # === Extended Azure-specific Operations ===
@@ -226,11 +225,11 @@ class AzureStorageBackend:
             # Upsert entity
             table_client.upsert_entity(entity=entity)
 
-            self.logger.debug(f"Stored entity in table '{table_name}': {entity.get('RowKey', 'unknown')}")
+            self.logger.debug("Stored entity in table '%s': %s", table_name, entity.get('RowKey', 'unknown'))
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to store entity in table '{table_name}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to store entity in table '%s': %s", table_name, str(error))
             return False
 
     async def get_table_entity(self, table_name: str, partition_key: str, row_key: str) -> Optional[Dict[str, Any]]:
@@ -240,11 +239,11 @@ class AzureStorageBackend:
 
             entity = table_client.get_entity(partition_key=partition_key, row_key=row_key)
 
-            self.logger.debug(f"Retrieved entity from table '{table_name}': {row_key}")
+            self.logger.debug("Retrieved entity from table '%s': %s", table_name, row_key)
             return dict(entity)
 
-        except Exception as e:
-            self.logger.error(f"Failed to get entity from table '{table_name}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to get entity from table '%s': %s", table_name, str(error))
             return None
 
     async def query_table_entities(self, table_name: str, filter_query: str = None, select: List[str] = None) -> List[Dict[str, Any]]:
@@ -258,11 +257,11 @@ class AzureStorageBackend:
             for entity in entity_list:
                 entities.append(dict(entity))
 
-            self.logger.debug(f"Queried {len(entities)} entities from table '{table_name}'")
+            self.logger.debug("Queried %s entities from table '%s'", len(entities), table_name)
             return entities
 
-        except Exception as e:
-            self.logger.error(f"Failed to query entities from table '{table_name}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to query entities from table '%s': %s", table_name, str(error))
             return []
 
     async def send_queue_message(self, queue_name: str, message: str) -> bool:
@@ -272,11 +271,11 @@ class AzureStorageBackend:
 
             queue_client.send_message(message)
 
-            self.logger.debug(f"Sent message to queue '{queue_name}'")
+            self.logger.debug("Sent message to queue '%s'", queue_name)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to send message to queue '{queue_name}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to send message to queue '%s': %s", queue_name, str(error))
             return False
 
     async def receive_queue_messages(self, queue_name: str, max_messages: int = 1) -> List[Dict[str, Any]]:
@@ -295,11 +294,11 @@ class AzureStorageBackend:
                     "insertion_time": message.insertion_time.isoformat() if message.insertion_time else None
                 })
 
-            self.logger.debug(f"Received {len(message_list)} messages from queue '{queue_name}'")
+            self.logger.debug("Received %s messages from queue '%s'", len(message_list), queue_name)
             return message_list
 
-        except Exception as e:
-            self.logger.error(f"Failed to receive messages from queue '{queue_name}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to receive messages from queue '%s': %s", queue_name, str(error))
             return []
 
     # === Helper Methods ===
@@ -310,17 +309,17 @@ class AzureStorageBackend:
             container_client = self.blob_client.get_container_client(container_name)
             if not container_client.exists():
                 container_client.create_container()
-                self.logger.debug(f"Created container: {container_name}")
-        except Exception as e:
+                self.logger.debug("Created container: %s", container_name)
+        except Exception as error:
             # Container might already exist
-            self.logger.debug(f"Container '{container_name}' handling: {e}")
+            self.logger.debug("Container '%s' handling: %s", container_name, str(error))
 
     async def _get_table_client(self, table_name: str) -> TableClient:
         """Get table client, creating table if needed"""
         try:
             table_client = self.table_client.create_table_if_not_exists(table_name)
             return table_client
-        except Exception as e:
+        except Exception:
             # Table might already exist, try to get it
             return self.table_client.get_table_client(table_name)
 
@@ -329,7 +328,7 @@ class AzureStorageBackend:
         try:
             queue_client = self.queue_client.create_queue(queue_name)
             return queue_client
-        except Exception as e:
+        except Exception:
             # Queue might already exist, try to get it
             return self.queue_client.get_queue_client(queue_name)
 
@@ -347,21 +346,21 @@ class AzureStorageBackend:
             # Test blob storage
             list(self.blob_client.list_containers())
             status["blob_storage"] = True
-        except Exception as e:
-            self.logger.debug(f"Blob storage health check failed: {e}")
+        except Exception as error:
+            self.logger.debug("Blob storage health check failed: %s", str(error))
 
         try:
             # Test table storage
             list(self.table_client.list_tables())
             status["table_storage"] = True
-        except Exception as e:
-            self.logger.debug(f"Table storage health check failed: {e}")
+        except Exception as error:
+            self.logger.debug("Table storage health check failed: %s", str(error))
 
         try:
             # Test queue storage
             list(self.queue_client.list_queues())
             status["queue_storage"] = True
-        except Exception as e:
-            self.logger.debug(f"Queue storage health check failed: {e}")
+        except Exception as error:
+            self.logger.debug("Queue storage health check failed: %s", str(error))
 
         return status

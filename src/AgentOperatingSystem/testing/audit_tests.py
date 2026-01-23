@@ -5,13 +5,9 @@ Validates that every decision path produces required audit artifacts,
 evidence, and compliance assertions.
 """
 
-from typing import Dict, Any, List, Optional, Set
-from datetime import datetime
 import logging
-
-from ..platform.contracts import MessageEnvelope
-from ..governance.audit import AuditLogger
-from ..governance.compliance import ComplianceAssertion
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Set
 
 
 class DecisionPathTester:
@@ -57,7 +53,7 @@ class DecisionPathTester:
         }
 
         try:
-            self.logger.info(f"Testing decision path completeness: {decision_name}")
+            self.logger.info("Testing decision path completeness: %s", decision_name)
 
             # Check for required artifacts
             missing_artifacts = self.required_artifacts - artifacts_produced
@@ -81,10 +77,10 @@ class DecisionPathTester:
                     f"All required artifacts present"
                 )
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Decision path test failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Decision path test failed: %s", str(error))
 
         self.test_results.append(result)
         return result
@@ -126,16 +122,16 @@ class DecisionPathTester:
                 result["status"] = "failed"
                 result["missing_fields"] = list(missing_fields)
                 result["error"] = f"Missing required fields: {missing_fields}"
-                self.logger.error(f"❌ Audit entry incomplete: Missing {missing_fields}")
+                self.logger.error("❌ Audit entry incomplete: Missing %s", missing_fields)
             else:
                 result["status"] = "passed"
                 result["fields_present"] = list(entry_fields)
                 self.logger.debug("✅ Audit entry complete")
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Audit entry test failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Audit entry test failed: %s", str(error))
 
         self.test_results.append(result)
         return result
@@ -163,12 +159,12 @@ class DecisionPathTester:
         }
 
         try:
-            self.logger.debug(f"Testing evidence completeness for decision: {decision_id}")
+            self.logger.debug("Testing evidence completeness for decision: %s", decision_id)
 
             if not evidence_items:
                 result["status"] = "failed"
                 result["error"] = "No evidence items provided"
-                self.logger.error(f"❌ No evidence for decision: {decision_id}")
+                self.logger.error("❌ No evidence for decision: %s", decision_id)
             else:
                 # Validate each evidence item
                 valid_items = 0
@@ -198,10 +194,10 @@ class DecisionPathTester:
                         f"{valid_items} valid items"
                     )
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Evidence test failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Evidence test failed: %s", str(error))
 
         self.test_results.append(result)
         return result
@@ -260,7 +256,7 @@ class AuditCompletenessValidator:
         }
 
         try:
-            self.logger.info(f"Validating audit trail integrity ({len(audit_entries)} entries)")
+            self.logger.info("Validating audit trail integrity (%s entries)", len(audit_entries))
 
             issues = []
 
@@ -306,15 +302,15 @@ class AuditCompletenessValidator:
             if issues:
                 result["status"] = "failed"
                 result["error"] = f"Found {len(issues)} integrity issues"
-                self.logger.error(f"❌ Audit trail integrity issues: {len(issues)}")
+                self.logger.error("❌ Audit trail integrity issues: %s", len(issues))
             else:
                 result["status"] = "passed"
                 self.logger.info("✅ Audit trail integrity validated")
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Audit trail validation failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Audit trail validation failed: %s", str(error))
 
         self.test_results.append(result)
         return result
@@ -342,7 +338,7 @@ class AuditCompletenessValidator:
         }
 
         try:
-            self.logger.info(f"Validating compliance coverage for {len(actions)} actions")
+            self.logger.info("Validating compliance coverage for %s actions", len(actions))
 
             # Map assertions to actions
             action_assertions = {}
@@ -377,10 +373,10 @@ class AuditCompletenessValidator:
                 result["status"] = "passed"
                 self.logger.info("✅ Compliance coverage complete")
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Compliance coverage validation failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Compliance coverage validation failed: %s", str(error))
 
         self.test_results.append(result)
         return result
@@ -408,7 +404,7 @@ class AuditCompletenessValidator:
         }
 
         try:
-            self.logger.info(f"Validating decision audit completeness: {decision_id}")
+            self.logger.info("Validating decision audit completeness: %s", decision_id)
 
             required_artifacts = {
                 "audit_log",
@@ -433,12 +429,12 @@ class AuditCompletenessValidator:
                 )
             else:
                 result["status"] = "passed"
-                self.logger.info(f"✅ Decision audit complete for {decision_id}")
+                self.logger.info("✅ Decision audit complete for %s", decision_id)
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Decision audit validation failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Decision audit validation failed: %s", str(error))
 
         self.test_results.append(result)
         return result

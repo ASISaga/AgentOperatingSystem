@@ -1,6 +1,7 @@
-from dataclasses import dataclass, field
-from typing import Dict, Any
 import os
+from dataclasses import dataclass, field
+from typing import Any, Dict
+
 
 @dataclass
 class LearningConfig:
