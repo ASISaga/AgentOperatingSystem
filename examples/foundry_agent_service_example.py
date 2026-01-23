@@ -1,230 +1,198 @@
 """
-Azure Foundry Agent Service Integration Example
+Infrastructure-Level Agent Runtime Example
 
-This example demonstrates how to use the Azure Foundry Agent Service with Llama 3.3 70B
-as the core reasoning engine in the Agent Operating System.
+This example demonstrates how the AOS infrastructure (AgentRuntimeProvider) provides
+Foundry Agent Service runtime with Llama 3.3 70B Instruct transparently for agents.
 
-Features demonstrated:
-- Stateful Threads: Maintain conversation context across multiple interactions
-- Entra Agent ID: Secure agent identity management
-- Foundry Tools: Access to Azure AI Foundry tools and capabilities
-- Fine-tuned Llama 3.3 70B: Leverage custom fine-tuned weights
+Key Points:
+- PurposeDrivenAgent is pure Microsoft Agent Framework code
+- AgentRuntimeProvider (infrastructure) provides Foundry runtime transparently
+- Llama 3.3 70B Instruct with domain-specific LoRA adapters
+- Stateful threads managed by infrastructure
+- Agent code remains runtime-agnostic
 
 Prerequisites:
-1. Set up Azure Foundry Agent Service endpoint
-2. Configure environment variables:
-   - FOUNDRY_AGENT_SERVICE_ENDPOINT
-   - FOUNDRY_AGENT_SERVICE_API_KEY
-   - FOUNDRY_AGENT_ID (optional)
+1. Set up Azure AI Project endpoint
+2. Deploy Llama 3.3 70B models with LoRA adapters
+3. Configure environment variables:
+   - AZURE_AI_PROJECT_ENDPOINT
+   - AZURE_AI_MODEL_DEPLOYMENT (base: llama-3.3-70b-instruct)
+   - Deploy LoRA-adapted models (e.g., llama-3.3-70b-ceo, llama-3.3-70b-cfo)
 """
 
 import asyncio
 import os
-from AgentOperatingSystem.ml import FoundryAgentServiceClient, FoundryAgentServiceConfig
-from AgentOperatingSystem.orchestration import ModelOrchestrator, ModelType
+from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.runtime import AgentRuntimeProvider, RuntimeConfig
 
 
 async def basic_example():
-    """Basic example of using Foundry Agent Service."""
+    """Basic example of using infrastructure runtime with PurposeDrivenAgent."""
     
-    print("=== Basic Foundry Agent Service Example ===\n")
+    print("=== Basic Infrastructure Runtime Example ===\n")
     
-    # Create client with default configuration
-    config = FoundryAgentServiceConfig.from_env()
-    client = FoundryAgentServiceClient(config)
+    # 1. Create agent (pure Microsoft Agent Framework)
+    agent = PurposeDrivenAgent(
+        agent_id="ceo",
+        purpose="Strategic oversight and decision-making",
+        purpose_scope="Strategic planning, major decisions",
+        adapter_name="ceo"  # Infrastructure uses this for LoRA adapter
+    )
+    await agent.initialize()
     
-    # Initialize the client
-    await client.initialize()
+    # 2. Initialize infrastructure runtime provider
+    runtime_config = RuntimeConfig.from_env()
+    runtime = AgentRuntimeProvider(runtime_config)
+    await runtime.initialize()
     
-    # Send a simple message
-    response = await client.send_message(
-        message="What are the key features of Llama 3.3 70B?",
-        domain="ai_research"
+    # 3. Deploy agent to infrastructure runtime
+    # This transparently deploys to Foundry with llama-3.3-70b-ceo
+    foundry_agent = await runtime.deploy_agent(
+        agent_id=agent.agent_id,
+        purpose=agent.purpose,
+        purpose_scope=agent.purpose_scope,
+        adapter_name="ceo"  # Uses Llama 3.3 70B + CEO LoRA adapter
     )
     
-    if response.success:
-        print(f"Response: {response.content}")
-        print(f"Model: {response.model}")
-        print(f"Tokens used: {response.usage.get('total_tokens', 'N/A')}")
+    if foundry_agent:
+        print(f"Agent deployed to infrastructure runtime:")
+        print(f"  - Agent ID: {agent.agent_id}")
+        print(f"  - Foundry Agent ID: {foundry_agent.id}")
+        print(f"  - Model: llama-3.3-70b-ceo (with CEO LoRA adapter)")
     else:
-        print(f"Error: {response.error}")
+        print("Running in simulation mode (no Foundry endpoint configured)")
     
     print()
 
 
-async def stateful_threads_example():
-    """Example using stateful threads for multi-turn conversations."""
+async def process_event_example():
+    """Example of processing events through infrastructure runtime."""
     
-    print("=== Stateful Threads Example ===\n")
+    print("=== Process Event Example ===\n")
     
-    # Create client
-    config = FoundryAgentServiceConfig.from_env()
-    client = FoundryAgentServiceClient(config)
-    await client.initialize()
+    # Create and deploy agent
+    agent = PurposeDrivenAgent(
+        agent_id="cfo",
+        purpose="Financial oversight and strategic planning",
+        adapter_name="cfo"
+    )
+    await agent.initialize()
     
-    # Create a new thread
-    thread_id = await client.create_thread(metadata={"purpose": "financial_analysis"})
-    print(f"Created thread: {thread_id}\n")
+    runtime = AgentRuntimeProvider(RuntimeConfig.from_env())
+    await runtime.initialize()
     
-    # Multi-turn conversation
-    messages = [
-        "What were the Q3 revenue trends for our SaaS products?",
-        "How does this compare to Q2?",
-        "What should be our strategy for Q4?"
+    await runtime.deploy_agent(
+        agent_id=agent.agent_id,
+        purpose=agent.purpose,
+        adapter_name="cfo"  # Uses Llama 3.3 70B + CFO LoRA adapter
+    )
+    
+    # Process event through infrastructure runtime
+    result = await runtime.process_event(
+        agent_id=agent.agent_id,
+        event_type="FinancialReportRequested",
+        payload={
+            "quarter": "Q4",
+            "year": 2024,
+            "metrics": ["revenue", "profit_margin", "cash_flow"]
+        }
+    )
+    
+    print(f"Event processed:")
+    print(f"  - Success: {result.get('success')}")
+    print(f"  - Response: {result.get('response')}")
+    print(f"  - Latency: {result.get('latency_ms', 0):.2f}ms")
+    
+    print()
+
+
+async def multi_agent_example():
+    """Example with multiple agents, each with domain-specific LoRA adapters."""
+    
+    print("=== Multi-Agent with Domain LoRA Adapters ===\n")
+    
+    # Initialize infrastructure runtime
+    runtime = AgentRuntimeProvider(RuntimeConfig.from_env())
+    await runtime.initialize()
+    
+    # Define multiple agents with different domain expertise
+    agents_config = [
+        {"agent_id": "ceo", "purpose": "Strategic oversight", "adapter": "ceo"},
+        {"agent_id": "cfo", "purpose": "Financial planning", "adapter": "cfo"},
+        {"agent_id": "cto", "purpose": "Technology strategy", "adapter": "cto"},
     ]
     
-    for i, message in enumerate(messages, 1):
-        print(f"Turn {i}: {message}")
+    # Deploy all agents to infrastructure runtime
+    for config in agents_config:
+        agent = PurposeDrivenAgent(
+            agent_id=config["agent_id"],
+            purpose=config["purpose"],
+            adapter_name=config["adapter"]
+        )
+        await agent.initialize()
         
-        response = await client.send_message(
-            message=message,
-            thread_id=thread_id,
-            domain="financial_analysis"
+        foundry_agent = await runtime.deploy_agent(
+            agent_id=agent.agent_id,
+            purpose=agent.purpose,
+            adapter_name=config["adapter"]
         )
         
-        if response.success:
-            print(f"Response: {response.content}\n")
-        else:
-            print(f"Error: {response.error}\n")
+        if foundry_agent:
+            print(f"Deployed {config['agent_id']}:")
+            print(f"  - Model: llama-3.3-70b-{config['adapter']}")
+            print(f"  - Purpose: {config['purpose']}")
     
-    # Get thread info
-    thread_info = await client.get_thread_info(thread_id)
-    if thread_info:
-        print(f"Thread Info:")
-        print(f"  - Message count: {thread_info.message_count}")
-        print(f"  - Last accessed: {thread_info.last_accessed}")
-    
-    print()
-
-
-async def foundry_tools_example():
-    """Example using Foundry Tools for enhanced capabilities."""
-    
-    print("=== Foundry Tools Example ===\n")
-    
-    # Create client with Foundry Tools enabled
-    config = FoundryAgentServiceConfig.from_env()
-    config.enable_foundry_tools = True
-    client = FoundryAgentServiceClient(config)
-    await client.initialize()
-    
-    # Send message with specific tools
-    response = await client.send_message(
-        message="Analyze customer sentiment from recent feedback data",
-        domain="customer_analytics",
-        tools=["sentiment_analysis", "data_aggregation", "visualization"]
-    )
-    
-    if response.success:
-        print(f"Response: {response.content}")
-        print(f"Tools used: {', '.join(response.tools_used)}")
-    else:
-        print(f"Error: {response.error}")
+    # Get runtime status
+    status = runtime.get_status()
+    print(f"\nRuntime Status:")
+    print(f"  - Active Agents: {status['active_agents']}")
+    print(f"  - LoRA Adapters Enabled: {status['lora_adapters_enabled']}")
+    print(f"  - Stateful Threads: {status['stateful_threads_enabled']}")
     
     print()
 
 
-async def model_orchestrator_integration():
-    """Example integrating Foundry Agent Service with ModelOrchestrator."""
+async def runtime_metrics_example():
+    """Example demonstrating infrastructure runtime metrics."""
     
-    print("=== Model Orchestrator Integration ===\n")
+    print("=== Runtime Metrics Example ===\n")
     
-    # Create ModelOrchestrator
-    orchestrator = ModelOrchestrator()
-    await orchestrator.initialize()
+    runtime = AgentRuntimeProvider(RuntimeConfig.from_env())
+    await runtime.initialize()
     
-    # Process request using Foundry Agent Service
-    result = await orchestrator.process_model_request(
-        model_type=ModelType.FOUNDRY_AGENT_SERVICE,
-        domain="leadership",
-        user_input="What are the top 3 priorities for our engineering team this quarter?",
-        conversation_id="conv-001"
+    # Deploy agent
+    agent = PurposeDrivenAgent(
+        agent_id="test_agent",
+        purpose="Testing metrics",
+        adapter_name="ceo"
+    )
+    await agent.initialize()
+    
+    await runtime.deploy_agent(
+        agent_id=agent.agent_id,
+        purpose=agent.purpose,
+        adapter_name="ceo"
     )
     
-    print(f"Success: {result.get('success')}")
-    print(f"Reply: {result.get('reply')}")
-    print(f"Model: {result.get('model')}")
-    print(f"Thread ID: {result.get('thread_id')}")
-    print(f"Execution time: {result.get('execution_time')}s")
-    
-    print()
-
-
-async def advanced_configuration_example():
-    """Example with advanced configuration options."""
-    
-    print("=== Advanced Configuration Example ===\n")
-    
-    # Create custom configuration
-    config = FoundryAgentServiceConfig(
-        endpoint_url=os.getenv("FOUNDRY_AGENT_SERVICE_ENDPOINT", ""),
-        api_key=os.getenv("FOUNDRY_AGENT_SERVICE_API_KEY", ""),
-        agent_id=os.getenv("FOUNDRY_AGENT_ID", "aos-agent-001"),
-        model="llama-3.3-70b",
-        enable_stateful_threads=True,
-        enable_entra_agent_id=True,
-        enable_foundry_tools=True,
-        temperature=0.8,  # More creative responses
-        max_tokens=2048,
-        top_p=0.95,
-        timeout=90,
-        max_retries=5
-    )
-    
-    client = FoundryAgentServiceClient(config)
-    await client.initialize()
-    
-    # Send message with custom parameters
-    response = await client.send_message(
-        message="Generate innovative ideas for improving our product roadmap",
-        domain="product_strategy",
-        system_prompt="You are a strategic product advisor with deep industry expertise.",
-        temperature=0.9,  # Override default for this request
-        max_tokens=1500
-    )
-    
-    if response.success:
-        print(f"Response: {response.content}")
-        print(f"\nConfiguration:")
-        print(f"  - Model: {response.model}")
-        print(f"  - Stateful Threads: {config.enable_stateful_threads}")
-        print(f"  - Entra Agent ID: {config.enable_entra_agent_id}")
-        print(f"  - Foundry Tools: {config.enable_foundry_tools}")
-    else:
-        print(f"Error: {response.error}")
-    
-    print()
-
-
-async def metrics_and_monitoring():
-    """Example demonstrating metrics and monitoring."""
-    
-    print("=== Metrics and Monitoring Example ===\n")
-    
-    config = FoundryAgentServiceConfig.from_env()
-    client = FoundryAgentServiceClient(config)
-    await client.initialize()
-    
-    # Make several requests
+    # Process some events
     for i in range(3):
-        await client.send_message(
-            message=f"Test message {i+1}",
-            domain="general"
+        await runtime.process_event(
+            agent_id=agent.agent_id,
+            event_type="TestEvent",
+            payload={"test_id": i}
         )
     
     # Get metrics
-    metrics = client.get_metrics()
+    metrics = runtime.get_metrics()
     
-    print("Client Metrics:")
-    print(f"  - Total requests: {metrics['total_requests']}")
-    print(f"  - Successful: {metrics['successful_requests']}")
-    print(f"  - Failed: {metrics['failed_requests']}")
-    print(f"  - Total tokens used: {metrics['total_tokens_used']}")
-    print(f"  - Average latency: {metrics['average_latency']:.3f}s")
-    
-    # Health check
-    is_healthy = await client.health_check()
-    print(f"\nHealth check: {'✓ Healthy' if is_healthy else '✗ Unhealthy'}")
+    print("Infrastructure Runtime Metrics:")
+    print(f"  - Total Agents Deployed: {metrics['total_agents_deployed']}")
+    print(f"  - Total Events Processed: {metrics['total_events_processed']}")
+    print(f"  - Successful Events: {metrics['successful_events']}")
+    print(f"  - Failed Events: {metrics['failed_events']}")
+    print(f"  - Average Latency: {metrics['average_latency_ms']:.2f}ms")
+    print(f"  - Active Agents: {metrics['active_agents']}")
+    print(f"  - Active Threads: {metrics['active_threads']}")
     
     print()
 
@@ -233,27 +201,30 @@ async def main():
     """Run all examples."""
     
     print("\n" + "="*60)
-    print("Azure Foundry Agent Service Integration Examples")
-    print("Powered by Llama 3.3 70B")
+    print("Infrastructure-Level Agent Runtime Examples")
+    print("Pure Microsoft Agent Framework + Foundry Runtime")
+    print("Powered by Llama 3.3 70B Instruct with LoRA Adapters")
     print("="*60 + "\n")
     
     # Check if configuration is available
-    if not os.getenv("FOUNDRY_AGENT_SERVICE_ENDPOINT"):
-        print("⚠️  Warning: FOUNDRY_AGENT_SERVICE_ENDPOINT not configured")
+    if not os.getenv("AZURE_AI_PROJECT_ENDPOINT"):
+        print("⚠️  Warning: AZURE_AI_PROJECT_ENDPOINT not configured")
         print("These examples will run with simulated responses.\n")
-        print("To use real Foundry Agent Service:")
-        print("1. Set FOUNDRY_AGENT_SERVICE_ENDPOINT")
-        print("2. Set FOUNDRY_AGENT_SERVICE_API_KEY")
-        print("3. Optionally set FOUNDRY_AGENT_ID\n")
+        print("To use real infrastructure runtime:")
+        print("1. Set AZURE_AI_PROJECT_ENDPOINT")
+        print("2. Deploy Llama 3.3 70B models with LoRA adapters")
+        print("   - Base: llama-3.3-70b-instruct")
+        print("   - CEO: llama-3.3-70b-ceo")
+        print("   - CFO: llama-3.3-70b-cfo")
+        print("   - CTO: llama-3.3-70b-cto")
+        print("3. Configure Azure authentication (DefaultAzureCredential)\n")
     
     try:
         # Run examples
         await basic_example()
-        await stateful_threads_example()
-        await foundry_tools_example()
-        await model_orchestrator_integration()
-        await advanced_configuration_example()
-        await metrics_and_monitoring()
+        await process_event_example()
+        await multi_agent_example()
+        await runtime_metrics_example()
         
         print("\n" + "="*60)
         print("All examples completed successfully!")
