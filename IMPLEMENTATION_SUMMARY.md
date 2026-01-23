@@ -10,43 +10,65 @@ PurposeDrivenAgent was supposed to be an abstract class but was being directly i
 - **Defines abstract method** `get_agent_type()` that must be implemented by subclasses
 - **Prevents direct instantiation** - attempting to instantiate raises `TypeError`
 
-### 2. Created GenericPurposeDrivenAgent
+### 2. Created Persona Registry in AgentOperatingSystem
+- **Central registry** mapping persona names to LoRA adapter names
+- **Default personas**: generic, leadership, marketing, finance, operations, technology, hr, legal
+- **Methods**:
+  - `register_persona(name, adapter)` - Register new persona/adapter mapping
+  - `get_available_personas()` - Get list of all available personas
+  - `get_adapter_for_persona(persona)` - Get LoRA adapter for a persona
+  - `validate_personas(list)` - Validate personas are available
+- **LoRAx integration**: Automatically registers adapters with LoRAx server
+
+### 3. Updated PurposeDrivenAgent to Query AOS
+- **Added `aos` parameter** - Receives AgentOperatingSystem reference
+- **Added `get_available_personas()` method** - Queries AOS for available personas
+- **Added `validate_personas()` method** - Validates personas against AOS registry
+- **Abstract method pattern**:
+  1. Query available personas from AOS
+  2. Select combination needed for this agent type
+  3. Return list of selected personas
+
+### 4. Created GenericPurposeDrivenAgent
 - Concrete implementation for general-purpose agents
-- Implements `get_agent_type()` returning `["generic"]` (list of personas/skills)
-- Provides all the functionality of PurposeDrivenAgent without specialization
+- Queries AOS and selects `["generic"]` persona
+- Implements `get_agent_type()` by querying AOS registry
 
-### 3. Updated All Subclasses
-All concrete subclasses now implement `get_agent_type()` returning a list of personas/skills:
-- **GenericPurposeDrivenAgent**: returns `["generic"]`
-- **LeadershipAgent**: returns `["leadership"]`
-- **CMOAgent**: returns `["marketing", "leadership"]` - combining both personas
-- **PurposeDrivenAgentFoundry**: configurable via `agent_types` parameter (defaults to `["generic"]`)
-  - Foundry is a runtime wrapper (Azure AI Agents service), not an agent type
-  - Example: `PurposeDrivenAgentFoundry(..., agent_types=["leadership"])`
+### 5. Updated All Subclasses
+All concrete subclasses query AOS and select appropriate personas:
+- **GenericPurposeDrivenAgent**: queries AOS, selects `["generic"]`
+- **LeadershipAgent**: queries AOS, selects `["leadership"]`
+- **CMOAgent**: queries AOS, selects `["marketing", "leadership"]` - composable!
+- **PurposeDrivenAgentFoundry**: queries AOS or uses configured `agent_types` parameter
 
-### 4. Fixed Direct Instantiations
+### 6. Fixed Direct Instantiations
 Replaced all direct PurposeDrivenAgent instantiations with concrete implementations:
 - **Test files**: Use GenericPurposeDrivenAgent
 - **Azure Functions**: Use GenericPurposeDrivenAgent for legacy fallback
 - **Examples**: Use LeadershipAgent or GenericPurposeDrivenAgent
 
-### 5. Maintained Backward Compatibility
+### 7. Maintained Backward Compatibility
 - **BaseAgent** alias → GenericPurposeDrivenAgent
 - **PerpetualAgent** alias → GenericPurposeDrivenAgent
 - Existing code using these aliases continues to work
 
 ## Files Changed
 
-### Code Files (6 files)
-1. `src/AgentOperatingSystem/agents/purpose_driven.py` - Made abstract, added GenericPurposeDrivenAgent
-2. `src/AgentOperatingSystem/agents/__init__.py` - Updated exports and aliases
-3. `src/AgentOperatingSystem/agents/leadership_agent.py` - Implemented get_agent_type()
-4. `src/AgentOperatingSystem/agents/cmo_agent.py` - Implemented get_agent_type()
-5. `src/AgentOperatingSystem/platform/foundry/purpose_driven_foundry.py` - Implemented get_agent_type()
-6. `tests/simple_test.py` - Updated to use GenericPurposeDrivenAgent
-7. `tests/test_purpose_driven_integration.py` - Updated to use GenericPurposeDrivenAgent
-8. `azure_functions/RealmOfAgents/function_app.py` - Updated to use GenericPurposeDrivenAgent
-9. `azure_functions/RealmOfAgents/function_app_original.py` - Updated to use GenericPurposeDrivenAgent
+### Code Files (10 files)
+1. `src/AgentOperatingSystem/agent_operating_system.py` - Added persona registry and methods
+2. `src/AgentOperatingSystem/agents/purpose_driven.py` - Made abstract, added AOS querying, GenericPurposeDrivenAgent
+3. `src/AgentOperatingSystem/agents/__init__.py` - Updated exports and aliases
+4. `src/AgentOperatingSystem/agents/leadership_agent.py` - Implemented get_agent_type() with AOS query
+5. `src/AgentOperatingSystem/agents/cmo_agent.py` - Implemented get_agent_type() with AOS query
+6. `src/AgentOperatingSystem/platform/foundry/purpose_driven_foundry.py` - Implemented get_agent_type() with AOS query
+7. `tests/simple_test.py` - Updated to use GenericPurposeDrivenAgent
+8. `tests/test_purpose_driven_integration.py` - Updated to use GenericPurposeDrivenAgent
+9. `azure_functions/RealmOfAgents/function_app.py` - Updated to use GenericPurposeDrivenAgent
+10. `azure_functions/RealmOfAgents/function_app_original.py` - Updated to use GenericPurposeDrivenAgent
+
+### Test Files (2 files)
+1. `tests/test_persona_registry.py` - New test demonstrating persona registry architecture
+2. `tests/test_agent_personas.py` - Test for composable personas
 
 ### Documentation Files (14 files)
 1. `README.md`
@@ -74,19 +96,58 @@ PurposeDrivenAgent (concrete class - could be instantiated)
 
 ### After
 ```
+AgentOperatingSystem
+├── persona_registry: Dict[persona_name, adapter_name]
+│   ├── "generic" → "general"
+│   ├── "leadership" → "leadership"
+│   ├── "marketing" → "marketing"
+│   └── ... (extensible)
+├── register_persona(name, adapter)
+├── get_available_personas() → List[str]
+├── get_adapter_for_persona(persona) → str
+└── validate_personas(List[str]) → bool
+
 PurposeDrivenAgent (abstract base class - ABC)
-│   └── @abstractmethod get_agent_type() -> List[str]  # Returns personas/skills
-│
-├── GenericPurposeDrivenAgent → ["generic"]
-├── LeadershipAgent → ["leadership"]
-│   └── CMOAgent → ["marketing", "leadership"]  # Combined personas
-└── PurposeDrivenAgentFoundry → configurable (runtime wrapper, not agent type)
+├── @abstractmethod get_agent_type() -> List[str]
+├── aos: AgentOperatingSystem  # Reference for querying personas
+├── get_available_personas() -> queries AOS
+└── validate_personas() -> validates against AOS
+    │
+    ├── GenericPurposeDrivenAgent
+    │   └── get_agent_type() → queries AOS → ["generic"]
+    │
+    ├── LeadershipAgent
+    │   └── get_agent_type() → queries AOS → ["leadership"]
+    │       │
+    │       └── CMOAgent
+    │           └── get_agent_type() → queries AOS → ["marketing", "leadership"]
+    │
+    └── PurposeDrivenAgentFoundry (runtime wrapper)
+        └── get_agent_type() → queries AOS or uses configured agent_types
 ```
 
-### Key Insight: Composable Personas
-- **Personas are composable**: An agent can have multiple personas/skills
-- **Chief Marketing Officer = Marketing + Leadership**: Returns both personas
-- **Foundry is infrastructure**: Not a persona, just a runtime (Azure AI Agents service)
+### Runtime Behavior with LoRAx
+```
+1. CMOAgent.get_agent_type()
+   └── Queries AgentOperatingSystem
+       └── Returns ["marketing", "leadership"]
+
+2. AgentOperatingSystem maps personas to adapters
+   └── "marketing" → "marketing" adapter
+   └── "leadership" → "leadership" adapter
+
+3. LoRAx loads Llama 3.3 70B with BOTH adapters superimposed
+   └── Base model: Llama 3.3 70B
+   └── Adapter 1: marketing (domain knowledge)
+   └── Adapter 2: leadership (domain knowledge)
+   └── Single inference uses combined knowledge
+
+4. Cost Benefits
+   └── Shared base model across all agents
+   └── Dynamic adapter loading
+   └── Efficient memory usage
+   └── 10-50x cost reduction vs separate models
+```
 
 
 ## Validation
