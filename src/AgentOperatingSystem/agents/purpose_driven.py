@@ -23,22 +23,24 @@ from datetime import datetime
 import logging
 import asyncio
 import uuid
+from abc import ABC, abstractmethod
 from ..ml.pipeline_ops import trigger_lora_training, run_azure_ml_pipeline, aml_infer
 from ..mcp.context_server import ContextMCPServer
 
 
-class PurposeDrivenAgent:
+class PurposeDrivenAgent(ABC):
     """
     Purpose-Driven Perpetual Agent - The fundamental building block of AOS.
 
-    This consolidated class combines:
+    This is an ABSTRACT BASE CLASS that combines:
     - BaseAgent: Generic agent with lifecycle, messaging, and state management
     - PerpetualAgent: Agents that run indefinitely and respond to events
     - PurposeDrivenAgent: Purpose-driven perpetual agents
 
-    NOTE: This class is standalone and does not inherit from ABC or any base class
-    (except object, which is implicit in Python 3). All previously abstract methods
-    have been implemented as concrete methods.
+    NOTE: This is an abstract base class (ABC). You cannot directly instantiate
+    PurposeDrivenAgent. Instead, create a concrete subclass (like LeadershipAgent,
+    CMOAgent, or create your own custom agent) that implements the required abstract
+    methods.
 
     Unlike task-based agents that execute and terminate, PurposeDrivenAgent
     works continuously against an assigned, long-term purpose.
@@ -63,7 +65,12 @@ class PurposeDrivenAgent:
     - Adapter-mapped: Purpose mapped to LoRA adapter for domain expertise
 
     Example:
-        >>> agent = PurposeDrivenAgent(
+        >>> # Cannot directly instantiate - this will raise TypeError
+        >>> # agent = PurposeDrivenAgent(...)  # ERROR!
+        >>> 
+        >>> # Instead, use a concrete subclass like LeadershipAgent:
+        >>> from AgentOperatingSystem.agents import LeadershipAgent
+        >>> agent = LeadershipAgent(
         ...     agent_id="ceo",
         ...     purpose="Strategic oversight and decision-making for company growth",
         ...     purpose_scope="Strategic planning, major decisions, alignment",
@@ -765,3 +772,30 @@ class PurposeDrivenAgent:
                 self.purpose_metrics.update(metrics_data)
 
         self.logger.debug(f"Loaded purpose context for {self.agent_id}")
+
+
+class GenericPurposeDrivenAgent(PurposeDrivenAgent):
+    """
+    Concrete implementation of PurposeDrivenAgent for general-purpose use.
+    
+    This is a simple, concrete implementation that can be used when you need
+    a basic purpose-driven agent without specialized functionality. For more
+    specific use cases, consider using or creating specialized subclasses like:
+    - LeadershipAgent: For leadership and decision-making
+    - CMOAgent: For marketing and leadership
+    - Or create your own custom agent with domain-specific capabilities
+    
+    Example:
+        >>> agent = GenericPurposeDrivenAgent(
+        ...     agent_id="assistant",
+        ...     purpose="General assistance and task execution",
+        ...     adapter_name="general"
+        ... )
+        >>> await agent.initialize()
+        >>> await agent.start()
+    """
+    
+    # This is a concrete class with no additional abstract methods
+    # It inherits all functionality from PurposeDrivenAgent
+    pass
+

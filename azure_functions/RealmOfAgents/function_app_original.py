@@ -24,7 +24,7 @@ from azure.identity.aio import DefaultAzureCredential
 # Note: AgentOperatingSystem package must be installed in the deployment environment
 # Install with: pip install git+https://github.com/ASISaga/AgentOperatingSystem.git
 try:
-    from AgentOperatingSystem.agents import PurposeDrivenAgent, PerpetualAgent, LeadershipAgent
+    from AgentOperatingSystem.agents import GenericPurposeDrivenAgent, PerpetualAgent, LeadershipAgent
     from AgentOperatingSystem.mcp.client_manager import MCPClientManager
     from AgentOperatingSystem.ml.pipeline_ops import trigger_lora_training
 except ImportError as e:
@@ -129,7 +129,7 @@ async def instantiate_agent(config: AgentConfiguration) -> Optional[Any]:
         
         # Instantiate agent based on type
         if config.agent_type == AgentType.PURPOSE_DRIVEN:
-            agent = PurposeDrivenAgent(
+            agent = GenericPurposeDrivenAgent(
                 agent_id=config.agent_id,
                 purpose=config.purpose,
                 purpose_scope=config.purpose_scope,
