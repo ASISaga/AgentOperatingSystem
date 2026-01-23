@@ -327,8 +327,8 @@ State               State
 Agents are long-running processes, not transient tasks.
 
 ```python
-# Register once, runs forever
-agent = PurposeDrivenAgent(...)
+# Register once, runs forever (use concrete implementation)
+agent = LeadershipAgent(...)  # Or GenericPurposeDrivenAgent
 await agent.initialize()  # ContextMCPServer created
 manager.register_agent(agent)
 # Agent now perpetual, responds to events
@@ -392,7 +392,7 @@ await storage.save(key, value)
 
 ### Agent → Storage
 ```python
-agent = PurposeDrivenAgent(...)
+agent = LeadershipAgent(...)  # Or GenericPurposeDrivenAgent
 await agent.initialize()  # ContextMCPServer created
 await agent.save_state()  # State → ContextMCPServer → Azure Storage
 ```

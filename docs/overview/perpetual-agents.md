@@ -40,11 +40,11 @@ AOS agents are **Purpose-Driven Perpetual entities that never stop**:
 ### Example Usage
 
 ```python
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import LeadershipAgent
 from AgentOperatingSystem.mcp import ContextMCPServer
 
 # Native AOS agent - purpose-driven and perpetual
-agent = PurposeDrivenAgent(
+agent = LeadershipAgent(
     agent_id="ceo",
     purpose="Strategic oversight and company growth",
     purpose_scope="Strategic planning, major decisions",
@@ -97,8 +97,8 @@ manager.register_agent(agent)  # Register once, runs perpetually by default
 ### Purpose-Driven Perpetual Agent
 ```python
 # Purpose-Driven Perpetual Agent (Fundamental Building Block)
-from AgentOperatingSystem.agents import PurposeDrivenAgent
-purpose_agent = PurposeDrivenAgent(
+from AgentOperatingSystem.agents import LeadershipAgent
+purpose_agent = LeadershipAgent(
     agent_id="ceo",
     purpose="Strategic oversight and decision-making",
     purpose_scope="Strategic planning, major decisions",

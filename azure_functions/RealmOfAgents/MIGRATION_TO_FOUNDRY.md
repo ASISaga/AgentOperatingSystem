@@ -34,8 +34,8 @@ PurposeDrivenAgent (Core Component - UNCHANGED)
 **PurposeDrivenAgent** is the fundamental building block of AOS and continues to be the main API:
 
 ```python
-# The API remains the same
-agent = PurposeDrivenAgent(
+# The API remains the same (use concrete implementation)
+agent = LeadershipAgent(
     agent_id="ceo",
     purpose="Strategic oversight and decision-making",
     purpose_scope="Strategic planning, major decisions",

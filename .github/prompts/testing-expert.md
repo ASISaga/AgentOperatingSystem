@@ -90,12 +90,12 @@ async def test_basic_operation():
 ### Using Fixtures for Setup/Teardown
 ```python
 import pytest
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
 
 @pytest.fixture
 async def initialized_agent():
     """Provide initialized agent for tests."""
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test_agent",
         purpose="Testing",
         adapter_name="test"
@@ -140,13 +140,13 @@ async def test_with_mocked_azure_storage():
 ### Testing Perpetual Agents
 ```python
 import pytest
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
 
 @pytest.mark.asyncio
 async def test_perpetual_agent_lifecycle():
     """Test complete agent lifecycle."""
     # Create
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test",
         purpose="Testing",
         adapter_name="test"
@@ -211,12 +211,12 @@ async def test_concurrent_agent_operations():
 ### Testing Error Handling
 ```python
 import pytest
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
 
 @pytest.mark.asyncio
 async def test_error_handling():
     """Test agent handles errors correctly."""
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test",
         purpose="Testing",
         adapter_name="test"
@@ -276,7 +276,7 @@ async def test_timeout():
 import pytest
 from unittest.mock import AsyncMock
 from AgentOperatingSystem import AgentOperatingSystem, AOSConfig
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
 
 @pytest.fixture
 def aos_config():
@@ -298,7 +298,7 @@ async def aos_instance(aos_config):
 @pytest.fixture
 async def test_agent():
     """Provide test agent."""
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test",
         purpose="Testing",
         adapter_name="test"
