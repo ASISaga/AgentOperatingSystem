@@ -211,6 +211,22 @@ purposes:
     adapter_name: leadership  # Leadership domain knowledge
 ```
 
+### Lean Agent Architecture
+
+**PurposeDrivenAgent is the fundamental agent class** containing all core functionality:
+- Multi-purpose support and adapter switching
+- YAML configuration loading
+- Purpose-to-adapter mapping
+- Goal tracking, metrics, decision-making
+
+**Derived agents** (LeadershipAgent, CMOAgent) are lean wrappers (~60-150 lines) that:
+- Provide domain-specific defaults
+- Add domain-specific methods only when needed
+- Are primarily YAML-configured
+- Inherit all core functionality
+
+This architecture ensures derived agents are minimal and maintainable, with all repetitive logic in PurposeDrivenAgent.
+
 📖 **[Agent Configuration Schema](docs/agent-configuration-schema.md)** - Complete YAML schema reference  
 📖 **[Example Configurations](config/agents/)** - CEO, CMO, Leadership agent examples
 

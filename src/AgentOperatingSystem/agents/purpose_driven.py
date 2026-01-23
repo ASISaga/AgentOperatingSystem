@@ -131,6 +131,15 @@ class PurposeDrivenAgent(PerpetualAgent):
         self.capabilities = capabilities or []
         self.metadata = metadata or {}
         
+        # Purpose-to-adapter mapping for multi-purpose agents
+        self.purpose_adapter_mapping = {}
+        if self.purposes_config:
+            for purpose_config in self.purposes_config:
+                purpose_name = purpose_config.get("name", "").lower()
+                adapter_name_for_purpose = purpose_config.get("adapter_name")
+                if purpose_name and adapter_name_for_purpose:
+                    self.purpose_adapter_mapping[purpose_name] = adapter_name_for_purpose
+        
         # Purpose tracking
         self.purpose_metrics = {
             "purpose_aligned_actions": 0,
@@ -442,7 +451,7 @@ class PurposeDrivenAgent(PerpetualAgent):
         Returns:
             Status dictionary
         """
-        return {
+        status = {
             "agent_id": self.agent_id,
             "purpose": self.purpose,
             "purpose_scope": self.purpose_scope,
@@ -453,6 +462,99 @@ class PurposeDrivenAgent(PerpetualAgent):
             "is_running": self.is_running,
             "total_events_processed": self.total_events_processed
         }
+        
+        # Add multi-purpose information if available
+        if self.purpose_adapter_mapping:
+            status["purpose_adapter_mapping"] = self.purpose_adapter_mapping
+            status["purposes"] = {}
+            for purpose_config in self.purposes_config:
+                purpose_name = purpose_config.get("name", "")
+                if purpose_name:
+                    status["purposes"][purpose_name] = {
+                        "description": purpose_config.get("description", ""),
+                        "adapter": purpose_config.get("adapter_name", ""),
+                        "success_criteria": purpose_config.get("success_criteria", [])
+                    }
+        
+        return status
+    
+    def get_adapter_for_purpose(self, purpose_type: str) -> str:
+        """
+        Get the LoRA adapter name for a specific purpose type.
+        
+        For multi-purpose agents, retrieves the adapter mapped to the specified purpose.
+        
+        Args:
+            purpose_type: Type of purpose (e.g., "marketing", "leadership")
+            
+        Returns:
+            LoRA adapter name for the specified purpose
+            
+        Raises:
+            ValueError: If purpose_type is not recognized or agent is not multi-purpose
+        """
+        if not self.purpose_adapter_mapping:
+            raise ValueError(
+                f"Agent {self.agent_id} is not configured for multi-purpose operation. "
+                f"No purpose-to-adapter mappings available."
+            )
+        
+        adapter_name = self.purpose_adapter_mapping.get(purpose_type.lower())
+        
+        if adapter_name is None:
+            valid_types = list(self.purpose_adapter_mapping.keys())
+            raise ValueError(
+                f"Unknown purpose type '{purpose_type}'. Valid types: {valid_types}"
+            )
+        
+        return adapter_name
+    
+    async def execute_with_purpose(
+        self, 
+        task: Dict[str, Any], 
+        purpose_type: str
+    ) -> Dict[str, Any]:
+        """
+        Execute a task using the LoRA adapter for the specified purpose.
+        
+        For multi-purpose agents, this method switches to the appropriate adapter
+        before executing the task, then restores the original adapter.
+        
+        Args:
+            task: Task to execute
+            purpose_type: Which purpose to use (e.g., "marketing", "leadership")
+            
+        Returns:
+            Task execution result
+            
+        Raises:
+            ValueError: If purpose_type is not recognized
+        """
+        # This will raise ValueError if purpose_type is invalid
+        adapter_name = self.get_adapter_for_purpose(purpose_type)
+        
+        self.logger.info(
+            f"Executing task with {purpose_type} purpose using adapter: {adapter_name}"
+        )
+        
+        # Store original adapter and ensure restoration in all cases
+        original_adapter = self.adapter_name
+        
+        try:
+            # Temporarily switch adapter for this task execution
+            self.adapter_name = adapter_name
+            
+            # Execute task with the purpose-specific adapter
+            result = await self.handle_event(task)
+            result["purpose_type"] = purpose_type
+            result["adapter_used"] = adapter_name
+            return result
+        except Exception as e:
+            self.logger.error(f"Error executing task with {purpose_type} purpose: {e}")
+            raise
+        finally:
+            # Always restore original adapter, even if exception occurred
+            self.adapter_name = original_adapter
     
     async def handle_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
         """

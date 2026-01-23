@@ -4,11 +4,41 @@ This document summarizes the implementation of YAML-based agent configuration fo
 
 ## Overview
 
-Agents derived from PurposeDrivenAgent can now be configured using YAML files that define:
+**PurposeDrivenAgent is the fundamental agent class in AOS.** All specialized agents are lean wrappers configured via YAML.
+
+Agents are configured using YAML files that define:
 - **Purposes** - Long-term objectives mapped to LoRA adapters
 - **LoRA Adapters** - Domain-specific knowledge for each purpose
 - **MCP Tools** - Model Context Protocol tools required
 - **Capabilities** - Agent capabilities and responsibilities
+
+## Key Architecture Principles
+
+### PurposeDrivenAgent as the Fundamental Agent
+
+**All core functionality lives in PurposeDrivenAgent** (~629 lines):
+- Multi-purpose support and adapter switching
+- YAML configuration loading (`from_yaml()`)
+- Purpose-to-adapter mapping (`purpose_adapter_mapping`)
+- Adapter retrieval (`get_adapter_for_purpose()`)
+- Purpose-based execution (`execute_with_purpose()`)
+- Goal tracking, metrics, decision infrastructure
+- MCP tools integration
+
+### Derived Agents are Lean Wrappers
+
+**LeadershipAgent** (~143 lines, 26% reduction):
+- Provides leadership domain defaults
+- Adds domain-specific methods: `make_decision()`, `consult_stakeholders()`
+- Inherits all core functionality from PurposeDrivenAgent
+
+**CMOAgent** (~61 lines, 78% reduction):
+- Extends LeadershipAgent
+- Provides CMO domain defaults
+- Primarily YAML-configured
+- Uses inherited `execute_with_purpose()` for multi-purpose operation
+
+**Key principle:** Derived agents only contain domain-specific logic. All repetitive/core functionality is in PurposeDrivenAgent.
 
 ## Key Changes
 
@@ -32,25 +62,35 @@ Three example agent configurations in `config/agents/`:
 
 #### PurposeDrivenAgent (`src/AgentOperatingSystem/agents/purpose_driven.py`)
 
-- Added `from_yaml(yaml_path)` class method for loading from YAML
-- Updated `__init__` to support:
-  - Multi-purpose configuration via `purposes` parameter
-  - MCP tools configuration via `mcp_tools` parameter
-  - Capabilities via `capabilities` parameter
-  - Metadata via `metadata` parameter
-- Maintained backward compatibility with existing code-based initialization
-- Enhanced `initialize()` to store YAML-based configuration in MCP context
+**Consolidated all core functionality:**
+- Added `purpose_adapter_mapping` for multi-purpose support
+- Added `get_adapter_for_purpose(type)` - Get adapter for specific purpose
+- Added `execute_with_purpose(task, type)` - Execute with specific adapter
+- Enhanced `get_purpose_status()` to include multi-purpose information
+- `from_yaml(yaml_path)` - Universal YAML loader for all agent types
+- Updated `__init__` to support multi-purpose configuration
+
+**This makes PurposeDrivenAgent the fundamental agent with all core functionality.**
 
 #### LeadershipAgent (`src/AgentOperatingSystem/agents/leadership_agent.py`)
 
-- Added `from_yaml(yaml_path)` class method
-- Properly extracts leadership purpose and adapter from YAML
+**Refactored to lean wrapper (~143 lines):**
+- Removed duplicate `from_yaml()` (now uses parent's)
+- Removed duplicate adapter switching logic (now uses parent's)
+- Kept only domain-specific methods:
+  - `make_decision()` - Leadership-specific decision making
+  - `consult_stakeholders()` - Stakeholder coordination
+  - `_evaluate_decision()` - Decision evaluation hook
 
 #### CMOAgent (`src/AgentOperatingSystem/agents/cmo_agent.py`)
 
-- Added `from_yaml(yaml_path)` class method
-- Supports dual purposes (marketing + leadership)
-- Maintains purpose-to-adapter mapping from YAML configuration
+**Refactored to minimal wrapper (~61 lines):**
+- Removed all duplicate functionality
+- Removed `from_yaml()` (uses parent's)
+- Removed `get_adapter_for_purpose()` (uses parent's)
+- Removed `execute_with_purpose()` (uses parent's)
+- Removed `get_status()` (uses parent's)
+- Now just provides CMO defaults
 
 ### 3. Bug Fixes
 

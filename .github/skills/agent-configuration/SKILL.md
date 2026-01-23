@@ -2,13 +2,34 @@
 
 ## Overview
 
-This skill covers configuring Purpose-Driven Agents using YAML configuration files. Learn how to:
+This skill covers configuring Purpose-Driven Agents using YAML configuration files. 
+
+**PurposeDrivenAgent is the fundamental agent class in AOS.** All specialized agents (LeadershipAgent, CMOAgent, etc.) are lean wrappers that inherit from PurposeDrivenAgent and are primarily configured via YAML.
+
+Learn how to:
 - Create agent.yaml files
 - Map purposes to LoRA adapters
 - Configure MCP tools
 - Load agents from YAML
+- Understand the lean agent architecture
 
 ## Key Concepts
+
+### PurposeDrivenAgent as the Fundamental Agent
+
+**PurposeDrivenAgent** contains all core functionality:
+- Multi-purpose support and adapter switching
+- YAML configuration loading
+- Purpose-to-adapter mapping
+- MCP tools integration
+- Goal tracking and metrics
+- All repetitive/core agent operations
+
+**Derived agents** (LeadershipAgent, CMOAgent) are lean wrappers that:
+- Provide domain-specific defaults
+- Add domain-specific methods (if needed)
+- Are primarily YAML-configured
+- Inherit all core functionality from PurposeDrivenAgent
 
 ### Purpose-to-Adapter Mapping
 
@@ -114,19 +135,39 @@ agent = PurposeDrivenAgent(
 
 ## Implementation Details
 
-### PurposeDrivenAgent
+### PurposeDrivenAgent - The Fundamental Agent
 
-The base class supports:
-- `from_yaml(yaml_path)` - Class method to load from YAML
+PurposeDrivenAgent is the core agent class that contains ALL core functionality:
+
+**Core Features:**
+- `from_yaml(yaml_path)` - Load any agent type from YAML
 - Multi-purpose configuration via `purposes` parameter
-- Automatic purpose-to-adapter mapping
+- Automatic purpose-to-adapter mapping via `purpose_adapter_mapping`
+- `get_adapter_for_purpose(type)` - Retrieve adapter for a specific purpose
+- `execute_with_purpose(task, type)` - Execute with specific adapter
+- Goal tracking and progress management
+- Purpose alignment evaluation
+- Decision-making infrastructure
+- MCP tools integration
 
-### CMOAgent & LeadershipAgent
+**All repetitive/core functionality lives here.** Derived agents should only add domain-specific logic.
 
-Extended classes that:
-- Support loading from YAML with `from_yaml(yaml_path)`
-- Maintain purpose-adapter mappings
-- Allow switching between adapters for different tasks
+### LeadershipAgent & CMOAgent - Lean Wrappers
+
+These are minimal wrappers over PurposeDrivenAgent:
+
+**LeadershipAgent** (~143 lines):
+- Provides leadership domain defaults
+- Adds domain-specific methods: `make_decision()`, `consult_stakeholders()`
+- Inherits all core functionality from PurposeDrivenAgent
+
+**CMOAgent** (~61 lines):  
+- Extends LeadershipAgent (inherits leadership capabilities)
+- Provides CMO domain defaults
+- Primarily YAML-configured
+- No additional methods needed - uses inherited `execute_with_purpose()`
+
+**Key principle:** Derived agents are lean. They provide defaults and domain-specific methods, but all core/repetitive functionality is in PurposeDrivenAgent.
 
 ## Files
 
