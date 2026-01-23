@@ -1,77 +1,96 @@
-# Migration Guide: Custom Runtime → Microsoft Foundry Agent Service Runtime
+# Architecture Changes: PurposeDrivenAgent Now Uses Infrastructure-Level Runtime
 
 ## Overview
 
-RealmOfAgents has been enhanced to support **Microsoft Foundry Agent Service** as the runtime for **PurposeDrivenAgent** - the core architectural component of AOS. 
+The architecture has been refactored so that **PurposeDrivenAgent** remains the ONLY implementation and is pure Microsoft Agent Framework code. The **Foundry Agent Service runtime** with **Llama 3.3 70B Instruct and domain-specific LoRA adapters** is now provided by the AOS infrastructure layer (AgentRuntimeProvider), not as an agent extension.
 
-**Important**: PurposeDrivenAgent is NOT being phased out. Instead, it has been enhanced with a new Foundry-enabled implementation (`PurposeDrivenAgentFoundry`) that uses Azure AI Agents runtime with **Llama 3.3 70B fine-tuned using domain-specific LoRA adapters**.
+**Key Change**: PurposeDrivenAgentFoundry has been removed. The Foundry runtime capability is now part of the AgentOperatingSystem infrastructure.
 
 ## What Changed
 
 ### Before
 ```
-PurposeDrivenAgent (Custom Runtime)
-├── Manual lifecycle management
-├── Custom state management
-└── Direct agent framework integration
+PurposeDrivenAgent (Base Implementation)
+├── Pure Microsoft Agent Framework
+└── No Foundry runtime
+
+PurposeDrivenAgentFoundry (Extension)
+├── Extends PurposeDrivenAgent
+├── Adds Foundry Agent Service runtime
+├── Llama 3.3 70B with LoRA adapters
+└── Managed lifecycle by Foundry
 ```
 
 ### After  
 ```
-PurposeDrivenAgent (Core Component - UNCHANGED)
-├── Standard implementation (legacy mode)
-└── New: PurposeDrivenAgentFoundry (Foundry-enabled)
-    ├── Uses Azure AI Agents runtime
-    ├── Llama 3.3 70B with LoRA adapters
-    ├── Managed lifecycle by Foundry
-    └── Built-in stateful threads
+PurposeDrivenAgent (ONLY Implementation)
+├── Pure Microsoft Agent Framework code
+└── No runtime awareness
+
+AgentRuntimeProvider (AOS Infrastructure)
+├── Foundry Agent Service integration
+├── Llama 3.3 70B Instruct as base model
+├── LoRA adapter selection and deployment
+├── Stateful thread management
+└── Transparent to PurposeDrivenAgent
 ```
 
 ## Architecture
 
-### PurposeDrivenAgent Remains the Core Component
+### PurposeDrivenAgent Remains Pure
 
-**PurposeDrivenAgent** is the fundamental building block of AOS and continues to be the main API:
+**PurposeDrivenAgent** is pure Microsoft Agent Framework code with no awareness of the runtime:
 
 ```python
-# The API remains the same
+# Pure Microsoft Agent Framework - no Foundry coupling
 agent = PurposeDrivenAgent(
     agent_id="ceo",
     purpose="Strategic oversight and decision-making",
     purpose_scope="Strategic planning, major decisions",
-    adapter_name="ceo"  # Now references LoRA adapter
+    adapter_name="ceo"  # Infrastructure uses this for LoRA selection
 )
 await agent.initialize()
 await agent.start()
 ```
 
+### Infrastructure Provides Runtime
+
+The AOS infrastructure (AgentRuntimeProvider) provides Foundry runtime transparently:
+
+1. **Agent Creation**: PurposeDrivenAgent (pure MS Agent Framework)
+2. **Infrastructure Deployment**: AgentRuntimeProvider deploys to Foundry runtime
+3. **Model Selection**: Uses Llama 3.3 70B + domain LoRA adapter (e.g., llama-3.3-70b-ceo)
+4. **Execution**: Runs on Foundry Agent Service (managed by Microsoft)
+5. **State**: Stateful threads managed by Azure AI Agents
+
 ### How It Works
 
-When `USE_FOUNDRY_RUNTIME=true` (default), the system uses **PurposeDrivenAgentFoundry**:
-
-1. **Agent Creation**: Creates agent on Azure AI Agents runtime
-2. **Model**: Uses Llama 3.3 70B fine-tuned with domain LoRA adapter
-3. **Execution**: Runs on Foundry Agent Service (managed by Microsoft)
-4. **State**: Stateful threads managed by Azure AI Agents
-
-### Llama 3.3 70B with LoRA Adapters
-
-Each PurposeDrivenAgent uses Llama 3.3 70B fine-tuned with a domain-specific LoRA adapter:
-
 ```python
-agent = PurposeDrivenAgentFoundry(
+from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.runtime import AgentRuntimeProvider, RuntimeConfig
+
+# 1. Create agent (pure MS Agent Framework)
+agent = PurposeDrivenAgent(
     agent_id="ceo",
     purpose="Strategic oversight",
-    adapter_name="ceo",  # LoRA adapter: llama-3.3-70b-ceo
-    # Model deployment: llama-3.3-70b-{adapter_name}
+    adapter_name="ceo"
 )
-```
+await agent.initialize()
 
-**LoRA Adapters by Domain:**
-- `ceo` → Llama 3.3 70B fine-tuned for CEO/strategic thinking
-- `cfo` → Llama 3.3 70B fine-tuned for financial analysis
-- `cto` → Llama 3.3 70B fine-tuned for technology strategy
-- `cmo` → Llama 3.3 70B fine-tuned for marketing strategy
+# 2. Infrastructure provides Foundry runtime
+runtime = AgentRuntimeProvider(RuntimeConfig.from_env())
+await runtime.initialize()
+
+# 3. Deploy agent to infrastructure runtime
+foundry_agent = await runtime.deploy_agent(
+    agent_id=agent.agent_id,
+    purpose=agent.purpose,
+    adapter_name="ceo"  # Uses llama-3.3-70b-ceo deployment
+)
+
+# Agent runs on Foundry with Llama 3.3 70B + CEO LoRA adapter
+# But agent code remains pure MS Agent Framework
+```
 
 ## Migration Steps
 

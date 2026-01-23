@@ -411,7 +411,7 @@ AOS provides **configuration-driven Azure Functions applications** for zero-code
 
 ### RealmOfAgents - Plug-and-Play Agent Infrastructure
 
-**RealmOfAgents** is an Azure Functions app that enables configuration-driven deployment of PurposeDrivenAgent(s). PurposeDrivenAgent - the core architectural component of AOS - now runs on **Microsoft Foundry Agent Service** with **Llama 3.3 70B fine-tuned using domain-specific LoRA adapters**. Developers provide only configuration - no code required!
+**RealmOfAgents** is an Azure Functions app that enables configuration-driven deployment of PurposeDrivenAgent(s). PurposeDrivenAgent remains **pure Microsoft Agent Framework code**, while the AOS infrastructure (AgentRuntimeProvider) transparently provides **Microsoft Foundry Agent Service** runtime with **Llama 3.3 70B Instruct fine-tuned using domain-specific LoRA adapters**. Developers provide only configuration - no code required!
 
 **Configuration Only:**
 ```json
@@ -770,73 +770,48 @@ agent.process_event(event100)  # Remembers all 99 previous days via ContextMCPSe
 
 **Machine learning infrastructure:**
 - Azure ML integration
-- **Azure Foundry Agent Service** - Native support for Llama 3.3 70B with Stateful Threads, Entra Agent ID, and Foundry Tools
-- LoRA adapter training and management
+- **Infrastructure-Level Agent Runtime** - AgentRuntimeProvider enables Foundry Agent Service with Llama 3.3 70B Instruct transparently for all agents
+- **LoRA adapter support** - Domain-specific fine-tuning (CEO, CFO, CTO, etc.) via infrastructure
 - **LoRAx multi-adapter serving** - Serve 100+ agents with different LoRA adapters on a single GPU
 - Multi-agent adapter sharing with dynamic loading
 - Model inference with caching
 - Model versioning and deployment
 - Training pipeline orchestration
 
-**Azure Foundry Agent Service Features:**
-- **Llama 3.3 70B**: State-of-the-art reasoning with support for fine-tuned weights
+**Infrastructure-Level Foundry Runtime Features:**
+- **Llama 3.3 70B Instruct**: State-of-the-art reasoning as base model
+- **LoRA Adapters**: Domain-specific fine-tuning (e.g., llama-3.3-70b-ceo, llama-3.3-70b-cfo)
 - **Stateful Threads**: Maintain conversation context across sessions automatically
-- **Entra Agent ID**: Secure identity management integrated with Microsoft Entra ID
-- **Foundry Tools**: Access to Azure AI Foundry's comprehensive toolset
+- **Transparent Integration**: Pure Microsoft Agent Framework agents run on Foundry runtime via infrastructure
 - **Enterprise Scale**: Production-ready infrastructure with high availability
 - **Cost-Effective**: Optimized inference infrastructure reduces operational costs
 
-**Example: Foundry Agent Service with Llama 3.3 70B:**
+**Example: Agent with Infrastructure Runtime:**
 ```python
-from AgentOperatingSystem.ml import FoundryAgentServiceClient, FoundryAgentServiceConfig
-from AgentOperatingSystem.orchestration import ModelOrchestrator, ModelType
+from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.runtime import AgentRuntimeProvider, RuntimeConfig
 
-# Initialize Foundry Agent Service client
-config = FoundryAgentServiceConfig.from_env()
-client = FoundryAgentServiceClient(config)
-await client.initialize()
+# PurposeDrivenAgent is pure Microsoft Agent Framework
+agent = PurposeDrivenAgent(
+    agent_id="ceo",
+    purpose="Strategic oversight and decision-making",
+    adapter_name="ceo"  # Infrastructure uses this for LoRA adapter selection
+)
+await agent.initialize()
 
-# Create a stateful thread for persistent conversations
-thread_id = await client.create_thread(metadata={"purpose": "strategic_planning"})
+# Infrastructure provides Foundry runtime transparently
+runtime = AgentRuntimeProvider(RuntimeConfig.from_env())
+await runtime.initialize()
 
-# Multi-turn conversation with context preservation
-response1 = await client.send_message(
-    "What are our Q3 revenue trends?",
-    thread_id=thread_id,
-    domain="financial_analysis"
+# Deploy agent to infrastructure runtime (uses llama-3.3-70b-ceo)
+runtime_agent = await runtime.deploy_agent(
+    agent_id=agent.agent_id,
+    purpose=agent.purpose,
+    adapter_name="ceo"  # Deploys with Llama 3.3 70B + CEO LoRA adapter
 )
 
-response2 = await client.send_message(
-    "How does this compare to Q2?",
-    thread_id=thread_id,
-    domain="financial_analysis"
-)
-
-# Use via Model Orchestrator
-orchestrator = ModelOrchestrator()
-await orchestrator.initialize()
-
-result = await orchestrator.process_model_request(
-    model_type=ModelType.FOUNDRY_AGENT_SERVICE,
-    domain="leadership",
-    user_input="Analyze our strategic priorities for next quarter",
-    conversation_id="conv-001"
-)
-
-# Foundry Tools support for enhanced capabilities
-response = await client.send_message(
-    message="Analyze customer sentiment from recent feedback",
-    domain="customer_analytics",
-    tools=["sentiment_analysis", "data_aggregation"]
-)
+# Agent remains pure MS Framework, runtime handles Foundry integration
 ```
-
-**Foundry Agent Service Benefits:**
-- **High-Quality Reasoning**: Llama 3.3 70B state-of-the-art language understanding
-- **Stateful Threads**: Automatic context preservation across conversations
-- **Secure Identity**: Entra Agent ID integration for enterprise security
-- **Foundry Tools**: Access to comprehensive Azure AI capabilities
-- **Production Ready**: Enterprise-grade infrastructure with HA/DR
 
 **LoRAx Cost Efficiency:**
 - Serve 100+ agents with different LoRA adapters on 1 GPU instead of 100 GPUs
