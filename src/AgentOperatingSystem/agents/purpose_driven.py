@@ -101,7 +101,8 @@ class PurposeDrivenAgent(ABC):
         tools: Optional[List[Any]] = None,
         system_message: Optional[str] = None,
         adapter_name: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None
+        config: Optional[Dict[str, Any]] = None,
+        aos: Optional[Any] = None
     ):
         """
         Initialize a Purpose-Driven Agent.
@@ -118,6 +119,7 @@ class PurposeDrivenAgent(ABC):
             system_message: System message for the agent (optional)
             adapter_name: Name for LoRA adapter providing domain knowledge & persona (e.g., 'ceo', 'cfo')
             config: Optional configuration dictionary
+            aos: Optional reference to AgentOperatingSystem instance for querying available personas
 
         Architecture:
             - The purpose is added to the primary LLM context to guide behavior
@@ -172,31 +174,76 @@ class PurposeDrivenAgent(ABC):
         self.active_goals: List[Dict[str, Any]] = []
         self.completed_goals: List[Dict[str, Any]] = []
 
+        # Reference to AgentOperatingSystem for querying available personas
+        self.aos = aos
+
         self.logger = logging.getLogger(f"aos.purpose_driven.{self.agent_id}")
         self.logger.info(
             f"PurposeDrivenAgent {self.agent_id} created with purpose: {self.purpose}, "
             f"adapter: {self.adapter_name}"
         )
 
+    def get_available_personas(self) -> List[str]:
+        """
+        Query AgentOperatingSystem for available personas.
+        
+        Returns:
+            List of available persona names, or empty list if AOS not available
+        """
+        if self.aos:
+            return self.aos.get_available_personas()
+        else:
+            # Fallback if AOS not provided - return default personas
+            self.logger.warning("AgentOperatingSystem not available, using default personas")
+            return ["generic", "leadership", "marketing", "finance", "operations", 
+                    "technology", "hr", "legal"]
+
+    def validate_personas(self, personas: List[str]) -> bool:
+        """
+        Validate that requested personas are available in AgentOperatingSystem.
+        
+        Args:
+            personas: List of persona names to validate
+            
+        Returns:
+            True if all personas are available
+        """
+        if self.aos:
+            return self.aos.validate_personas(personas)
+        else:
+            # If AOS not available, allow any personas
+            return True
+
     @abstractmethod
     def get_agent_type(self) -> List[str]:
         """
         Get the personas/skills that compose this agent.
         
-        Subclasses must implement this method to identify their personas/skills.
-        This ensures PurposeDrivenAgent cannot be directly instantiated.
+        Subclasses must implement this method to select personas from those
+        available in AgentOperatingSystem. Each persona corresponds to a LoRA
+        adapter that provides domain-specific knowledge.
+        
+        Implementation pattern:
+        1. Query available personas via get_available_personas()
+        2. Select the combination needed for this agent type
+        3. Return the list of selected personas
         
         An agent can have multiple personas/skills that define its capabilities.
-        For example, a Chief Marketing Officer has both "marketing" and "leadership" personas.
+        For example, a Chief Marketing Officer selects both "marketing" and "leadership" personas.
         
-        Each persona/skill should be:
-        - Lowercase string
-        - Alphanumeric characters only (no spaces or special characters)
-        - Descriptive of a specific capability or role
+        Each persona:
+        - Maps to a LoRA adapter in AgentOperatingSystem
+        - Provides domain-specific knowledge, vocabulary, and capabilities
+        - Can be combined with other personas for multi-skilled agents
         - Examples: ["generic"], ["leadership"], ["marketing", "leadership"]
         
+        Runtime behavior:
+        - AgentOperatingSystem uses LoRAx to superimpose selected LoRA adapters
+        - Multiple personas are loaded concurrently for the agent
+        - Personas are shared across agents for efficient memory usage
+        
         Returns:
-            List of strings identifying the agent's personas/skills
+            List of persona names selected from available personas in AOS
         """
         pass
 
@@ -829,8 +876,18 @@ class GenericPurposeDrivenAgent(PurposeDrivenAgent):
         """
         Get the agent's personas/skills.
         
+        Queries AgentOperatingSystem for available personas and selects "generic".
+        
         Returns:
-            ["generic"] - identifies this as a generic purpose-driven agent
+            ["generic"] - if available in AOS, otherwise defaults to ["generic"]
         """
-        return ["generic"]
+        available = self.get_available_personas()
+        
+        # Select "generic" persona if available
+        if "generic" in available:
+            return ["generic"]
+        else:
+            # Fallback if generic not available
+            self.logger.warning("'generic' persona not in AOS registry, using default")
+            return ["generic"]
 

@@ -69,10 +69,20 @@ class LeadershipAgent(PurposeDrivenAgent):
         """
         Get the agent's personas/skills.
         
+        Queries AgentOperatingSystem for available personas and selects "leadership".
+        
         Returns:
-            ["leadership"] - identifies this agent's leadership persona
+            ["leadership"] - if available in AOS, otherwise defaults to ["leadership"]
         """
-        return ["leadership"]
+        available = self.get_available_personas()
+        
+        # Select "leadership" persona if available
+        if "leadership" in available:
+            return ["leadership"]
+        else:
+            # Fallback if leadership not available
+            self.logger.warning("'leadership' persona not in AOS registry, using default")
+            return ["leadership"]
 
     async def make_decision(
         self,
