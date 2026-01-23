@@ -36,6 +36,10 @@ class PurposeDrivenAgent:
     - PerpetualAgent: Agents that run indefinitely and respond to events
     - PurposeDrivenAgent: Purpose-driven perpetual agents
     
+    NOTE: This class is standalone and does not inherit from ABC or any base class
+    (except object, which is implicit in Python 3). All previously abstract methods
+    have been implemented as concrete methods.
+    
     Unlike task-based agents that execute and terminate, PurposeDrivenAgent
     works continuously against an assigned, long-term purpose.
     
@@ -74,15 +78,15 @@ class PurposeDrivenAgent:
         self,
         agent_id: str,
         purpose: str,
-        name: str = None,
-        role: str = None,
-        agent_type: str = None,
-        purpose_scope: str = None,
-        success_criteria: List[str] = None,
-        tools: List[Any] = None,
-        system_message: str = None,
-        adapter_name: str = None,
-        config: Dict[str, Any] = None
+        name: Optional[str] = None,
+        role: Optional[str] = None,
+        agent_type: Optional[str] = None,
+        purpose_scope: Optional[str] = None,
+        success_criteria: Optional[List[str]] = None,
+        tools: Optional[List[Any]] = None,
+        system_message: Optional[str] = None,
+        adapter_name: Optional[str] = None,
+        config: Optional[Dict[str, Any]] = None
     ):
         """
         Initialize a Purpose-Driven Agent.
@@ -708,7 +712,7 @@ class PurposeDrivenAgent:
         try:
             self.mcp_context_server = ContextMCPServer(
                 agent_id=self.agent_id,
-                config=self.config.get("context_server", {}) if hasattr(self, 'config') else {}
+                config=self.config.get("context_server", {})
             )
             await self.mcp_context_server.initialize()
             self.logger.info(f"ContextMCPServer initialized for agent {self.agent_id}")

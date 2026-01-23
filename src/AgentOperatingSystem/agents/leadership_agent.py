@@ -48,6 +48,7 @@ class LeadershipAgent(PurposeDrivenAgent):
         if purpose_scope is None:
             purpose_scope = "Leadership and decision-making domain"
         
+        # Pass all parameters to parent, including legacy compatibility attributes
         super().__init__(
             agent_id=agent_id,
             purpose=purpose,
@@ -55,13 +56,11 @@ class LeadershipAgent(PurposeDrivenAgent):
             success_criteria=success_criteria,
             tools=tools,
             system_message=system_message,
-            adapter_name=adapter_name
+            adapter_name=adapter_name,
+            name=name,
+            role=role or "leader",
+            config=config
         )
-        
-        # Legacy compatibility
-        self.name = name or agent_id
-        self.role = role or "leader"
-        self.config = config or {}
         
         self.decisions_made = []
         self.stakeholders = []
