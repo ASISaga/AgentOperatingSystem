@@ -33,6 +33,7 @@ from .auth.manager import AuthManager
 from .environment.manager import EnvironmentManager, env_manager
 from .mcp.client import MCPClient, MCPClientManager
 from .learning import KnowledgeManager, RAGEngine, InteractionLearner, SelfLearningMixin, DomainExpert, LearningPipeline
+from .runtime import AgentRuntimeProvider, RuntimeConfig
 
 # Infrastructure components from migration
 from .reliability.patterns import CircuitBreaker, RetryPolicy, IdempotencyHandler, with_retry, with_circuit_breaker
@@ -112,6 +113,10 @@ __all__ = [
     "SelfLearningMixin",
     "DomainExpert",
     "LearningPipeline",
+    
+    # Runtime Infrastructure
+    "AgentRuntimeProvider",
+    "RuntimeConfig",
     
     # Infrastructure components (from migration)
     "CircuitBreaker",
