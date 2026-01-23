@@ -8,7 +8,8 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Azure](https://img.shields.io/badge/platform-Azure-blue.svg)](https://azure.microsoft.com/)
-[![Code Quality](https://img.shields.io/badge/pylint-8.52%2F10-brightgreen.svg)](.github/workflows/pylint.yml)
+[![Code Quality](https://img.shields.io/badge/pylint-10.00%2F10-brightgreen.svg)](.github/workflows/code-quality.yml)
+[![Quality Stack](https://img.shields.io/badge/quality-best--in--class-brightgreen.svg)](docs/CODE_QUALITY_STACK.md)
 
 ---
 
@@ -216,7 +217,44 @@ class CFOAgent(LeadershipAgent):
 📖 **[Development Guide](docs/development.md)**
 📖 **[Contributing Guidelines](docs/development/CONTRIBUTING.md)**
 
-### Code Quality
+### Code Quality - Best-in-Class Stack ⭐
+
+AOS uses a **comprehensive 9-tool quality stack** that ensures code excellence:
+
+**Tools:**
+- **Pylint** (10.00/10) - Comprehensive linting
+- **Black** - Code formatting  
+- **isort** - Import organization
+- **mypy** - Type checking
+- **Bandit** - Security scanning
+- **Safety** - Dependency vulnerability scanning
+- **Flake8** - Style checking
+- **pytest** + **pytest-cov** - Testing with coverage
+- **pre-commit** - Automated git hooks
+
+**Quick Start:**
+```bash
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Set up pre-commit hooks
+pre-commit install
+
+# Format code
+black src/ tests/
+isort src/ tests/
+
+# Run all quality checks
+pre-commit run --all-files
+
+# Check Pylint score
+pylint src/AgentOperatingSystem
+```
+
+📖 **[Complete Quality Stack Documentation](docs/CODE_QUALITY_STACK.md)**  
+📖 **[Quality Stack Update Summary](docs/CODE_QUALITY_UPDATE_SUMMARY.md)**
+
+### Testing
 
 AOS maintains high code quality standards using Pylint:
 
