@@ -69,7 +69,8 @@ class PurposeDrivenAgentFoundry(PurposeDrivenAgent):
         system_message: str = None,
         adapter_name: str = None,
         foundry_endpoint: str = None,
-        model_deployment: str = None
+        model_deployment: str = None,
+        agent_types: List[str] = None
     ):
         """
         Initialize a Purpose-Driven Agent with Foundry runtime.
@@ -84,6 +85,8 @@ class PurposeDrivenAgentFoundry(PurposeDrivenAgent):
             adapter_name: Name for LoRA adapter (e.g., 'ceo', 'cfo')
             foundry_endpoint: Azure AI Project endpoint for Foundry runtime
             model_deployment: Model deployment name (Llama 3.3 70B with LoRA)
+            agent_types: List of personas/skills for this agent (e.g., ["leadership"], ["marketing", "leadership"])
+                        Defaults to ["generic"] if not specified
         """
         # Initialize parent PurposeDrivenAgent
         super().__init__(
@@ -105,20 +108,27 @@ class PurposeDrivenAgentFoundry(PurposeDrivenAgent):
 
         # LoRA adapter configuration
         self.lora_adapter_name = adapter_name  # e.g., 'ceo', 'cfo', 'cto'
+        
+        # Agent types/personas - Foundry is just a runtime, not an agent type
+        self._agent_types = agent_types or ["generic"]
 
         self.logger = logging.getLogger(f"aos.purpose_driven_foundry.{self.agent_id}")
         self.logger.info(
-            f"PurposeDrivenAgentFoundry {self.agent_id} created with Llama 3.3 70B + LoRA adapter '{self.lora_adapter_name}'"
+            f"PurposeDrivenAgentFoundry {self.agent_id} created with Llama 3.3 70B + LoRA adapter '{self.lora_adapter_name}', "
+            f"personas: {self._agent_types}"
         )
 
-    def get_agent_type(self) -> str:
+    def get_agent_type(self) -> List[str]:
         """
-        Get the agent type.
+        Get the agent's personas/skills.
+        
+        PurposeDrivenAgentFoundry is a runtime wrapper (Foundry Agent Service),
+        not a separate agent type. It returns the underlying agent's personas.
         
         Returns:
-            "foundry" - identifies this as a Foundry-enabled purpose-driven agent
+            List of personas/skills for this agent
         """
-        return "foundry"
+        return self._agent_types
 
     async def initialize(self) -> bool:
         """

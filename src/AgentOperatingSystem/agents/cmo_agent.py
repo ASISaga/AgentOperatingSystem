@@ -117,14 +117,16 @@ class CMOAgent(LeadershipAgent):
             f"Leadership (adapter: {self.leadership_adapter_name})"
         )
 
-    def get_agent_type(self) -> str:
+    def get_agent_type(self) -> List[str]:
         """
-        Get the agent type.
+        Get the agent's personas/skills.
+        
+        CMO combines both marketing and leadership personas.
         
         Returns:
-            "cmo" - identifies this as a Chief Marketing Officer agent
+            ["marketing", "leadership"] - identifies this agent's dual personas
         """
-        return "cmo"
+        return ["marketing", "leadership"]
 
     def get_adapter_for_purpose(self, purpose_type: str) -> str:
         """

@@ -179,21 +179,24 @@ class PurposeDrivenAgent(ABC):
         )
 
     @abstractmethod
-    def get_agent_type(self) -> str:
+    def get_agent_type(self) -> List[str]:
         """
-        Get the specific type of this agent.
+        Get the personas/skills that compose this agent.
         
-        Subclasses must implement this method to identify their type.
+        Subclasses must implement this method to identify their personas/skills.
         This ensures PurposeDrivenAgent cannot be directly instantiated.
         
-        The agent type should be:
+        An agent can have multiple personas/skills that define its capabilities.
+        For example, a Chief Marketing Officer has both "marketing" and "leadership" personas.
+        
+        Each persona/skill should be:
         - Lowercase string
         - Alphanumeric characters only (no spaces or special characters)
-        - Descriptive and unique to the agent subclass
-        - Examples: "generic", "leadership", "cmo", "foundry"
+        - Descriptive of a specific capability or role
+        - Examples: ["generic"], ["leadership"], ["marketing", "leadership"]
         
         Returns:
-            String identifying the agent type
+            List of strings identifying the agent's personas/skills
         """
         pass
 
@@ -822,12 +825,12 @@ class GenericPurposeDrivenAgent(PurposeDrivenAgent):
         >>> await agent.start()
     """
     
-    def get_agent_type(self) -> str:
+    def get_agent_type(self) -> List[str]:
         """
-        Get the agent type.
+        Get the agent's personas/skills.
         
         Returns:
-            "generic" - identifies this as a generic purpose-driven agent
+            ["generic"] - identifies this as a generic purpose-driven agent
         """
-        return "generic"
+        return ["generic"]
 

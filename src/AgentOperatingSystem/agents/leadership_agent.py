@@ -65,14 +65,14 @@ class LeadershipAgent(PurposeDrivenAgent):
         self.decisions_made = []
         self.stakeholders = []
 
-    def get_agent_type(self) -> str:
+    def get_agent_type(self) -> List[str]:
         """
-        Get the agent type.
+        Get the agent's personas/skills.
         
         Returns:
-            "leadership" - identifies this as a leadership agent
+            ["leadership"] - identifies this agent's leadership persona
         """
-        return "leadership"
+        return ["leadership"]
 
     async def make_decision(
         self,
