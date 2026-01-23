@@ -10,6 +10,7 @@ PurposeDrivenAgentFoundry extends it with Microsoft Foundry Agent Service runtim
 # v2.0.0 - Canonical implementations
 from .base_agent import BaseAgent
 from .leadership_agent import LeadershipAgent
+from .cmo_agent import CMOAgent
 from .perpetual import PerpetualAgent
 from .purpose_driven import PurposeDrivenAgent
 from .purpose_driven_foundry import PurposeDrivenAgentFoundry
@@ -25,6 +26,7 @@ from .manager import UnifiedAgentManager
 __all__ = [
     "BaseAgent",
     "LeadershipAgent",
+    "CMOAgent",
     "PerpetualAgent",
     "PurposeDrivenAgent",
     "PurposeDrivenAgentFoundry",

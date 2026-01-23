@@ -114,7 +114,62 @@ agent = PurposeDrivenAgent(
 )
 ```
 
-### 3. Async/Await Everywhere
+### 3. Agent Inheritance Hierarchy and Purpose-Adapter Mapping
+
+**PurposeDrivenAgent** is the abstract base class that provides purpose-driven functionality and maps purposes to LoRA adapters. All specialized agents should inherit from PurposeDrivenAgent or its subclasses.
+
+#### Agent Hierarchy:
+```
+BaseAgent (generic agent interface)
+└── PerpetualAgent (runs indefinitely)
+    └── PurposeDrivenAgent (maps purposes to LoRA adapters)
+        └── LeadershipAgent (adds Leadership purpose)
+            └── CMOAgent (adds Marketing purpose + inherits Leadership)
+```
+
+#### LeadershipAgent
+Extends PurposeDrivenAgent with leadership and decision-making capabilities:
+```python
+from AgentOperatingSystem.agents import LeadershipAgent
+
+agent = LeadershipAgent(
+    agent_id="leader",
+    purpose="Leadership: Strategic decision-making and team coordination",
+    adapter_name="leadership"  # Maps to "leadership" LoRA adapter
+)
+```
+
+#### CMOAgent (Chief Marketing Officer)
+Extends LeadershipAgent with dual purposes mapped to multiple LoRA adapters:
+```python
+from AgentOperatingSystem.agents import CMOAgent
+
+# CMOAgent has TWO purposes mapped to TWO LoRA adapters:
+# 1. Marketing purpose -> "marketing" LoRA adapter
+# 2. Leadership purpose -> "leadership" LoRA adapter (inherited)
+
+cmo = CMOAgent(
+    agent_id="cmo",
+    marketing_adapter_name="marketing",      # Marketing LoRA adapter
+    leadership_adapter_name="leadership"     # Leadership LoRA adapter
+)
+
+# Check purpose-to-adapter mappings
+status = await cmo.get_status()
+print(status["purposes"])
+# {
+#   "marketing": {"adapter": "marketing", ...},
+#   "leadership": {"adapter": "leadership", ...}
+# }
+
+# Execute tasks with specific purpose/adapter
+await cmo.execute_with_purpose(task, purpose_type="marketing")  # Uses marketing adapter
+await cmo.execute_with_purpose(task, purpose_type="leadership") # Uses leadership adapter
+```
+
+**Key Concept**: PurposeDrivenAgent and its subclasses map purposes to LoRA adapters through configuration. This allows agents to leverage domain-specific fine-tuned models for different aspects of their responsibilities.
+
+### 4. Async/Await Everywhere
 Most AOS code is asynchronous:
 ```python
 async def example():
@@ -123,14 +178,14 @@ async def example():
     await agent.cleanup()
 ```
 
-### 4. Azure Integration
+### 5. Azure Integration
 AOS heavily uses Azure services:
 - Azure Functions for deployment
 - Azure Service Bus for messaging
 - Azure Storage (Blob, Table, Queue) for persistence
 - Azure Key Vault for secrets
 
-### 5. MCP (Model Context Protocol)
+### 6. MCP (Model Context Protocol)
 AOS implements MCP for tool and resource access:
 - `src/AgentOperatingSystem/mcp/` - MCP implementation
 - ContextMCPServer for state preservation
