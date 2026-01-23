@@ -14,7 +14,7 @@ import os
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from AgentOperatingSystem.agents.purpose_driven import PurposeDrivenAgent
+from AgentOperatingSystem.agents.purpose_driven import GenericPurposeDrivenAgent
 from AgentOperatingSystem.mcp.context_server import ContextMCPServer
 
 
@@ -56,13 +56,13 @@ async def test_context_server():
 
 
 async def test_purpose_driven_agent():
-    """Test PurposeDrivenAgent functionality"""
+    """Test GenericPurposeDrivenAgent functionality"""
     print("=" * 80)
-    print("Testing PurposeDrivenAgent")
+    print("Testing GenericPurposeDrivenAgent")
     print("=" * 80)
     
     # Create agent
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test_ceo",
         purpose="Strategic oversight and company growth",
         purpose_scope="Strategic planning, major decisions",
@@ -136,13 +136,13 @@ async def test_integration():
     print("=" * 80)
     
     # Create multiple purpose-driven agents
-    ceo = PurposeDrivenAgent(
+    ceo = GenericPurposeDrivenAgent(
         agent_id="ceo",
         purpose="Strategic oversight and company growth",
         adapter_name="ceo"
     )
     
-    cfo = PurposeDrivenAgent(
+    cfo = GenericPurposeDrivenAgent(
         agent_id="cfo",
         purpose="Financial management and fiscal responsibility",
         adapter_name="cfo"

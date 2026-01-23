@@ -87,7 +87,7 @@ result = agent.run(task)
 # Agent terminates, state lost
 
 # Perpetual (AOS)
-agent = PurposeDrivenAgent(...)
+agent = LeadershipAgent(...)  # Or GenericPurposeDrivenAgent
 await agent.initialize()  # ContextMCPServer created
 manager.register_agent(agent)
 # Agent runs forever, state persists via ContextMCPServer

@@ -61,10 +61,10 @@ aos.start()
 ## Perpetual Agent Example
 
 ```python
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import LeadershipAgent
 
 # Create a purpose-driven perpetual agent
-agent = PurposeDrivenAgent(
+agent = LeadershipAgent(
     agent_id="ceo",
     purpose="Strategic oversight and company growth",
     purpose_scope="Strategic planning, major decisions",

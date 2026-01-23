@@ -185,12 +185,12 @@ async def test_async_context_manager():
 ### Testing Perpetual Agents
 ```python
 import pytest
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
 
 @pytest.mark.asyncio
 async def test_perpetual_agent():
     """Test perpetual agent lifecycle."""
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test",
         purpose="Testing",
         adapter_name="test"
@@ -491,13 +491,13 @@ Test module for async agent operations.
 import pytest
 import asyncio
 from unittest.mock import AsyncMock
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
 
 
 @pytest.fixture
 async def test_agent():
     """Create test agent."""
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test",
         purpose="Testing",
         adapter_name="test"
@@ -531,7 +531,7 @@ async def test_concurrent_agents():
     try:
         # Create multiple agents
         for i in range(3):
-            agent = PurposeDrivenAgent(
+            agent = GenericPurposeDrivenAgent(
                 agent_id=f"agent_{i}",
                 purpose=f"Purpose {i}",
                 adapter_name="test"
@@ -558,7 +558,7 @@ async def test_concurrent_agents():
 @pytest.mark.asyncio
 async def test_error_handling():
     """Test agent error handling."""
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test",
         purpose="Testing",
         adapter_name="test"

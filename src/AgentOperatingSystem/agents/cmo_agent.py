@@ -117,6 +117,34 @@ class CMOAgent(LeadershipAgent):
             f"Leadership (adapter: {self.leadership_adapter_name})"
         )
 
+    def get_agent_type(self) -> List[str]:
+        """
+        Get the agent's personas/skills.
+        
+        CMO combines both marketing and leadership personas.
+        Queries AgentOperatingSystem for available personas and selects both.
+        
+        Returns:
+            ["marketing", "leadership"] - if available in AOS, otherwise defaults
+        """
+        available = self.get_available_personas()
+        
+        # Select both marketing and leadership personas
+        personas = []
+        if "marketing" in available:
+            personas.append("marketing")
+        else:
+            self.logger.warning("'marketing' persona not in AOS registry, using default")
+            personas.append("marketing")
+            
+        if "leadership" in available:
+            personas.append("leadership")
+        else:
+            self.logger.warning("'leadership' persona not in AOS registry, using default")
+            personas.append("leadership")
+        
+        return personas
+
     def get_adapter_for_purpose(self, purpose_type: str) -> str:
         """
         Get the LoRA adapter name for a specific purpose type.

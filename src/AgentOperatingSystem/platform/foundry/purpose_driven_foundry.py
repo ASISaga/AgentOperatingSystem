@@ -69,7 +69,9 @@ class PurposeDrivenAgentFoundry(PurposeDrivenAgent):
         system_message: str = None,
         adapter_name: str = None,
         foundry_endpoint: str = None,
-        model_deployment: str = None
+        model_deployment: str = None,
+        agent_types: List[str] = None,
+        aos: Optional[Any] = None
     ):
         """
         Initialize a Purpose-Driven Agent with Foundry runtime.
@@ -84,6 +86,9 @@ class PurposeDrivenAgentFoundry(PurposeDrivenAgent):
             adapter_name: Name for LoRA adapter (e.g., 'ceo', 'cfo')
             foundry_endpoint: Azure AI Project endpoint for Foundry runtime
             model_deployment: Model deployment name (Llama 3.3 70B with LoRA)
+            agent_types: List of personas/skills for this agent (e.g., ["leadership"], ["marketing", "leadership"])
+                        If not specified, will be queried from AgentOperatingSystem
+            aos: Reference to AgentOperatingSystem instance
         """
         # Initialize parent PurposeDrivenAgent
         super().__init__(
@@ -93,7 +98,8 @@ class PurposeDrivenAgentFoundry(PurposeDrivenAgent):
             success_criteria=success_criteria,
             tools=tools,
             system_message=system_message,
-            adapter_name=adapter_name
+            adapter_name=adapter_name,
+            aos=aos
         )
 
         # Foundry-specific attributes
@@ -105,11 +111,43 @@ class PurposeDrivenAgentFoundry(PurposeDrivenAgent):
 
         # LoRA adapter configuration
         self.lora_adapter_name = adapter_name  # e.g., 'ceo', 'cfo', 'cto'
+        
+        # Agent types/personas - Foundry is just a runtime, not an agent type
+        # If agent_types not provided, query from AOS or use default
+        if agent_types:
+            self._agent_types = agent_types
+        elif aos:
+            # Query available personas from AOS
+            available = self.get_available_personas()
+            self._agent_types = ["generic"] if "generic" in available else ["generic"]
+        else:
+            self._agent_types = ["generic"]
 
         self.logger = logging.getLogger(f"aos.purpose_driven_foundry.{self.agent_id}")
         self.logger.info(
-            f"PurposeDrivenAgentFoundry {self.agent_id} created with Llama 3.3 70B + LoRA adapter '{self.lora_adapter_name}'"
+            f"PurposeDrivenAgentFoundry {self.agent_id} created with Llama 3.3 70B + LoRA adapter '{self.lora_adapter_name}', "
+            f"personas: {self._agent_types}"
         )
+
+    def get_agent_type(self) -> List[str]:
+        """
+        Get the agent's personas/skills.
+        
+        PurposeDrivenAgentFoundry is a runtime wrapper (Foundry Agent Service),
+        not a separate agent type. It queries or returns the configured personas.
+        
+        If agent_types were specified at initialization, returns those.
+        Otherwise queries AgentOperatingSystem for available personas.
+        
+        Returns:
+            List of personas/skills for this agent
+        """
+        # If agent types were specified during init, validate them
+        if self.aos and self._agent_types:
+            if not self.validate_personas(self._agent_types):
+                self.logger.warning(f"Some personas in {self._agent_types} not available in AOS")
+        
+        return self._agent_types
 
     async def initialize(self) -> bool:
         """

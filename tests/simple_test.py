@@ -27,8 +27,8 @@ async def simple_test():
         print("✅ Configuration: SUCCESS")
         
         # Test base agent
-        from AgentOperatingSystem.agents import BaseAgent, PurposeDrivenAgent
-        agent = PurposeDrivenAgent(
+        from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
+        agent = GenericPurposeDrivenAgent(
             agent_id="test",
             purpose="Test purpose",
             adapter_name="test"

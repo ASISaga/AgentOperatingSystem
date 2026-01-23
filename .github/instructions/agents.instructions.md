@@ -2,7 +2,7 @@
 
 ## Purpose-Driven Agents
 
-**PurposeDrivenAgent** is the fundamental building block of AOS, combining perpetual operation with purpose alignment.
+**PurposeDrivenAgent** is the fundamental building block of AOS, combining perpetual operation with purpose alignment. It is an **abstract base class** that should be extended by concrete implementations.
 
 ### Architecture Components
 
@@ -13,22 +13,22 @@
 ### Agent Inheritance Hierarchy
 
 ```
-BaseAgent (generic agent interface)
-└── PerpetualAgent (runs indefinitely)
-    └── PurposeDrivenAgent (maps purposes to LoRA adapters)
-        └── LeadershipAgent (adds Leadership purpose)
-            └── CMOAgent (adds Marketing purpose + inherits Leadership)
+PurposeDrivenAgent (abstract base class - fundamental building block)
+├── GenericPurposeDrivenAgent (concrete implementation for general use)
+├── LeadershipAgent (adds Leadership purpose)
+│   └── CMOAgent (adds Marketing purpose + inherits Leadership)
+└── PurposeDrivenAgentFoundry (extends with Microsoft Foundry runtime)
 ```
 
 ## Perpetual Agents
 
-Agents in AOS run indefinitely, not as one-off tasks:
+Agents in AOS run indefinitely, not as one-off tasks. All agents inherit from PurposeDrivenAgent (abstract base class):
 
 ```python
-from AgentOperatingSystem.agents import PerpetualAgent
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
 
-agent = PerpetualAgent(agent_id="ceo", adapter_name="ceo")
-manager.register_agent(agent)  # Registers once, runs forever
+agent = GenericPurposeDrivenAgent(agent_id="assistant", purpose="General assistance", adapter_name="general")
+# Or use specialized agents like LeadershipAgent, CMOAgent, etc.
 ```
 
 **Key characteristics:**
@@ -37,29 +37,59 @@ manager.register_agent(agent)  # Registers once, runs forever
 - Stateful: Maintains context across all interactions via MCP
 - Resource-efficient: Sleeps when idle, awakens on events
 
-## PurposeDrivenAgent
+## PurposeDrivenAgent (Abstract Base Class)
 
-The fundamental building block, combining perpetual operation with purpose alignment:
+The fundamental building block - an abstract base class that defines the interface for all purpose-driven agents:
 
 ```python
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+# PurposeDrivenAgent is abstract - cannot be instantiated directly
+# from AgentOperatingSystem.agents import PurposeDrivenAgent
+# agent = PurposeDrivenAgent(...)  # ❌ This will raise TypeError
 
-agent = PurposeDrivenAgent(
+# Instead, use concrete implementations:
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent, LeadershipAgent
+
+# Option 1: Generic implementation for general-purpose agents
+agent = GenericPurposeDrivenAgent(
+    agent_id="assistant",
+    purpose="General assistance and task execution",
+    purpose_scope="General operations",
+    adapter_name="general"
+)
+
+# Option 2: Specialized implementation (recommended)
+agent = LeadershipAgent(
     agent_id="ceo",
     purpose="Strategic oversight and company growth",
     purpose_scope="Strategic planning, major decisions",
-    success_criteria=["Revenue growth", "Team expansion"],
     adapter_name="ceo"  # Maps to LoRA adapter for domain knowledge & persona
 )
 ```
 
 **Key characteristics:**
-- **Perpetual**: Runs indefinitely (inherited from PerpetualAgent)
+- **Abstract**: Must be extended by concrete implementations
+- **Perpetual**: Runs indefinitely
 - **Purpose-driven**: Works toward a defined, long-term purpose
 - **Context-aware**: Uses ContextMCPServer for state preservation
 - **Event-responsive**: Awakens on events relevant to its purpose
 - **Autonomous**: Makes decisions aligned with its purpose
 - **Adapter-mapped**: Purpose mapped to LoRA adapter for domain expertise
+
+## GenericPurposeDrivenAgent
+
+Concrete implementation for general-purpose agents:
+
+```python
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
+
+agent = GenericPurposeDrivenAgent(
+    agent_id="assistant",
+    purpose="General assistance and task execution",
+    adapter_name="general"
+)
+```
+
+Use this when you need a basic purpose-driven agent. For specialized functionality, create custom subclasses.
 
 ## LeadershipAgent
 
@@ -140,7 +170,11 @@ PurposeDrivenAgent and its subclasses map purposes to LoRA adapters through conf
 
 ### Initialization
 ```python
-agent = PurposeDrivenAgent(agent_id="...", purpose="...", adapter_name="...")
+# Use concrete implementation
+agent = GenericPurposeDrivenAgent(agent_id="...", purpose="...", adapter_name="...")
+# Or use specialized agent
+agent = LeadershipAgent(agent_id="...", purpose="...", adapter_name="...")
+
 await agent.initialize()  # Sets up MCP context server, loads state
 ```
 

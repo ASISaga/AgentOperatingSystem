@@ -165,7 +165,8 @@ Comprehensive guide covering:
 ### Agent Deployment
 **Before (Custom Runtime):**
 ```python
-agent = PurposeDrivenAgent(agent_id="ceo", purpose="...", adapter_name="ceo")
+# Use concrete implementation
+agent = LeadershipAgent(agent_id="ceo", purpose="...", adapter_name="ceo")
 await agent.initialize()
 await agent.start()
 ```

@@ -29,7 +29,7 @@ from azure.identity.aio import DefaultAzureCredential
 # Install with: pip install git+https://github.com/ASISaga/AgentOperatingSystem.git
 try:
     from AgentOperatingSystem.agents import (
-        PurposeDrivenAgent, 
+        GenericPurposeDrivenAgent,  # Concrete implementation for legacy mode
         PurposeDrivenAgentFoundry,  # Foundry-enabled version
         PerpetualAgent, 
         LeadershipAgent
@@ -161,8 +161,8 @@ async def instantiate_agent(config: AgentConfiguration) -> Optional[Any]:
                 logger.info(f"Created {config.agent_id} with Foundry runtime "
                            f"(Llama 3.3 70B + {config.domain_knowledge.domain} LoRA)")
             else:
-                # Use standard PurposeDrivenAgent (legacy mode)
-                agent = PurposeDrivenAgent(
+                # Use GenericPurposeDrivenAgent (legacy mode - concrete implementation)
+                agent = GenericPurposeDrivenAgent(
                     agent_id=config.agent_id,
                     purpose=config.purpose,
                     purpose_scope=config.purpose_scope,

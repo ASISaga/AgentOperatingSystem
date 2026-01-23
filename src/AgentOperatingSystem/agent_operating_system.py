@@ -56,12 +56,37 @@ class AgentOperatingSystem:
         self.services = {}  # Registry of system services
         self.logger = logging.getLogger("AOS.Kernel")
 
+        # Persona registry - maps persona names to LoRA adapter names
+        # This is queried by PurposeDrivenAgents to discover available personas
+        self.persona_registry: Dict[str, str] = {}
+        self._initialize_persona_registry()
+
         # Initialize core components
         self._initialize_core_components()
 
         # System state
         self.is_running = False
         self.startup_time = None
+
+    def _initialize_persona_registry(self):
+        """
+        Initialize the persona registry with available LoRA adapters.
+        
+        Personas represent skills/capabilities that agents can have.
+        Each persona maps to a LoRA adapter that provides domain-specific knowledge.
+        """
+        # Default personas - these can be extended dynamically
+        self.persona_registry = {
+            "generic": "general",  # General purpose agent
+            "leadership": "leadership",  # Leadership and decision-making
+            "marketing": "marketing",  # Marketing strategy and execution
+            "finance": "finance",  # Financial analysis and planning
+            "operations": "operations",  # Operational excellence
+            "technology": "technology",  # Technical expertise
+            "hr": "hr",  # Human resources
+            "legal": "legal",  # Legal and compliance
+        }
+        self.logger.info(f"Persona registry initialized with {len(self.persona_registry)} personas")
 
     def _initialize_core_components(self):
         """Initialize core AOS components"""
@@ -320,6 +345,72 @@ class AgentOperatingSystem:
     async def get_agent_inference(self, agent_role: str, prompt: str) -> Dict[str, Any]:
         """Get ML inference for a specific agent role"""
         return await self.ml_pipeline.get_agent_inference(agent_role, prompt)
+
+    def register_persona(self, persona_name: str, adapter_name: str) -> bool:
+        """
+        Register a new persona with its associated LoRA adapter.
+        
+        Args:
+            persona_name: Name of the persona/skill (e.g., "leadership", "marketing")
+            adapter_name: Name of the LoRA adapter that implements this persona
+            
+        Returns:
+            True if registered successfully
+        """
+        if persona_name in self.persona_registry:
+            self.logger.warning(f"Persona '{persona_name}' already registered, updating adapter mapping")
+        
+        self.persona_registry[persona_name] = adapter_name
+        self.logger.info(f"Registered persona '{persona_name}' -> adapter '{adapter_name}'")
+        
+        # If LoRAx is enabled, register the adapter with LoRAx
+        if self.ml_pipeline and hasattr(self.ml_pipeline, 'lorax_server') and self.ml_pipeline.lorax_server:
+            # Register with LoRAx server
+            self.ml_pipeline.lorax_server.registry.register_adapter(
+                adapter_id=adapter_name,
+                agent_role=persona_name,
+                adapter_path=f"adapters/{adapter_name}",
+                metadata={"persona": persona_name}
+            )
+        
+        return True
+
+    def get_available_personas(self) -> List[str]:
+        """
+        Get list of all available personas.
+        
+        Returns:
+            List of persona names
+        """
+        return list(self.persona_registry.keys())
+
+    def get_adapter_for_persona(self, persona_name: str) -> Optional[str]:
+        """
+        Get the LoRA adapter name for a specific persona.
+        
+        Args:
+            persona_name: Name of the persona
+            
+        Returns:
+            Adapter name or None if persona not found
+        """
+        return self.persona_registry.get(persona_name)
+
+    def validate_personas(self, personas: List[str]) -> bool:
+        """
+        Validate that all requested personas are available.
+        
+        Args:
+            personas: List of persona names to validate
+            
+        Returns:
+            True if all personas are available
+        """
+        for persona in personas:
+            if persona not in self.persona_registry:
+                self.logger.warning(f"Persona '{persona}' not available in registry")
+                return False
+        return True
 
     async def authenticate_user(self, credentials: Dict[str, Any]) -> Dict[str, Any]:
         """Authenticate a user"""

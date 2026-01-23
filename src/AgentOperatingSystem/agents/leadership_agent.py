@@ -65,6 +65,25 @@ class LeadershipAgent(PurposeDrivenAgent):
         self.decisions_made = []
         self.stakeholders = []
 
+    def get_agent_type(self) -> List[str]:
+        """
+        Get the agent's personas/skills.
+        
+        Queries AgentOperatingSystem for available personas and selects "leadership".
+        
+        Returns:
+            ["leadership"] - if available in AOS, otherwise defaults to ["leadership"]
+        """
+        available = self.get_available_personas()
+        
+        # Select "leadership" persona if available
+        if "leadership" in available:
+            return ["leadership"]
+        else:
+            # Fallback if leadership not available
+            self.logger.warning("'leadership' persona not in AOS registry, using default")
+            return ["leadership"]
+
     async def make_decision(
         self,
         context: Dict[str, Any],

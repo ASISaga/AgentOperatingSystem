@@ -25,13 +25,16 @@ result = agent.run(task)
 **Perpetual (AOS)**:
 ```python
 # Agent registered once, runs forever
-agent = PerpetualAgent(agent_id="ceo", adapter_name="ceo")
+# Use concrete implementations
+agent = GenericPurposeDrivenAgent(agent_id="assistant", purpose="...", adapter_name="general")
+# Or use specialized agents
+agent = LeadershipAgent(agent_id="ceo", adapter_name="ceo")
 manager.register_agent(agent)
 # Agent continuously responds to events, state persists
 ```
 
 ### Agent Lifecycle
-1. **Creation**: `agent = PurposeDrivenAgent(...)`
+1. **Creation**: Create concrete agent instance (LeadershipAgent, GenericPurposeDrivenAgent, etc.)
 2. **Initialization**: `await agent.initialize()` - Sets up ContextMCPServer
 3. **Registration**: `manager.register_agent(agent)` - Makes agent available
 4. **Event Loop**: Agent automatically responds to events while sleeping when idle
@@ -64,10 +67,10 @@ await agent.start()
 
 ### Creating a Purpose-Driven Agent (Recommended)
 ```python
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import LeadershipAgent
 
-# Create purpose-driven perpetual agent
-agent = PurposeDrivenAgent(
+# Create purpose-driven perpetual agent (using concrete subclass)
+agent = LeadershipAgent(
     agent_id="ceo",
     purpose="Strategic oversight and company growth",
     purpose_scope="Strategic planning, major decisions, resource allocation",
@@ -133,7 +136,7 @@ from AgentOperatingSystem.orchestration import AgentManager
 manager = AgentManager()
 
 # Create and register agents
-ceo_agent = PurposeDrivenAgent(
+ceo_agent = LeadershipAgent(
     agent_id="ceo",
     purpose="Strategic oversight",
     adapter_name="ceo"
@@ -141,7 +144,7 @@ ceo_agent = PurposeDrivenAgent(
 await ceo_agent.initialize()
 manager.register_agent(ceo_agent)
 
-cfo_agent = PurposeDrivenAgent(
+cfo_agent = LeadershipAgent(
     agent_id="cfo", 
     purpose="Financial management",
     adapter_name="cfo"
@@ -157,12 +160,12 @@ manager.register_agent(cfo_agent)
 ### Testing Perpetual Agents
 ```python
 import pytest
-from AgentOperatingSystem.agents import PurposeDrivenAgent
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
 
 @pytest.mark.asyncio
 async def test_perpetual_agent_lifecycle():
     """Test agent creation and initialization."""
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test_agent",
         purpose="Testing",
         adapter_name="test"
@@ -183,7 +186,7 @@ async def test_perpetual_agent_lifecycle():
 @pytest.mark.asyncio
 async def test_purpose_alignment():
     """Test purpose-driven decision making."""
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="ceo",
         purpose="Strategic growth",
         purpose_scope="Major decisions",
@@ -202,7 +205,7 @@ async def test_purpose_alignment():
 @pytest.mark.asyncio
 async def test_event_handling():
     """Test agent event processing."""
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test",
         purpose="Event processing",
         adapter_name="test"
@@ -226,7 +229,7 @@ from unittest.mock import AsyncMock, MagicMock
 @pytest.mark.asyncio
 async def test_agent_with_mocked_services():
     """Test agent with mocked Azure services."""
-    agent = PurposeDrivenAgent(
+    agent = GenericPurposeDrivenAgent(
         agent_id="test",
         purpose="Testing",
         adapter_name="test"
