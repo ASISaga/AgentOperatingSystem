@@ -1,56 +1,98 @@
-# Agent Configuration Skill
+# Agent Configuration Skill - LLM-First Architecture
 
 ## Overview
 
-This skill covers configuring Purpose-Driven Agents using YAML configuration files. 
+This skill covers configuring LLM-First Purpose-Driven Agents using YAML with verbose purpose descriptions.
 
-**PurposeDrivenAgent is the fundamental agent class in AOS.** All specialized agents (LeadershipAgent, CMOAgent, etc.) are lean wrappers that inherit from PurposeDrivenAgent and are primarily configured via YAML.
+**PurposeDrivenAgent is the fundamental LLM-first agent class in AOS.** Unlike conventional logic-based agents, PurposeDrivenAgents operate through LLM reasoning over comprehensive purpose descriptions, not hard-coded decision logic.
 
 Learn how to:
-- Create agent.yaml files
-- Map purposes to LoRA adapters
+- Create YAML files with verbose purpose descriptions
+- Understand LLM-first architecture (purposes as LLM context, not code)
+- Map verbose purposes to LoRA adapters
 - Configure MCP tools
-- Load agents from YAML
-- Understand the lean agent architecture
+- Load LLM-first agents from YAML
 
 ## Key Concepts
 
-### PurposeDrivenAgent as the Fundamental Agent
+### LLM-First Architecture
 
-**PurposeDrivenAgent** contains all core functionality:
+**PurposeDrivenAgents are LLM-first, not conventional logic-based agents:**
+
+- **Verbose Purposes**: Comprehensive, multi-line purpose descriptions (not brief summaries)
+- **LLM Context Conversion**: Purposes converted to LLM context and passed to LoRA adapters
+- **LLM Reasoning**: All behavior emerges from LLM reasoning over purpose context
+- **No Hard-Coded Logic**: Decisions come from LLM, not conditional statements
+- **Configuration-Driven**: Agents created from YAML only (no code-based initialization)
+
+### PurposeDrivenAgent as the Fundamental LLM-First Agent
+
+**PurposeDrivenAgent** contains all core LLM-first functionality:
+- Converts verbose purposes to LLM context
+- Passes purpose context to LoRA adapters
 - Multi-purpose support and adapter switching
 - YAML configuration loading
 - Purpose-to-adapter mapping
-- MCP tools integration
-- Goal tracking and metrics
 - All repetitive/core agent operations
 
 **Derived agents** (LeadershipAgent, CMOAgent) are lean wrappers that:
-- Provide domain-specific defaults
-- Add domain-specific methods (if needed)
-- Are primarily YAML-configured
-- Inherit all core functionality from PurposeDrivenAgent
+- Provide domain-specific defaults only
+- Add minimal domain-specific methods (if needed)
+- Are YAML-configured with verbose purposes
+- Inherit all LLM-first core functionality
+
+### Verbose Purposes for LLM Context
+
+The fundamental principle: **purposes must be verbose and comprehensive** to provide rich LLM context.
+
+**Bad (too brief):**
+```yaml
+description: "Marketing: Brand strategy and customer acquisition"
+```
+
+**Good (verbose for LLM):**
+```yaml
+description: |
+  You are the Chief Marketing Officer with deep expertise in marketing strategy.
+  
+  Your Purpose:
+  Develop and execute comprehensive marketing strategies that drive sustainable 
+  brand growth and customer acquisition. You operate at the intersection of data 
+  analytics, creative storytelling, and strategic business planning.
+  
+  Key Responsibilities:
+  - Develop data-driven marketing strategies
+  - Build strong brand identity and positioning
+  - Design customer acquisition programs
+  - Conduct market research and analysis
+  ...
+  
+  Decision-Making Approach:
+  - Base decisions on data and insights
+  - Balance short-term wins with long-term brand building
+  - Consider customer lifetime value
+  ...
+```
 
 ### Purpose-to-Adapter Mapping
 
-The fundamental architectural concept is mapping agent purposes to LoRA adapters:
-
-1. **LoRA Adapters** - Provide domain-specific knowledge (language, vocabulary, concepts, agent persona)
-2. **Core Purposes** - Added to primary LLM context to guide agent behavior
-3. **MCP Integration** - Provides context management and domain-specific tools
+1. **Verbose Purposes** - Comprehensive descriptions become LLM context
+2. **LoRA Adapters** - Receive purpose context and provide domain knowledge
+3. **LLM Reasoning** - LLM reasons over purpose context to guide behavior
+4. **MCP Integration** - Provides state preservation and tool access
 
 ### YAML Configuration Structure
 
-Every agent configuration includes:
+Every LLM-first agent configuration includes:
 - `agent_id` - Unique identifier
-- `agent_type` - Type of agent (purpose_driven, leadership, cmo, etc.)
-- `purposes` - Array of purpose definitions with adapter mappings
-- `mcp_tools` - MCP tools required by the agent
-- `capabilities` - List of agent capabilities
+- `agent_type` - Type of agent
+- `purposes` - Array with **verbose** descriptions (multi-line, comprehensive)
+- `mcp_tools` - MCP tools required
+- `capabilities` - List of capabilities
 
 ## Examples
 
-### Single-Purpose Agent (CEO)
+### Verbose Purpose Agent (CEO)
 
 ```yaml
 agent_id: ceo
@@ -58,18 +100,33 @@ agent_type: purpose_driven
 
 purposes:
   - name: strategic_oversight
-    description: "Strategic oversight and decision-making for company growth"
-    adapter_name: ceo  # Maps to "ceo" LoRA adapter
-    success_criteria:
-      - "Achieve quarterly revenue targets"
-      - "Maintain strategic alignment"
+    description: |
+      You are the Chief Executive Officer (CEO), responsible for overall 
+      strategic direction and operational success.
+      
+      Your Purpose:
+      Provide visionary leadership and strategic oversight to drive sustainable 
+      company growth while balancing stakeholder interests...
+      
+      Core Responsibilities:
+      - Set and communicate company vision and strategic objectives
+      - Make high-impact decisions on direction and investments
+      - Ensure alignment across all departments
+      - Manage board, investor, and stakeholder relationships
+      
+      Decision-Making Framework:
+      - Balance short-term performance with long-term sustainability
+      - Consider impact on all stakeholders
+      - Base decisions on data and strategic foresight
+      ...
+    adapter_name: ceo  # Receives verbose purpose as LLM context
 
 mcp_tools:
   - server_name: "analytics"
     tool_name: "get_company_metrics"
 
 capabilities:
-  - "Strategic planning and oversight"
+  - "Strategic planning and vision setting"
   - "Company-wide decision-making"
 ```
 

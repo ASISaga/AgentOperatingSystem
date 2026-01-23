@@ -1,18 +1,28 @@
 """
-PurposeDrivenAgent - Fundamental Building Block of AgentOperatingSystem
+PurposeDrivenAgent - LLM-First Fundamental Agent of AgentOperatingSystem
 
-PurposeDrivenAgent inherits from PerpetualAgent and works against a perpetual,
-assigned purpose rather than short-term tasks. This is the fundamental building
-block that makes AOS an operating system of Purpose-Driven, Perpetual Agents.
+PurposeDrivenAgent is an LLM-first agent that operates based on verbose, detailed 
+purposes passed directly to the LLM as context. Unlike conventional logic-based agents, 
+PurposeDrivenAgent relies on the LLM's reasoning capabilities guided by comprehensive 
+purpose descriptions rather than hard-coded decision logic.
 
-Architecture Components:
-- LoRA Adapters: Provide domain-specific knowledge (language, vocabulary, concepts,
-  and agent persona) to PurposeDrivenAgents
-- Core Purposes: Added to the primary LLM context to guide agent behavior
-- MCP: Provides context management, domain-specific tools, and access to contemporary
-  software systems
+This is the fundamental building block that makes AOS an operating system of 
+Purpose-Driven, Perpetual, LLM-First Agents.
 
-PurposeDrivenAgent will eventually be moved to a dedicated repository.
+LLM-First Architecture:
+- Verbose Purposes: Detailed, comprehensive purpose descriptions (not brief summaries)
+  are converted to LLM context and passed to LoRA adapters
+- LoRA Adapters: Provide domain-specific knowledge, language, vocabulary, concepts, 
+  and agent persona to the LLM
+- LLM Reasoning: Decision-making and behavior guided by LLM reasoning over the purpose
+  context, not hard-coded logic
+- MCP Integration: Provides context management, domain-specific tools, and access to 
+  contemporary software systems
+
+Configuration:
+- Agents are configured via YAML files containing verbose purpose descriptions
+- No code-based initialization - configuration-driven only
+- Purposes are converted to LLM context automatically
 """
 
 from typing import Dict, Any, Optional, Callable, List
@@ -25,122 +35,118 @@ from .perpetual import PerpetualAgent
 
 class PurposeDrivenAgent(PerpetualAgent):
     """
-    Purpose-Driven Perpetual Agent - The fundamental building block of AOS.
+    LLM-First Purpose-Driven Perpetual Agent - The fundamental agent of AOS.
     
-    Unlike task-based agents that execute and terminate, PurposeDrivenAgent
-    works continuously against an assigned, long-term purpose. It inherits
-    all perpetual operation capabilities from PerpetualAgent and adds
-    purpose-oriented behavior.
+    This agent operates based on verbose purpose descriptions that are converted to 
+    LLM context and passed to LoRA adapters. The agent's behavior is guided by the 
+    LLM's reasoning over this purpose context, not by hard-coded decision logic.
     
-    Architecture:
-    - LoRA Adapters: Provide domain-specific knowledge (language, vocabulary, 
-      concepts, and importantly agent persona) to specialize the agent
-    - Core Purposes: Incorporated into the primary LLM context to guide all
-      agent decisions and behaviors
-    - MCP Integration: ContextMCPServer provides context management, domain-specific
-      tools, and access to external software systems
+    LLM-First Architecture:
+    - Verbose Purposes: Comprehensive purpose descriptions in YAML are converted to 
+      LLM context (not brief summaries or hard-coded logic)
+    - LoRA Adapters: Purpose-specific adapters provide domain knowledge and persona 
+      to the LLM
+    - LLM Reasoning: All decisions and behaviors emerge from LLM reasoning over the 
+      purpose context
+    - MCP Integration: ContextMCPServer provides state preservation and tool access
     
-    Key characteristics:
+    Key Characteristics:
+    - LLM-First: Relies on LLM reasoning, not conventional logic
+    - Purpose-Driven: Works toward verbose, detailed purposes
     - Perpetual: Runs indefinitely (inherited from PerpetualAgent)
-    - Purpose-driven: Works toward a defined, long-term purpose
-    - Context-aware: Uses ContextMCPServer for state preservation
-    - Event-responsive: Awakens on events relevant to its purpose
-    - Autonomous: Makes decisions aligned with its purpose
-    - Adapter-mapped: Purpose mapped to LoRA adapter for domain expertise
+    - Configuration-Driven: Created from YAML, not code
+    - Context-Aware: Uses ContextMCPServer for state preservation
     
     Example:
-        >>> agent = PurposeDrivenAgent(
-        ...     agent_id="ceo",
-        ...     purpose="Strategic oversight and decision-making for company growth",
-        ...     purpose_scope="Strategic planning, major decisions, alignment",
-        ...     adapter_name="ceo"  # Maps to LoRA adapter providing CEO domain knowledge & persona
-        ... )
-        >>> await agent.initialize()  # Sets up MCP context server
+        >>> # Load agent from YAML with verbose purpose
+        >>> agent = PurposeDrivenAgent.from_yaml("config/agents/ceo_agent.yaml")
+        >>> await agent.initialize()  # Purposes converted to LLM context
         >>> await agent.start()
-        >>> # Agent now runs perpetually, working toward its purpose
+        >>> # Agent now operates based on LLM reasoning over purpose context
     """
     
     def __init__(
         self,
         agent_id: str,
-        purpose: str = None,
-        purpose_scope: str = None,
-        success_criteria: List[str] = None,
-        tools: List[Any] = None,
-        system_message: str = None,
-        adapter_name: str = None,
-        purposes: List[Dict[str, Any]] = None,
+        purposes: List[Dict[str, Any]],
         mcp_tools: List[Dict[str, Any]] = None,
         capabilities: List[str] = None,
-        metadata: Dict[str, Any] = None
+        metadata: Dict[str, Any] = None,
+        tools: List[Any] = None,
+        system_message: str = None
     ):
         """
-        Initialize a Purpose-Driven Agent.
+        Initialize an LLM-First Purpose-Driven Agent.
+        
+        IMPORTANT: This constructor is for internal use. Create agents using 
+        PurposeDrivenAgent.from_yaml() which loads verbose purposes from YAML.
         
         Args:
             agent_id: Unique identifier for this agent
-            purpose: The long-term purpose this agent works toward (added to LLM context)
-            purpose_scope: Scope/boundaries of the purpose (optional)
-            success_criteria: List of criteria that define success (optional)
-            tools: Tools available to the agent (optional, via MCP)
-            system_message: System message for the agent (optional)
-            adapter_name: Name for LoRA adapter providing domain knowledge & persona (e.g., 'ceo', 'cfo')
-            purposes: List of purpose configurations for multi-purpose agents (optional)
-            mcp_tools: List of MCP tool configurations (optional)
-            capabilities: List of agent capabilities (optional)
-            metadata: Additional metadata (optional)
+            purposes: List of verbose purpose configurations (from YAML)
+                Each purpose contains:
+                - name: Purpose identifier
+                - description: Verbose LLM context (multi-line, comprehensive)
+                - adapter_name: LoRA adapter for this purpose
+                - scope: Brief scope description
+            mcp_tools: MCP tool configurations
+            capabilities: List of agent capabilities
+            metadata: Additional metadata
+            tools: Tools available to the agent (via MCP)
+            system_message: Brief system message (detail comes from verbose purposes)
         
-        Architecture:
-            - The purpose is added to the primary LLM context to guide behavior
-            - The adapter_name maps to a LoRA adapter that provides domain-specific
-              knowledge, vocabulary, concepts, and agent persona
-            - MCP (via ContextMCPServer) provides context management and domain tools
+        LLM-First Architecture:
+            The verbose purpose descriptions are converted to LLM context and passed 
+            to LoRA adapters. The LLM reasons over this context to guide all agent 
+            behavior - no hard-coded decision logic.
         """
+        # Validate that purposes are provided (required for LLM-first operation)
+        if not purposes or len(purposes) == 0:
+            raise ValueError(
+                "PurposeDrivenAgent requires at least one purpose with verbose description. "
+                "Create agents using PurposeDrivenAgent.from_yaml() to load purposes from YAML."
+            )
+        
+        # Get primary purpose and adapter
+        primary_purpose = purposes[0]
+        adapter_name = primary_purpose.get("adapter_name")
+        
+        if not adapter_name:
+            raise ValueError(
+                "Purpose must specify 'adapter_name' to map to LoRA adapter. "
+                "Check YAML configuration."
+            )
+        
         # Initialize parent PerpetualAgent
-        # - Sets up adapter_name for LoRA adapter (provides domain knowledge & persona)
-        # - Initializes tools (via MCP for domain-specific access)
         super().__init__(
             agent_id=agent_id,
             tools=tools,
             system_message=system_message,
-            adapter_name=adapter_name  # Maps to LoRA adapter for domain expertise
+            adapter_name=adapter_name
         )
         
-        # Support both single purpose (backward compatible) and multi-purpose configurations
-        self.purposes_config = purposes or []
+        # Store verbose purposes for LLM context conversion
+        self.purposes_config = purposes
         
-        # If traditional single purpose is provided, use it
-        if purpose:
-            self.purpose = purpose
-            self.purpose_scope = purpose_scope or "General purpose operation"
-            self.success_criteria = success_criteria or []
-        # If multi-purpose config is provided, use the first one as primary
-        elif self.purposes_config:
-            primary_purpose = self.purposes_config[0]
-            self.purpose = primary_purpose.get("description", "")
-            self.purpose_scope = primary_purpose.get("scope", "General purpose operation")
-            self.success_criteria = primary_purpose.get("success_criteria", [])
-        else:
-            # Default values if nothing provided
-            self.purpose = "General purpose agent"
-            self.purpose_scope = "General purpose operation"
-            self.success_criteria = []
+        # Extract verbose purpose description for primary purpose
+        # This is the comprehensive, multi-line description that becomes LLM context
+        self.purpose = primary_purpose.get("description", "")
+        self.purpose_scope = primary_purpose.get("scope", "")
+        
+        # Build purpose-to-adapter mapping for multi-purpose agents
+        self.purpose_adapter_mapping = {}
+        for purpose_config in self.purposes_config:
+            purpose_name = purpose_config.get("name", "").lower()
+            adapter_name_for_purpose = purpose_config.get("adapter_name")
+            if purpose_name and adapter_name_for_purpose:
+                self.purpose_adapter_mapping[purpose_name] = adapter_name_for_purpose
         
         # Store MCP tools and capabilities configuration
         self.mcp_tools_config = mcp_tools or []
         self.capabilities = capabilities or []
         self.metadata = metadata or {}
         
-        # Purpose-to-adapter mapping for multi-purpose agents
-        self.purpose_adapter_mapping = {}
-        if self.purposes_config:
-            for purpose_config in self.purposes_config:
-                purpose_name = purpose_config.get("name", "").lower()
-                adapter_name_for_purpose = purpose_config.get("adapter_name")
-                if purpose_name and adapter_name_for_purpose:
-                    self.purpose_adapter_mapping[purpose_name] = adapter_name_for_purpose
-        
-        # Purpose tracking
+        # Purpose tracking metrics
         self.purpose_metrics = {
             "purpose_aligned_actions": 0,
             "purpose_evaluations": 0,
@@ -161,26 +167,34 @@ class PurposeDrivenAgent(PerpetualAgent):
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "PurposeDrivenAgent":
         """
-        Create a PurposeDrivenAgent from a YAML configuration file.
+        Create an LLM-First PurposeDrivenAgent from YAML configuration.
+        
+        This is the primary way to create agents. The YAML file should contain 
+        verbose purpose descriptions that will be converted to LLM context and 
+        passed to LoRA adapters for LLM reasoning.
         
         Args:
-            yaml_path: Path to the YAML configuration file
+            yaml_path: Path to the YAML configuration file containing verbose purposes
             
         Returns:
-            Initialized PurposeDrivenAgent instance
+            LLM-First PurposeDrivenAgent with verbose purposes loaded
             
         Raises:
             FileNotFoundError: If the YAML file doesn't exist
-            ValueError: If the YAML file is invalid or missing required fields
+            ValueError: If the YAML is invalid or missing required fields (agent_id, purposes)
             
         Example:
+            >>> # YAML should contain verbose, multi-line purpose descriptions
             >>> agent = PurposeDrivenAgent.from_yaml("config/agents/ceo_agent.yaml")
-            >>> await agent.initialize()
-            >>> await agent.start()
+            >>> await agent.initialize()  # Purposes converted to LLM context
+            >>> await agent.start()  # Agent operates via LLM reasoning over purpose
         """
         yaml_file = Path(yaml_path)
         if not yaml_file.exists():
-            raise FileNotFoundError(f"Agent configuration file not found: {yaml_path}")
+            raise FileNotFoundError(
+                f"Agent configuration file not found: {yaml_path}\n"
+                f"Create a YAML file with verbose purpose descriptions for LLM context."
+            )
         
         try:
             with open(yaml_file, 'r') as f:
@@ -188,53 +202,56 @@ class PurposeDrivenAgent(PerpetualAgent):
         except yaml.YAMLError as e:
             raise ValueError(f"Invalid YAML file {yaml_path}: {e}")
         
-        # Validate required fields
+        # Validate required fields for LLM-first operation
         if not config.get("agent_id"):
             raise ValueError(f"Missing required field 'agent_id' in {yaml_path}")
         
-        # Extract purposes configuration
         purposes = config.get("purposes", [])
+        if not purposes or len(purposes) == 0:
+            raise ValueError(
+                f"Missing required 'purposes' in {yaml_path}\n"
+                f"LLM-first agents require verbose purpose descriptions in YAML."
+            )
         
-        # Determine adapter_name:
-        # - If single purpose, use its adapter_name
-        # - If multiple purposes, use the first one as primary
-        # - Otherwise, use agent_id as fallback
-        adapter_name = None
-        if purposes:
-            adapter_name = purposes[0].get("adapter_name")
+        # Validate each purpose has required fields
+        for i, purpose in enumerate(purposes):
+            if not purpose.get("description"):
+                raise ValueError(
+                    f"Purpose {i} missing 'description' in {yaml_path}\n"
+                    f"Each purpose must have a verbose description for LLM context."
+                )
+            if not purpose.get("adapter_name"):
+                raise ValueError(
+                    f"Purpose {i} missing 'adapter_name' in {yaml_path}\n"
+                    f"Each purpose must specify a LoRA adapter."
+                )
         
-        # Build combined purpose description from all purposes
-        if purposes:
-            purpose_descriptions = [p.get("description", "") for p in purposes]
-            combined_purpose = "; ".join(purpose_descriptions)
-        else:
-            combined_purpose = config.get("purpose", "General purpose agent")
-        
-        # Create the agent instance
+        # Create the LLM-first agent instance
         return cls(
             agent_id=config["agent_id"],
-            purpose=combined_purpose,
-            purpose_scope=config.get("scope"),
-            success_criteria=config.get("success_criteria"),
-            system_message=config.get("system_message"),
-            adapter_name=adapter_name or config.get("adapter_name"),
             purposes=purposes,
             mcp_tools=config.get("mcp_tools", []),
             capabilities=config.get("capabilities", []),
-            metadata=config.get("metadata", {})
+            metadata=config.get("metadata", {}),
+            system_message=config.get("system_message")
         )
     
     async def initialize(self) -> bool:
         """
-        Initialize the Purpose-Driven Agent.
+        Initialize the LLM-First Purpose-Driven Agent.
         
-        Extends PerpetualAgent initialization with purpose-specific setup:
-        - Sets up MCP context server for context management and domain tools
-        - Stores purpose in context (added to primary LLM context)
-        - LoRA adapter (specified by adapter_name) provides domain knowledge & persona
+        This method converts verbose purposes from YAML to LLM context and passes 
+        them to LoRA adapters. The LLM will reason over this context to guide all 
+        agent behavior.
+        
+        LLM-First Initialization:
+        - Converts verbose purpose descriptions to LLM context
+        - Passes purpose context to LoRA adapters for domain specialization
+        - Sets up MCP context server for state preservation and tool access
+        - Makes purpose context available to primary LLM
         
         Returns:
-            True if initialization successful
+            True if initialization successful (purposes converted to LLM context)
         """
         # Call parent initialization (sets up MCP context server, etc.)
         if not await super().initialize():
@@ -244,33 +261,44 @@ class PurposeDrivenAgent(PerpetualAgent):
             # Load purpose-specific context
             await self._load_purpose_context()
             
-            # Store purpose in MCP context server
-            # This makes the purpose available to the primary LLM context
+            # Convert verbose purposes to LLM context via MCP context server
+            # This is the core of LLM-first architecture: purposes become LLM reasoning context
             if self.mcp_context_server:
+                # Store verbose primary purpose description as LLM context
                 await self.mcp_context_server.set_context("purpose", self.purpose)
                 await self.mcp_context_server.set_context("purpose_scope", self.purpose_scope)
-                await self.mcp_context_server.set_context("success_criteria", self.success_criteria)
                 
-                # Store multi-purpose configuration if available
+                # Store all verbose purposes for multi-purpose agents
+                # Each purpose's verbose description becomes LLM context for its adapter
                 if self.purposes_config:
                     await self.mcp_context_server.set_context("purposes", self.purposes_config)
+                    
+                    # Log verbose purpose conversion for each purpose
+                    for purpose_config in self.purposes_config:
+                        purpose_name = purpose_config.get("name")
+                        adapter = purpose_config.get("adapter_name")
+                        desc_length = len(purpose_config.get("description", ""))
+                        self.logger.debug(
+                            f"Converted verbose purpose '{purpose_name}' ({desc_length} chars) "
+                            f"to LLM context for adapter '{adapter}'"
+                        )
                 
-                # Store MCP tools configuration
+                # Store MCP tools configuration for LLM access
                 if self.mcp_tools_config:
                     await self.mcp_context_server.set_context("mcp_tools", self.mcp_tools_config)
                 
-                # Store capabilities
+                # Store capabilities as part of LLM context
                 if self.capabilities:
                     await self.mcp_context_server.set_context("capabilities", self.capabilities)
             
             self.logger.info(
-                f"PurposeDrivenAgent {self.agent_id} initialized - "
-                f"purpose added to LLM context, adapter '{self.adapter_name}' provides domain expertise"
+                f"LLM-First PurposeDrivenAgent {self.agent_id} initialized - "
+                f"verbose purposes converted to LLM context via adapter '{self.adapter_name}'"
             )
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to initialize PurposeDrivenAgent: {e}")
+            self.logger.error(f"Failed to initialize LLM-First PurposeDrivenAgent: {e}")
             return False
     
     async def evaluate_purpose_alignment(self, action: Dict[str, Any]) -> Dict[str, Any]:
