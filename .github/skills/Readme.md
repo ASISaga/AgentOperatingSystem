@@ -107,6 +107,29 @@ This directory contains specialized skills for working with the Agent Operating 
 - Integration with GitHub Copilot
 - CI/CD quality checks
 
+### 7. [Integrated Quality Stack](integrated-quality-stack/SKILL.md) ⭐ **NEW**
+**Expert knowledge for the complete best-in-class code quality stack.**
+
+**Use this skill when**:
+- Setting up development environment
+- Running comprehensive quality checks
+- Using pre-commit hooks
+- Formatting and organizing code
+- Type checking with mypy
+- Security scanning with Bandit and Safety
+- Understanding CI/CD quality gates
+
+**Key topics**:
+- Complete quality stack (Pylint, Black, isort, mypy, Bandit, Safety)
+- Pre-commit hooks automation
+- Formatting and import organization
+- Static type checking
+- Security vulnerability scanning
+- CI/CD integration
+- Daily development workflow
+
+**Start here for comprehensive quality knowledge** - this skill covers all quality tools including Pylint.
+
 ## How to Use Skills
 
 Skills are designed to be discovered and used by AI coding agents. Each skill follows the Agent Skills format with a `SKILL.md` file containing:
