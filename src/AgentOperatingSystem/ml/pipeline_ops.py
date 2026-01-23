@@ -36,7 +36,7 @@ async def trigger_lora_training(training_params: Dict[str, Any], adapters: list)
     """
     if not ML_AVAILABLE:
         return "ML components not available"
-        
+
     trainer = LoRATrainer(
         model_name=training_params["model_name"],
         data_path=training_params["data_path"],
@@ -53,7 +53,7 @@ async def run_azure_ml_pipeline(subscription_id: str, resource_group: str, works
     """
     if not ML_AVAILABLE:
         return "ML components not available"
-        
+
     pipeline = LoRAPipeline(subscription_id, resource_group, workspace_name)
     pipeline.run()
     return "Azure ML LoRA pipeline executed."
@@ -65,6 +65,6 @@ async def aml_infer(agent_id: str, prompt: str) -> Any:
     """
     if not ML_AVAILABLE:
         return {"error": "ML components not available"}
-        
+
     manager = UnifiedMLManager()
     return await manager.aml_infer(agent_id, prompt)

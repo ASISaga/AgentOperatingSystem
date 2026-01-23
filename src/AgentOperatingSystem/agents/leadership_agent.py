@@ -21,12 +21,12 @@ class LeadershipAgent(PurposeDrivenAgent):
     - Consensus building
     - Delegation patterns
     - Decision provenance
-    
+
     The Leadership purpose is mapped to the "leadership" LoRA adapter, which provides
     leadership-specific domain knowledge and agent persona. The core purpose is added
     to the primary LLM context to guide agent behavior.
     """
-    
+
     def __init__(
         self,
         agent_id: str,
@@ -47,7 +47,7 @@ class LeadershipAgent(PurposeDrivenAgent):
             adapter_name = "leadership"
         if purpose_scope is None:
             purpose_scope = "Leadership and decision-making domain"
-        
+
         # Pass all parameters to parent, including legacy compatibility attributes
         super().__init__(
             agent_id=agent_id,
@@ -61,10 +61,10 @@ class LeadershipAgent(PurposeDrivenAgent):
             role=role or "leader",
             config=config
         )
-        
+
         self.decisions_made = []
         self.stakeholders = []
-        
+
     async def make_decision(
         self,
         context: Dict[str, Any],
@@ -73,12 +73,12 @@ class LeadershipAgent(PurposeDrivenAgent):
     ) -> Dict[str, Any]:
         """
         Make a decision based on context.
-        
+
         Args:
             context: Decision context and inputs
             stakeholders: Optional list of stakeholder agent IDs to consult
             mode: Decision mode ("autonomous", "consensus", "delegated")
-            
+
         Returns:
             Decision with rationale, confidence, metadata
         """
@@ -93,23 +93,23 @@ class LeadershipAgent(PurposeDrivenAgent):
             "confidence": 0.0,
             "rationale": ""
         }
-        
+
         self.decisions_made.append(decision)
         return decision
-    
+
     async def _evaluate_decision(self, context: Dict[str, Any]) -> Any:
         """
         Evaluate and make decision. Override in subclasses.
-        
+
         Args:
             context: Decision context
-            
+
         Returns:
             Decision outcome
         """
         # Base implementation - override in subclasses
         return {"decision": "pending", "reason": "not_implemented"}
-    
+
     async def consult_stakeholders(
         self,
         stakeholders: List[str],
@@ -118,12 +118,12 @@ class LeadershipAgent(PurposeDrivenAgent):
     ) -> List[Dict[str, Any]]:
         """
         Consult stakeholder agents on a topic.
-        
+
         Args:
             stakeholders: List of agent IDs to consult
             topic: Consultation topic
             context: Context for consultation
-            
+
         Returns:
             List of stakeholder responses
         """

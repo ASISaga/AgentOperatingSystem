@@ -35,20 +35,20 @@ class DPOConfig:
     # Model configuration
     base_model: str = "meta-llama/Llama-3.3-70B-Instruct"
     lora_adapter_path: Optional[str] = None  # Optional existing LoRA to build on
-    
+
     # DPO-specific hyperparameters
     beta: float = 0.1  # Temperature parameter for DPO
     learning_rate: float = 5e-5
     num_epochs: int = 3
     batch_size: int = 4
     gradient_accumulation_steps: int = 4
-    
+
     # LoRA configuration (applied on top of existing adapters)
     lora_r: int = 16
     lora_alpha: int = 32
     lora_dropout: float = 0.05
     lora_target_modules: List[str] = None
-    
+
     # Training infrastructure (Azure ML)
     compute_target: str = "Low-Priority-NC-Series"
     max_grad_norm: float = 1.0
@@ -56,11 +56,11 @@ class DPOConfig:
     logging_steps: int = 10
     save_steps: int = 500
     eval_steps: int = 100
-    
+
     # Data configuration
     max_length: int = 2048
     max_prompt_length: int = 1024
-    
+
     def __post_init__(self):
         if self.lora_target_modules is None:
             # Default LoRA target modules for Llama models
@@ -70,10 +70,10 @@ class DPOConfig:
 class DPOTrainer:
     """
     Direct Preference Optimization trainer for Llama 3.3 70B Instruct.
-    
+
     Implements the DPO algorithm which directly optimizes language models on
     preference data without requiring a separate reward model.
-    
+
     Key Features:
     - Cost-effective: 30-50% reduction in computational overhead vs PPO
     - Stable training: More stable than traditional RLHF
@@ -82,11 +82,11 @@ class DPOTrainer:
     - LoRA-compatible: Works with existing LoRA adapters
     - Llama 3.3 70B: Latest and most capable Llama model
     """
-    
+
     def __init__(self, config: DPOConfig):
         """
         Initialize DPO trainer with configuration.
-        
+
         Args:
             config: DPO training configuration
         """
@@ -98,7 +98,7 @@ class DPOTrainer:
             "global_step": 0,
             "metrics": {}
         }
-        
+
         # Try to import required libraries
         try:
             # Import TRL (Transformer Reinforcement Learning) library
@@ -110,7 +110,7 @@ class DPOTrainer:
             )
             from peft import LoraConfig, get_peft_model, PeftModel
             self.trl_available = True
-            
+
             # Store class references for use in methods (enables lazy loading and optional dependencies)
             self.TRLDPOTrainer = TRLDPOTrainer
             self.AutoModelForCausalLM = AutoModelForCausalLM
@@ -119,70 +119,70 @@ class DPOTrainer:
             self.LoraConfig = LoraConfig
             self.get_peft_model = get_peft_model
             self.PeftModel = PeftModel
-            
+
         except ImportError as e:
             self.logger.warning(f"TRL or transformers not available: {e}")
             self.trl_available = False
-    
+
     def prepare_preference_dataset(
         self,
         preference_data: List[PreferenceData]
     ) -> Any:
         """
         Prepare preference dataset for DPO training.
-        
+
         Converts preference data into the format required by TRL DPOTrainer.
-        
+
         Args:
             preference_data: List of preference examples
-            
+
         Returns:
             Formatted dataset for DPO training
         """
         if not self.trl_available:
             raise RuntimeError("TRL library not available")
-        
+
         from datasets import Dataset
-        
+
         # Convert to dataset format
         dataset_dict = {
             "prompt": [item.prompt for item in preference_data],
             "chosen": [item.chosen_response for item in preference_data],
             "rejected": [item.rejected_response for item in preference_data]
         }
-        
+
         dataset = Dataset.from_dict(dataset_dict)
-        
+
         self.logger.info(f"Prepared dataset with {len(dataset)} preference pairs")
         return dataset
-    
+
     def load_base_model(self) -> Tuple[Any, Any]:
         """
         Load base model and tokenizer.
-        
+
         If a LoRA adapter path is provided, loads the base model with the adapter
         as the starting point for DPO fine-tuning.
-        
+
         Returns:
             Tuple of (model, tokenizer)
         """
         if not self.trl_available:
             raise RuntimeError("TRL library not available")
-        
+
         self.logger.info(f"Loading base model: {self.config.base_model}")
-        
+
         # Load tokenizer
         tokenizer = self.AutoTokenizer.from_pretrained(self.config.base_model)
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
-        
+
         # Load base model
         model = self.AutoModelForCausalLM.from_pretrained(
             self.config.base_model,
             device_map="auto",
             torch_dtype="auto"
         )
-        
+
         # If existing LoRA adapter provided, load it
         if self.config.lora_adapter_path:
             self.logger.info(f"Loading existing LoRA adapter: {self.config.lora_adapter_path}")
@@ -192,22 +192,22 @@ class DPOTrainer:
             )
             # Merge adapter to base model for DPO training
             model = model.merge_and_unload()
-        
+
         return model, tokenizer
-    
+
     def setup_lora_config(self) -> Any:
         """
         Setup LoRA configuration for DPO training.
-        
+
         DPO training applies a new LoRA adapter on top of the base model
         (or merged base+adapter model).
-        
+
         Returns:
             LoRA configuration
         """
         if not self.trl_available:
             raise RuntimeError("TRL library not available")
-        
+
         lora_config = self.LoraConfig(
             r=self.config.lora_r,
             lora_alpha=self.config.lora_alpha,
@@ -216,10 +216,10 @@ class DPOTrainer:
             bias="none",
             task_type="CAUSAL_LM"
         )
-        
+
         self.logger.info(f"LoRA config: r={self.config.lora_r}, alpha={self.config.lora_alpha}")
         return lora_config
-    
+
     def train(
         self,
         preference_data: List[PreferenceData],
@@ -228,21 +228,21 @@ class DPOTrainer:
     ) -> Dict[str, Any]:
         """
         Train model using DPO on preference data.
-        
+
         Args:
             preference_data: List of preference examples (prompt, chosen, rejected)
             output_dir: Directory to save trained model and checkpoints
             mlflow_experiment_name: Optional MLflow experiment name for tracking
-            
+
         Returns:
             Training results with metrics
         """
         if not self.trl_available:
             raise RuntimeError("TRL library not available. Install with: pip install trl transformers peft")
-        
+
         self.logger.info("Starting DPO training")
         self.training_state["status"] = "preparing"
-        
+
         # Setup MLflow tracking if requested
         if mlflow_experiment_name:
             try:
@@ -259,13 +259,13 @@ class DPOTrainer:
                 self.logger.info(f"MLflow tracking enabled: {mlflow_experiment_name}")
             except ImportError:
                 self.logger.warning("MLflow not available, skipping experiment tracking")
-        
+
         # Prepare dataset
         dataset = self.prepare_preference_dataset(preference_data)
-        
+
         # Load model and tokenizer
         model, tokenizer = self.load_base_model()
-        
+
         # Create reference model (frozen copy for DPO)
         # DPO requires a reference model to compute implicit rewards
         self.logger.info("Creating reference model")
@@ -280,11 +280,11 @@ class DPOTrainer:
                 self.config.lora_adapter_path
             )
             ref_model = ref_model.merge_and_unload()
-        
+
         # Setup LoRA for the model to be trained
         lora_config = self.setup_lora_config()
         model = self.get_peft_model(model, lora_config)
-        
+
         # Training arguments
         training_args = self.TrainingArguments(
             output_dir=output_dir,
@@ -302,7 +302,7 @@ class DPOTrainer:
             report_to=["mlflow"] if mlflow_experiment_name else [],
             remove_unused_columns=False
         )
-        
+
         # Initialize DPO trainer
         self.logger.info("Initializing DPO trainer")
         dpo_trainer = self.TRLDPOTrainer(
@@ -315,18 +315,18 @@ class DPOTrainer:
             max_length=self.config.max_length,
             max_prompt_length=self.config.max_prompt_length
         )
-        
+
         # Train
         self.logger.info("Starting training loop")
         self.training_state["status"] = "training"
-        
+
         train_result = dpo_trainer.train()
-        
+
         # Save final model
         self.logger.info(f"Saving final model to {output_dir}")
         dpo_trainer.save_model(output_dir)
         tokenizer.save_pretrained(output_dir)
-        
+
         # Extract metrics
         metrics = {
             "train_loss": train_result.metrics.get("train_loss"),
@@ -335,7 +335,7 @@ class DPOTrainer:
             "total_steps": train_result.global_step,
             "epochs_completed": self.config.num_epochs
         }
-        
+
         # Log to MLflow
         if mlflow_experiment_name:
             try:
@@ -345,10 +345,10 @@ class DPOTrainer:
                 mlflow.end_run()
             except Exception as e:
                 self.logger.warning(f"MLflow logging failed: {e}")
-        
+
         self.training_state["status"] = "completed"
         self.training_state["metrics"] = metrics
-        
+
         self.logger.info(f"Training completed. Metrics: {metrics}")
         return {
             "status": "success",
@@ -356,7 +356,7 @@ class DPOTrainer:
             "metrics": metrics,
             "training_state": self.training_state
         }
-    
+
     def get_status(self) -> Dict[str, Any]:
         """Get current training status and metrics."""
         return self.training_state.copy()
@@ -365,24 +365,24 @@ class DPOTrainer:
 class PreferenceDataCollector:
     """
     Utility for collecting and managing preference data for DPO training.
-    
+
     Supports multiple collection strategies:
     1. Human feedback (explicit preferences)
     2. Teacher model ranking (e.g., Llama 4 as judge)
     3. Automated heuristics (e.g., length, coherence scores)
     """
-    
+
     def __init__(self, storage_path: Optional[str] = None):
         """
         Initialize preference data collector.
-        
+
         Args:
             storage_path: Optional path to store collected preferences
         """
         self.storage_path = storage_path
         self.preferences: List[PreferenceData] = []
         self.logger = logging.getLogger("AOS.PreferenceDataCollector")
-    
+
     def add_human_preference(
         self,
         prompt: str,
@@ -393,7 +393,7 @@ class PreferenceDataCollector:
     ) -> None:
         """
         Add a human-labeled preference pair.
-        
+
         Args:
             prompt: The input prompt
             response_a: First response option
@@ -407,7 +407,7 @@ class PreferenceDataCollector:
             chosen, rejected = response_b, response_a
         else:
             raise ValueError("Preference must be 'a' or 'b'")
-        
+
         pref_data = PreferenceData(
             prompt=prompt,
             chosen_response=chosen,
@@ -418,10 +418,10 @@ class PreferenceDataCollector:
                 "timestamp": datetime.utcnow().isoformat()
             }
         )
-        
+
         self.preferences.append(pref_data)
         self.logger.info(f"Added human preference. Total: {len(self.preferences)}")
-    
+
     async def add_teacher_model_preference(
         self,
         prompt: str,
@@ -432,17 +432,17 @@ class PreferenceDataCollector:
     ) -> None:
         """
         Use a teacher model (e.g., Llama 4) to rank responses.
-        
+
         Note: This functionality requires integration with the ML pipeline
         for teacher model inference. It is not yet implemented.
-        
+
         Args:
             prompt: The input prompt
             response_a: First response option
             response_b: Second response option
             teacher_model: Name/ID of teacher model to use for ranking
             metadata: Optional metadata
-            
+
         Raises:
             NotImplementedError: This feature is not yet implemented
         """
@@ -451,11 +451,11 @@ class PreferenceDataCollector:
             "This requires integration with the ML pipeline to call the teacher model. "
             "Use add_human_preference() or add_heuristic_preference() instead."
         )
-    
+
     # Heuristic thresholds for response quality
     MIN_RESPONSE_LENGTH = 50
     MAX_RESPONSE_LENGTH = 2000
-    
+
     def add_heuristic_preference(
         self,
         prompt: str,
@@ -466,9 +466,9 @@ class PreferenceDataCollector:
     ) -> None:
         """
         Use automated heuristics to determine preference.
-        
+
         Useful for bootstrapping or augmenting human preferences.
-        
+
         Args:
             prompt: The input prompt
             response_a: First response option
@@ -488,7 +488,7 @@ class PreferenceDataCollector:
                 return
         else:
             raise ValueError(f"Unknown heuristic: {heuristic}")
-        
+
         self.add_human_preference(
             prompt, response_a, response_b, preference,
             metadata={
@@ -497,30 +497,30 @@ class PreferenceDataCollector:
                 "heuristic_type": heuristic
             }
         )
-    
+
     def get_preferences(self) -> List[PreferenceData]:
         """Get all collected preferences."""
         return self.preferences.copy()
-    
+
     def save_preferences(self, path: Optional[str] = None) -> str:
         """
         Save preferences to disk in JSONL format.
-        
+
         Args:
             path: Optional path to save to (overrides storage_path)
-            
+
         Returns:
             Path where preferences were saved
         """
         import json
-        
+
         save_path = path or self.storage_path
         if not save_path:
             raise ValueError("No storage path specified")
-        
+
         save_path = Path(save_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with open(save_path, 'w') as f:
             for pref in self.preferences:
                 json.dump({
@@ -530,31 +530,31 @@ class PreferenceDataCollector:
                     "metadata": pref.metadata
                 }, f)
                 f.write('\n')
-        
+
         self.logger.info(f"Saved {len(self.preferences)} preferences to {save_path}")
         return str(save_path)
-    
+
     def load_preferences(self, path: Optional[str] = None) -> int:
         """
         Load preferences from disk.
-        
+
         Args:
             path: Optional path to load from (overrides storage_path)
-            
+
         Returns:
             Number of preferences loaded
         """
         import json
-        
+
         load_path = path or self.storage_path
         if not load_path:
             raise ValueError("No storage path specified")
-        
+
         load_path = Path(load_path)
         if not load_path.exists():
             self.logger.warning(f"Preference file not found: {load_path}")
             return 0
-        
+
         loaded_count = 0
         with open(load_path, 'r') as f:
             for line in f:
@@ -567,6 +567,6 @@ class PreferenceDataCollector:
                 )
                 self.preferences.append(pref)
                 loaded_count += 1
-        
+
         self.logger.info(f"Loaded {loaded_count} preferences from {load_path}")
         return loaded_count

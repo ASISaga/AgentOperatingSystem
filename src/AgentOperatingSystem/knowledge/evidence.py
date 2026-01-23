@@ -31,7 +31,7 @@ class Evidence(BaseModel):
     url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     tags: List[str] = Field(default_factory=list)
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -41,15 +41,15 @@ class Evidence(BaseModel):
 class EvidenceRetrieval:
     """
     Standard interface for evidence retrieval across the platform.
-    
+
     Fetches documents, metrics, prior decisions, and external references
     for decision support and audit.
     """
-    
+
     def __init__(self):
         """Initialize evidence retrieval"""
         self._evidence_store: Dict[str, Evidence] = {}
-    
+
     def add_evidence(
         self,
         evidence_type: EvidenceType,
@@ -62,7 +62,7 @@ class EvidenceRetrieval:
     ) -> Evidence:
         """
         Add evidence to the store.
-        
+
         Args:
             evidence_type: Type of evidence
             title: Evidence title
@@ -71,7 +71,7 @@ class EvidenceRetrieval:
             description: Optional description
             url: Optional URL
             tags: Optional tags
-            
+
         Returns:
             Created evidence
         """
@@ -84,14 +84,14 @@ class EvidenceRetrieval:
             url=url,
             tags=tags or []
         )
-        
+
         self._evidence_store[evidence.evidence_id] = evidence
         return evidence
-    
+
     def get_evidence(self, evidence_id: str) -> Optional[Evidence]:
         """Retrieve evidence by ID"""
         return self._evidence_store.get(evidence_id)
-    
+
     def fetch_documents(
         self,
         tags: Optional[List[str]] = None,
@@ -100,12 +100,12 @@ class EvidenceRetrieval:
     ) -> List[Evidence]:
         """
         Fetch document evidence.
-        
+
         Args:
             tags: Filter by tags
             source: Filter by source
             limit: Maximum number to return
-            
+
         Returns:
             List of document evidence
         """
@@ -115,7 +115,7 @@ class EvidenceRetrieval:
             source=source,
             limit=limit
         )
-    
+
     def fetch_metrics(
         self,
         tags: Optional[List[str]] = None,
@@ -129,7 +129,7 @@ class EvidenceRetrieval:
             source=source,
             limit=limit
         )
-    
+
     def fetch_prior_decisions(
         self,
         tags: Optional[List[str]] = None,
@@ -141,7 +141,7 @@ class EvidenceRetrieval:
             tags=tags,
             limit=limit
         )
-    
+
     def fetch_external_references(
         self,
         tags: Optional[List[str]] = None,
@@ -153,7 +153,7 @@ class EvidenceRetrieval:
             tags=tags,
             limit=limit
         )
-    
+
     def _fetch_by_type(
         self,
         evidence_type: EvidenceType,
@@ -163,26 +163,26 @@ class EvidenceRetrieval:
     ) -> List[Evidence]:
         """Internal method to fetch by type with filters"""
         results = []
-        
+
         for evidence in self._evidence_store.values():
             if evidence.evidence_type != evidence_type:
                 continue
-            
+
             if source and evidence.source != source:
                 continue
-            
+
             if tags:
                 # Must match all tags
                 if not all(t in evidence.tags for t in tags):
                     continue
-            
+
             results.append(evidence)
-            
+
             if len(results) >= limit:
                 break
-        
+
         return results
-    
+
     def search_evidence(
         self,
         query: str,
@@ -191,23 +191,23 @@ class EvidenceRetrieval:
     ) -> List[Evidence]:
         """
         Search evidence by query string.
-        
+
         Args:
             query: Search query
             evidence_types: Optional filter by types
             limit: Maximum results
-            
+
         Returns:
             List of matching evidence
         """
         results = []
         query_lower = query.lower()
-        
+
         for evidence in self._evidence_store.values():
             # Filter by type if specified
             if evidence_types and evidence.evidence_type not in evidence_types:
                 continue
-            
+
             # Simple text search in title and description
             if query_lower in evidence.title.lower():
                 results.append(evidence)
@@ -215,8 +215,8 @@ class EvidenceRetrieval:
                 results.append(evidence)
             elif any(query_lower in tag.lower() for tag in evidence.tags):
                 results.append(evidence)
-            
+
             if len(results) >= limit:
                 break
-        
+
         return results

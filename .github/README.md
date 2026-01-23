@@ -228,6 +228,8 @@ func azure functionapp publish <function-app-name>
 
 Before committing code:
 - [ ] Tests pass: `pytest tests/`
+- [ ] Pylint checks pass: `pylint src/AgentOperatingSystem --fail-under=5.0`
+- [ ] Code quality score maintained or improved
 - [ ] Code follows patterns in relevant skill
 - [ ] Async/await used correctly
 - [ ] State uses ContextMCPServer

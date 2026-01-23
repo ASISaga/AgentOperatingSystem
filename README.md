@@ -8,6 +8,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Azure](https://img.shields.io/badge/platform-Azure-blue.svg)](https://azure.microsoft.com/)
+[![Code Quality](https://img.shields.io/badge/pylint-8.52%2F10-brightgreen.svg)](.github/workflows/pylint.yml)
 
 ---
 
@@ -212,8 +213,33 @@ class CFOAgent(LeadershipAgent):
         return decision
 ```
 
-📖 **[Development Guide](docs/development.md)**  
+📖 **[Development Guide](docs/development.md)**
 📖 **[Contributing Guidelines](docs/development/CONTRIBUTING.md)**
+
+### Code Quality
+
+AOS maintains high code quality standards using Pylint:
+
+```bash
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run Pylint checks
+pylint src/AgentOperatingSystem
+
+# Check specific module
+pylint src/AgentOperatingSystem/agents
+```
+
+**Current Pylint Score:** 8.52/10 ✅
+
+- ✅ Automated quality checks via GitHub Actions
+- ✅ Comprehensive Pylint configuration for async Python and Azure
+- ✅ Integration with GitHub Copilot for quality assistance
+- ✅ Pre-commit quality standards
+
+📖 **[Code Quality Guide](.github/instructions/code-quality.instructions.md)**
+📖 **[Pylint Quick Reference](.github/PYLINT_QUICKREF.md)**
 
 ---
 

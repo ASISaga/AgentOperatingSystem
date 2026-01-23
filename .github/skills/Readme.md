@@ -89,6 +89,24 @@ This directory contains specialized skills for working with the Agent Operating 
 - Documentation updates
 - Testing refactored code
 
+### 6. [Code Quality with Pylint](code-quality-pylint/SKILL.md)
+**Expert knowledge for maintaining code quality using Pylint and best practices.**
+
+**Use this skill when**:
+- Running Pylint checks on code
+- Fixing Pylint warnings and errors
+- Ensuring code quality before commits
+- Reviewing code quality in CI/CD
+- Refactoring code to meet quality standards
+
+**Key topics**:
+- Pylint configuration and usage
+- Common Pylint issues and fixes
+- Type hints and async patterns
+- Code quality best practices
+- Integration with GitHub Copilot
+- CI/CD quality checks
+
 ## How to Use Skills
 
 Skills are designed to be discovered and used by AI coding agents. Each skill follows the Agent Skills format with a `SKILL.md` file containing:
@@ -114,6 +132,10 @@ Skills are designed to be discovered and used by AI coding agents. Each skill fo
 
 **For testing**:
 - Use [Async Python Testing](async-python-testing/SKILL.md) for all async test scenarios
+
+**For code quality**:
+- Use [Code Quality with Pylint](code-quality-pylint/SKILL.md) for maintaining code standards
+- Review before committing and in code reviews
 
 **For agent development**:
 - Use [Perpetual Agents](perpetual-agents/SKILL.md) for agent implementation

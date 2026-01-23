@@ -27,25 +27,25 @@ class ConversationType(Enum):
     TASK_ASSIGNMENT = "task_assignment"
     RESOURCE_ALLOCATION = "resource_allocation"
     CAPABILITY_NEGOTIATION = "capability_negotiation"
-    
+
     # Decision making
     COLLECTIVE_DECISION = "collective_decision"
     CONSENSUS_BUILDING = "consensus_building"
     CONFLICT_RESOLUTION = "conflict_resolution"
     PRIORITY_SETTING = "priority_setting"
-    
+
     # System operations
     SYSTEM_HANDOFF = "system_handoff"
     WORKFLOW_COORDINATION = "workflow_coordination"
     STATUS_REPORTING = "status_reporting"
     ERROR_HANDLING = "error_handling"
-    
+
     # Agreements and commitments
     SERVICE_AGREEMENT = "service_agreement"
     RESOURCE_COMMITMENT = "resource_commitment"
     PERFORMANCE_COVENANT = "performance_covenant"
     TERMINATION_AGREEMENT = "termination_agreement"
-    
+
     # Network and external
     NETWORK_NEGOTIATION = "network_negotiation"
     EXTERNAL_INTEGRATION = "external_integration"
@@ -60,18 +60,18 @@ class ConversationRole(Enum):
     ORCHESTRATOR = "orchestrator"
     AGENT_MANAGER = "agent_manager"
     RESOURCE_MANAGER = "resource_manager"
-    
+
     # Agent roles (generic)
     AGENT = "agent"
     COORDINATOR_AGENT = "coordinator_agent"
     SPECIALIST_AGENT = "specialist_agent"
     MONITOR_AGENT = "monitor_agent"
-    
+
     # Service roles
     MCP_SERVER = "mcp_server"
     EXTERNAL_SERVICE = "external_service"
     NETWORK_NODE = "network_node"
-    
+
     # Administrative
     ADMIN = "admin"
     OBSERVER = "observer"
@@ -132,35 +132,35 @@ class Conversation:
     champion: ConversationRole
     status: ConversationStatus = ConversationStatus.DRAFT
     priority: ConversationPriority = ConversationPriority.MEDIUM
-    
+
     # Participation
     participants: List[ConversationRole] = field(default_factory=list)
     required_signers: List[ConversationRole] = field(default_factory=list)
     signatures: List[ConversationSignature] = field(default_factory=list)
-    
+
     # Content and context
     messages: List[ConversationMessage] = field(default_factory=list)
     context: Dict[str, Any] = field(default_factory=dict)
     agreements: Dict[str, Any] = field(default_factory=dict)
-    
+
     # Metadata
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: Optional[datetime] = None
-    
+
     # AOS-specific fields
     workflow_id: Optional[str] = None
     task_ids: List[str] = field(default_factory=list)
     resource_requirements: Dict[str, Any] = field(default_factory=dict)
     performance_metrics: Dict[str, float] = field(default_factory=dict)
-    
+
     # Flags and controls
     requires_consensus: bool = False
     requires_human_oversight: bool = False
     is_automated: bool = True
     delegation_allowed: bool = True
-    
-    def add_message(self, sender_role: ConversationRole, sender_name: str, 
+
+    def add_message(self, sender_role: ConversationRole, sender_name: str,
                    content: str, message_type: str = "standard") -> str:
         """Add a message to the conversation"""
         message_id = str(uuid.uuid4())
@@ -174,43 +174,43 @@ class Conversation:
         self.messages.append(message)
         self.updated_at = datetime.now(timezone.utc)
         return message_id
-    
+
     def add_signature(self, signer_role: ConversationRole, signer_name: str) -> bool:
         """Add a signature to the conversation"""
         if signer_role not in self.required_signers:
             return False
-        
+
         if self.is_signed_by(signer_role):
             return False
-        
+
         signature = ConversationSignature(
             signer_agent=signer_role,
             signer_name=signer_name
         )
         self.signatures.append(signature)
         self.updated_at = datetime.now(timezone.utc)
-        
+
         # Check if all signatures are collected
         if self.is_fully_signed():
             self.status = ConversationStatus.COMPLETED
-        
+
         return True
-    
+
     def is_signed_by(self, role: ConversationRole) -> bool:
         """Check if conversation is signed by specific role"""
         return any(sig.signer_agent == role for sig in self.signatures)
-    
+
     def is_fully_signed(self) -> bool:
         """Check if all required signatures are collected"""
         signed_roles = {sig.signer_agent for sig in self.signatures}
         required_roles = set(self.required_signers)
         return required_roles.issubset(signed_roles)
-    
+
     def get_pending_signers(self) -> List[ConversationRole]:
         """Get list of roles that still need to sign"""
         signed_roles = {sig.signer_agent for sig in self.signatures}
         return [role for role in self.required_signers if role not in signed_roles]
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert conversation to dictionary for serialization"""
         return {
@@ -261,38 +261,38 @@ class Conversation:
 
 class ConversationSystem(ABC):
     """Abstract base class for conversation system implementations"""
-    
+
     @abstractmethod
     async def create_conversation(self, conversation: Conversation) -> str:
         """Create a new conversation"""
         pass
-    
+
     @abstractmethod
     async def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
         """Retrieve a conversation by ID"""
         pass
-    
-    @abstractmethod 
+
+    @abstractmethod
     async def update_conversation(self, conversation: Conversation) -> None:
         """Update an existing conversation"""
         pass
-    
+
     @abstractmethod
     async def list_conversations_by_role(self, role: ConversationRole) -> List[Conversation]:
         """List conversations where role is participant"""
         pass
-    
+
     @abstractmethod
     async def list_pending_signatures(self, signer: ConversationRole) -> List[Conversation]:
         """List conversations pending signature from a specific role"""
         pass
-    
+
     @abstractmethod
-    async def sign_conversation(self, conversation_id: str, signer_role: ConversationRole, 
+    async def sign_conversation(self, conversation_id: str, signer_role: ConversationRole,
                               signer_name: str) -> bool:
         """Sign a conversation"""
         pass
-    
+
     @abstractmethod
     async def add_message(self, conversation_id: str, sender_role: ConversationRole,
                          sender_name: str, content: str, message_type: str = "standard") -> Optional[str]:
@@ -302,42 +302,42 @@ class ConversationSystem(ABC):
 
 class AOSConversationSystem(ConversationSystem):
     """AOS implementation of the conversation system"""
-    
+
     def __init__(self):
         self.conversations: Dict[str, Conversation] = {}
         self.logger = logging.getLogger(__name__)
         self._initialized = False
-    
+
     async def initialize(self):
         """Initialize the conversation system"""
         if self._initialized:
             return
-        
+
         self.logger.info("Initializing AOS Conversation System")
-        
+
         # Set up background tasks
         asyncio.create_task(self._cleanup_expired_conversations())
-        
+
         self._initialized = True
-        
+
         await audit_log(
             AuditEventType.COMPONENT_STARTED,
             "Conversation system initialized",
             component="conversation_system",
             severity=AuditSeverity.INFO
         )
-    
+
     async def create_conversation(self, conversation: Conversation) -> str:
         """Create a new conversation"""
         try:
             if not conversation.id:
                 conversation.id = str(uuid.uuid4())
-            
+
             conversation.created_at = datetime.now(timezone.utc)
             conversation.updated_at = datetime.now(timezone.utc)
-            
+
             self.conversations[conversation.id] = conversation
-            
+
             await audit_log(
                 AuditEventType.MESSAGE_SENT,  # Using closest available event type
                 f"Conversation created: {conversation.title}",
@@ -352,48 +352,48 @@ class AOSConversationSystem(ConversationSystem):
                     "participants": [p.value for p in conversation.participants]
                 }
             )
-            
+
             self.logger.info(f"Created conversation {conversation.id} of type {conversation.type.value}")
             return conversation.id
-            
+
         except Exception as e:
             self.logger.error(f"Failed to create conversation: {e}")
             raise
-    
+
     async def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
         """Retrieve a conversation by ID"""
         return self.conversations.get(conversation_id)
-    
+
     async def update_conversation(self, conversation: Conversation) -> None:
         """Update an existing conversation"""
         try:
             conversation.updated_at = datetime.now(timezone.utc)
             self.conversations[conversation.id] = conversation
-            
+
             self.logger.info(f"Updated conversation {conversation.id}")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to update conversation {conversation.id}: {e}")
             raise
-    
+
     async def list_conversations_by_role(self, role: ConversationRole) -> List[Conversation]:
         """List conversations where role is participant"""
         return [
-            conv for conv in self.conversations.values() 
+            conv for conv in self.conversations.values()
             if conv.champion == role or role in conv.participants
         ]
-    
+
     async def list_pending_signatures(self, signer: ConversationRole) -> List[Conversation]:
         """List conversations pending signature from a specific role"""
         pending = []
         for conv in self.conversations.values():
-            if (signer in conv.required_signers and 
+            if (signer in conv.required_signers and
                 not conv.is_signed_by(signer) and
                 conv.status in [ConversationStatus.PENDING_SIGNATURE, ConversationStatus.ACTIVE]):
                 pending.append(conv)
         return pending
-    
-    async def sign_conversation(self, conversation_id: str, signer_role: ConversationRole, 
+
+    async def sign_conversation(self, conversation_id: str, signer_role: ConversationRole,
                               signer_name: str) -> bool:
         """Sign a conversation"""
         try:
@@ -401,17 +401,17 @@ class AOSConversationSystem(ConversationSystem):
             if not conversation:
                 self.logger.warning(f"Conversation {conversation_id} not found")
                 return False
-            
+
             if signer_role not in conversation.required_signers:
                 self.logger.warning(f"Role {signer_role.value} not required to sign conversation {conversation_id}")
                 return False
-            
+
             if conversation.is_signed_by(signer_role):
                 self.logger.warning(f"Conversation {conversation_id} already signed by {signer_role.value}")
                 return False
-            
+
             success = conversation.add_signature(signer_role, signer_name)
-            
+
             if success:
                 await audit_log(
                     AuditEventType.MESSAGE_RECEIVED,  # Using closest available event type
@@ -426,15 +426,15 @@ class AOSConversationSystem(ConversationSystem):
                         "fully_signed": conversation.is_fully_signed()
                     }
                 )
-                
+
                 self.logger.info(f"Conversation {conversation_id} signed by {signer_name}[{signer_role.value}]")
-            
+
             return success
-            
+
         except Exception as e:
             self.logger.error(f"Failed to sign conversation {conversation_id}: {e}")
             return False
-    
+
     async def add_message(self, conversation_id: str, sender_role: ConversationRole,
                          sender_name: str, content: str, message_type: str = "standard") -> Optional[str]:
         """Add a message to a conversation"""
@@ -443,56 +443,56 @@ class AOSConversationSystem(ConversationSystem):
             if not conversation:
                 self.logger.warning(f"Conversation {conversation_id} not found")
                 return None
-            
+
             message_id = conversation.add_message(sender_role, sender_name, content, message_type)
-            
+
             self.logger.debug(f"Added message to conversation {conversation_id}")
             return message_id
-            
+
         except Exception as e:
             self.logger.error(f"Failed to add message to conversation {conversation_id}: {e}")
             return None
-    
+
     async def get_active_conversations(self) -> List[Conversation]:
         """Get all active conversations"""
         return [
             conv for conv in self.conversations.values()
-            if conv.status in [ConversationStatus.ACTIVE, ConversationStatus.PENDING_RESPONSE, 
+            if conv.status in [ConversationStatus.ACTIVE, ConversationStatus.PENDING_RESPONSE,
                              ConversationStatus.PENDING_SIGNATURE]
         ]
-    
+
     async def get_conversation_metrics(self) -> Dict[str, Any]:
         """Get conversation system metrics"""
         total = len(self.conversations)
         status_counts = {}
         type_counts = {}
-        
+
         for conv in self.conversations.values():
             status_counts[conv.status.value] = status_counts.get(conv.status.value, 0) + 1
             type_counts[conv.type.value] = type_counts.get(conv.type.value, 0) + 1
-        
+
         return {
             "total_conversations": total,
             "status_distribution": status_counts,
             "type_distribution": type_counts,
             "active_conversations": len(await self.get_active_conversations())
         }
-    
+
     async def _cleanup_expired_conversations(self):
         """Background task to clean up expired conversations"""
         while True:
             try:
                 now = datetime.now(timezone.utc)
                 expired_ids = []
-                
+
                 for conv_id, conv in self.conversations.items():
                     if conv.expires_at and conv.expires_at < now:
                         expired_ids.append(conv_id)
-                
+
                 for conv_id in expired_ids:
                     conv = self.conversations[conv_id]
                     conv.status = ConversationStatus.EXPIRED
-                    
+
                     await audit_log(
                         AuditEventType.SYSTEM_ERROR,  # Using closest available
                         f"Conversation expired: {conv.title}",
@@ -500,17 +500,17 @@ class AOSConversationSystem(ConversationSystem):
                         severity=AuditSeverity.WARNING,
                         metadata={"conversation_id": conv_id}
                     )
-                
+
                 if expired_ids:
                     self.logger.info(f"Marked {len(expired_ids)} conversations as expired")
-                
+
                 # Sleep for 5 minutes
                 await asyncio.sleep(300)
-                
+
             except Exception as e:
                 self.logger.error(f"Error in conversation cleanup task: {e}")
                 await asyncio.sleep(300)
-    
+
     async def health_check(self) -> Dict[str, Any]:
         """Get health status of conversation system"""
         try:

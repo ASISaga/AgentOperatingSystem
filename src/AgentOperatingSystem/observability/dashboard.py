@@ -21,19 +21,19 @@ class MetricType:
 class MetricsAggregator:
     """
     Aggregates metrics for dashboard display.
-    
+
     Features:
     - Real-time metric aggregation
     - Time-windowed statistics
     - Percentile calculations
     - Rate calculations
     """
-    
+
     def __init__(self):
         self.logger = logging.getLogger("AOS.MetricsAggregator")
         self.metrics = defaultdict(list)
         self.aggregations = {}
-        
+
     async def record(
         self,
         metric_name: str,
@@ -43,7 +43,7 @@ class MetricsAggregator:
     ):
         """
         Record a metric value.
-        
+
         Args:
             metric_name: Name of the metric
             value: Metric value
@@ -57,14 +57,14 @@ class MetricsAggregator:
             "tags": tags or {},
             "timestamp": datetime.utcnow()
         }
-        
+
         self.metrics[metric_name].append(entry)
-        
+
         # Limit history size
         max_entries = 10000
         if len(self.metrics[metric_name]) > max_entries:
             self.metrics[metric_name] = self.metrics[metric_name][-max_entries:]
-    
+
     async def get_aggregation(
         self,
         metric_name: str,
@@ -73,29 +73,29 @@ class MetricsAggregator:
     ) -> Optional[float]:
         """
         Get aggregated metric value.
-        
+
         Args:
             metric_name: Metric to aggregate
             time_window: Optional time window
             aggregation_type: Type of aggregation (avg, sum, min, max, p95, p99)
-            
+
         Returns:
             Aggregated value
         """
         if metric_name not in self.metrics:
             return None
-        
+
         # Filter by time window
         entries = self.metrics[metric_name]
         if time_window:
             cutoff = datetime.utcnow() - time_window
             entries = [e for e in entries if e["timestamp"] >= cutoff]
-        
+
         if not entries:
             return None
-        
+
         values = [e["value"] for e in entries]
-        
+
         if aggregation_type == "avg":
             return sum(values) / len(values)
         elif aggregation_type == "sum":
@@ -110,15 +110,15 @@ class MetricsAggregator:
             return self._percentile(values, 95)
         elif aggregation_type == "p99":
             return self._percentile(values, 99)
-        
+
         return None
-    
+
     def _percentile(self, values: List[float], percentile: int) -> float:
         """Calculate percentile"""
         sorted_values = sorted(values)
         index = int(len(sorted_values) * percentile / 100)
         return sorted_values[min(index, len(sorted_values) - 1)]
-    
+
     async def get_rate(
         self,
         metric_name: str,
@@ -126,38 +126,38 @@ class MetricsAggregator:
     ) -> Optional[float]:
         """
         Calculate rate of change for a counter metric.
-        
+
         Args:
             metric_name: Counter metric name
             time_window: Time window for rate calculation
-            
+
         Returns:
             Rate (events per second)
         """
         if metric_name not in self.metrics:
             return None
-        
+
         cutoff = datetime.utcnow() - time_window
         recent_entries = [
             e for e in self.metrics[metric_name]
             if e["timestamp"] >= cutoff
         ]
-        
+
         if len(recent_entries) < 2:
             return None
-        
+
         # Calculate rate
         count = len(recent_entries)
         time_span = (
             recent_entries[-1]["timestamp"] - recent_entries[0]["timestamp"]
         ).total_seconds()
-        
+
         if time_span == 0:
             return None
-        
+
         rate = count / time_span
         return rate
-    
+
     async def get_dashboard_data(
         self,
         metric_names: List[str],
@@ -165,11 +165,11 @@ class MetricsAggregator:
     ) -> Dict[str, Any]:
         """
         Get comprehensive dashboard data for multiple metrics.
-        
+
         Args:
             metric_names: List of metrics to include
             time_window: Time window for data
-            
+
         Returns:
             Dashboard data
         """
@@ -178,7 +178,7 @@ class MetricsAggregator:
             "time_window_minutes": time_window.total_seconds() / 60,
             "metrics": {}
         }
-        
+
         for metric_name in metric_names:
             metric_data = {
                 "current": await self.get_aggregation(
@@ -212,42 +212,42 @@ class MetricsAggregator:
                     "p99"
                 )
             }
-            
+
             # Add rate for counters
             if self._is_counter(metric_name):
                 metric_data["rate"] = await self.get_rate(
                     metric_name,
                     timedelta(minutes=1)
                 )
-            
+
             dashboard["metrics"][metric_name] = metric_data
-        
+
         return dashboard
-    
+
     def _is_counter(self, metric_name: str) -> bool:
         """Check if metric is a counter"""
         if not self.metrics.get(metric_name):
             return False
-        
+
         return self.metrics[metric_name][0]["type"] == MetricType.COUNTER
 
 
 class DashboardBuilder:
     """
     Builds customizable dashboards for metrics visualization.
-    
+
     Features:
     - Custom dashboard layouts
     - Widget configuration
     - Real-time updates
     - Export capabilities
     """
-    
+
     def __init__(self, aggregator: MetricsAggregator):
         self.logger = logging.getLogger("AOS.DashboardBuilder")
         self.aggregator = aggregator
         self.dashboards = {}
-        
+
     async def create_dashboard(
         self,
         dashboard_id: str,
@@ -256,54 +256,54 @@ class DashboardBuilder:
     ):
         """
         Create a custom dashboard.
-        
+
         Args:
             dashboard_id: Unique dashboard ID
             name: Dashboard name
             widgets: List of widget configurations
         """
         self.logger.info(f"Creating dashboard: {name}")
-        
+
         dashboard = {
             "id": dashboard_id,
             "name": name,
             "widgets": widgets,
             "created_at": datetime.utcnow()
         }
-        
+
         self.dashboards[dashboard_id] = dashboard
-    
+
     async def render_dashboard(
         self,
         dashboard_id: str
     ) -> Dict[str, Any]:
         """
         Render dashboard with current data.
-        
+
         Args:
             dashboard_id: Dashboard to render
-            
+
         Returns:
             Rendered dashboard data
         """
         dashboard = self.dashboards.get(dashboard_id)
         if not dashboard:
             return {"error": "Dashboard not found"}
-        
+
         rendered = {
             "id": dashboard["id"],
             "name": dashboard["name"],
             "rendered_at": datetime.utcnow(),
             "widgets": []
         }
-        
+
         # Render each widget
         for widget_config in dashboard["widgets"]:
             widget_data = await self._render_widget(widget_config)
             rendered["widgets"].append(widget_data)
-        
+
         return rendered
-    
+
     async def _render_widget(
         self,
         widget_config: Dict[str, Any]
@@ -311,26 +311,26 @@ class DashboardBuilder:
         """Render a single widget"""
         widget_type = widget_config.get("type")
         metric_name = widget_config.get("metric")
-        
+
         if widget_type == "gauge":
             value = await self.aggregator.get_aggregation(
                 metric_name,
                 timedelta(minutes=1),
                 "avg"
             )
-            
+
             return {
                 "type": "gauge",
                 "metric": metric_name,
                 "value": value,
                 "title": widget_config.get("title", metric_name)
             }
-        
+
         elif widget_type == "graph":
             # Time series data
             entries = self.aggregator.metrics.get(metric_name, [])
             recent = entries[-100:]  # Last 100 points
-            
+
             return {
                 "type": "graph",
                 "metric": metric_name,
@@ -343,7 +343,7 @@ class DashboardBuilder:
                 ],
                 "title": widget_config.get("title", metric_name)
             }
-        
+
         elif widget_type == "stat":
             stats = {
                 "current": await self.aggregator.get_aggregation(
@@ -362,23 +362,23 @@ class DashboardBuilder:
                     "p95"
                 )
             }
-            
+
             return {
                 "type": "stat",
                 "metric": metric_name,
                 "stats": stats,
                 "title": widget_config.get("title", metric_name)
             }
-        
+
         return {
             "type": "unknown",
             "error": f"Unknown widget type: {widget_type}"
         }
-    
+
     async def create_standard_dashboard(self) -> str:
         """Create a standard AOS dashboard"""
         dashboard_id = "aos_standard"
-        
+
         widgets = [
             {
                 "type": "gauge",
@@ -401,11 +401,11 @@ class DashboardBuilder:
                 "title": "Workflow Performance"
             }
         ]
-        
+
         await self.create_dashboard(
             dashboard_id,
             "AOS Standard Dashboard",
             widgets
         )
-        
+
         return dashboard_id

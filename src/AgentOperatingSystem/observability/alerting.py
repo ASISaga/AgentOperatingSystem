@@ -33,7 +33,7 @@ class Alert(BaseModel):
     context: Dict[str, Any] = Field(default_factory=dict)
     acknowledged: bool = False
     resolved: bool = False
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -56,16 +56,16 @@ class AlertRule(BaseModel):
 class AlertingSystem:
     """
     System for monitoring SLOs and generating alerts.
-    
+
     Monitors thresholds and routes alerts to appropriate owners.
     """
-    
+
     def __init__(self):
         """Initialize alerting system"""
         self._rules: Dict[str, AlertRule] = {}
         self._alerts: List[Alert] = []
         self._alert_handlers: List[Callable[[Alert], None]] = []
-    
+
     def add_rule(
         self,
         name: str,
@@ -78,7 +78,7 @@ class AlertingSystem:
     ) -> AlertRule:
         """
         Add an alert rule.
-        
+
         Args:
             name: Rule name
             metric_name: Metric to monitor
@@ -87,7 +87,7 @@ class AlertingSystem:
             severity: Alert severity
             owner: Alert owner
             playbook_url: Optional playbook URL
-            
+
         Returns:
             Created rule
         """
@@ -100,14 +100,14 @@ class AlertingSystem:
             owner=owner,
             playbook_url=playbook_url
         )
-        
+
         self._rules[rule.rule_id] = rule
         return rule
-    
+
     def check_metric(self, metric_name: str, value: float, context: Optional[Dict[str, Any]] = None):
         """
         Check a metric value against all rules.
-        
+
         Args:
             metric_name: Metric name
             value: Current value
@@ -116,12 +116,12 @@ class AlertingSystem:
         for rule in self._rules.values():
             if not rule.enabled or rule.metric_name != metric_name:
                 continue
-            
+
             should_alert = self._evaluate_condition(value, rule.condition, rule.threshold)
-            
+
             if should_alert:
                 self._create_alert(rule, value, context or {})
-    
+
     def _evaluate_condition(self, value: float, condition: str, threshold: float) -> bool:
         """Evaluate if condition is met"""
         if condition == "greater_than":
@@ -137,7 +137,7 @@ class AlertingSystem:
         elif condition == "less_than_or_equal":
             return value <= threshold
         return False
-    
+
     def _create_alert(self, rule: AlertRule, actual_value: float, context: Dict[str, Any]):
         """Create and dispatch an alert"""
         alert = Alert(
@@ -151,38 +151,38 @@ class AlertingSystem:
             playbook_url=rule.playbook_url,
             context=context
         )
-        
+
         self._alerts.append(alert)
-        
+
         # Dispatch to handlers
         for handler in self._alert_handlers:
             try:
                 handler(alert)
             except Exception as e:
                 print(f"Error in alert handler: {e}")
-    
+
     def register_handler(self, handler: Callable[[Alert], None]):
         """Register an alert handler"""
         self._alert_handlers.append(handler)
-    
+
     def acknowledge_alert(self, alert_id: str):
         """Acknowledge an alert"""
         for alert in self._alerts:
             if alert.alert_id == alert_id:
                 alert.acknowledged = True
                 break
-    
+
     def resolve_alert(self, alert_id: str):
         """Mark an alert as resolved"""
         for alert in self._alerts:
             if alert.alert_id == alert_id:
                 alert.resolved = True
                 break
-    
+
     def get_active_alerts(self) -> List[Alert]:
         """Get all active (unresolved) alerts"""
         return [a for a in self._alerts if not a.resolved]
-    
+
     def get_alerts_by_severity(self, severity: AlertSeverity) -> List[Alert]:
         """Get alerts by severity"""
         return [a for a in self._alerts if a.severity == severity and not a.resolved]

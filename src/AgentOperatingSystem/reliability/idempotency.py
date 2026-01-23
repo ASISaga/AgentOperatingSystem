@@ -21,7 +21,7 @@ class IdempotencyKey(BaseModel):
     """
     message_id: str
     business_key: Optional[str] = None
-    
+
     def to_hash(self) -> str:
         """Generate deterministic hash for the key"""
         key_str = f"{self.message_id}:{self.business_key or ''}"
@@ -36,12 +36,12 @@ class IdempotencyRecord(BaseModel):
     result: Any
     executed_at: datetime = Field(default_factory=datetime.utcnow)
     expires_at: Optional[datetime] = None
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
         }
-    
+
     def is_expired(self) -> bool:
         """Check if this record has expired"""
         if self.expires_at is None:
@@ -52,21 +52,21 @@ class IdempotencyRecord(BaseModel):
 class IdempotencyHandler(Generic[T]):
     """
     Handler for idempotent operations.
-    
+
     Ensures that operations with the same idempotency key are only executed once,
     with subsequent calls returning the cached result.
     """
-    
+
     def __init__(self, ttl_seconds: int = 86400):  # 24 hours default
         """
         Initialize idempotency handler.
-        
+
         Args:
             ttl_seconds: Time-to-live for idempotency records in seconds
         """
         self.ttl_seconds = ttl_seconds
         self._cache: Dict[str, IdempotencyRecord] = {}
-    
+
     def execute(
         self,
         key: IdempotencyKey,
@@ -74,16 +74,16 @@ class IdempotencyHandler(Generic[T]):
     ) -> T:
         """
         Execute operation idempotently.
-        
+
         Args:
             key: Idempotency key for this operation
             operation: Function to execute if not already executed
-            
+
         Returns:
             Result of the operation (cached or fresh)
         """
         key_hash = key.to_hash()
-        
+
         # Check if we have a cached result
         if key_hash in self._cache:
             record = self._cache[key_hash]
@@ -92,10 +92,10 @@ class IdempotencyHandler(Generic[T]):
             else:
                 # Remove expired record
                 del self._cache[key_hash]
-        
+
         # Execute operation
         result = operation()
-        
+
         # Store result
         expires_at = datetime.utcnow() + timedelta(seconds=self.ttl_seconds)
         self._cache[key_hash] = IdempotencyRecord(
@@ -103,9 +103,9 @@ class IdempotencyHandler(Generic[T]):
             result=result,
             expires_at=expires_at
         )
-        
+
         return result
-    
+
     async def execute_async(
         self,
         key: IdempotencyKey,
@@ -113,16 +113,16 @@ class IdempotencyHandler(Generic[T]):
     ) -> T:
         """
         Execute async operation idempotently.
-        
+
         Args:
             key: Idempotency key for this operation
             operation: Async function to execute if not already executed
-            
+
         Returns:
             Result of the operation (cached or fresh)
         """
         key_hash = key.to_hash()
-        
+
         # Check if we have a cached result
         if key_hash in self._cache:
             record = self._cache[key_hash]
@@ -131,10 +131,10 @@ class IdempotencyHandler(Generic[T]):
             else:
                 # Remove expired record
                 del self._cache[key_hash]
-        
+
         # Execute operation
         result = await operation()
-        
+
         # Store result
         expires_at = datetime.utcnow() + timedelta(seconds=self.ttl_seconds)
         self._cache[key_hash] = IdempotencyRecord(
@@ -142,13 +142,13 @@ class IdempotencyHandler(Generic[T]):
             result=result,
             expires_at=expires_at
         )
-        
+
         return result
-    
+
     def cleanup_expired(self) -> int:
         """
         Remove expired records from cache.
-        
+
         Returns:
             Number of records removed
         """
@@ -159,11 +159,11 @@ class IdempotencyHandler(Generic[T]):
         for key in expired_keys:
             del self._cache[key]
         return len(expired_keys)
-    
+
     def clear(self):
         """Clear all cached records"""
         self._cache.clear()
-    
+
     def get_record(self, key: IdempotencyKey) -> Optional[IdempotencyRecord]:
         """Get cached record for a key if it exists and is not expired"""
         key_hash = key.to_hash()

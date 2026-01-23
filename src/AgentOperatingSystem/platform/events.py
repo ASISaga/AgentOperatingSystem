@@ -40,7 +40,7 @@ class BaseEvent(BaseModel):
     correlation_id: str
     causation_id: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()

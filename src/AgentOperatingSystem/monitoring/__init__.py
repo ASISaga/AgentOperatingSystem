@@ -10,7 +10,7 @@ from .observability import StructuredLogger, MetricsCollector as MetricsCollecto
 
 try:
     from .audit_trail import (
-        AuditTrailManager, AuditEvent, AuditEventType, AuditSeverity, 
+        AuditTrailManager, AuditEvent, AuditEventType, AuditSeverity,
         audit_log, get_audit_manager, audit_context
     )
     AUDIT_AVAILABLE = True
@@ -29,7 +29,7 @@ except ImportError:
     GENERIC_AUDIT_AVAILABLE = False
 
 __all__ = [
-    "SystemMonitor",  
+    "SystemMonitor",
     "MetricsCollector",
     # New refactored classes
     "StructuredLogger",

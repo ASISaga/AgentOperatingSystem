@@ -17,7 +17,7 @@ import uuid
 
 class AOSMessageType(str, Enum):
     """Message types for AOS Service Bus communication."""
-    
+
     # Agent Operations
     AGENT_QUERY = "aos.agent.query"
     AGENT_RESPONSE = "aos.agent.response"
@@ -25,34 +25,34 @@ class AOSMessageType(str, Enum):
     AGENT_UNREGISTER = "aos.agent.unregister"
     AGENT_LIST = "aos.agent.list"
     AGENT_STATUS = "aos.agent.status"
-    
+
     # Workflow Operations
     WORKFLOW_EXECUTE = "aos.workflow.execute"
     WORKFLOW_RESULT = "aos.workflow.result"
     WORKFLOW_STATUS = "aos.workflow.status"
     WORKFLOW_CANCEL = "aos.workflow.cancel"
-    
+
     # Storage Operations
     STORAGE_GET = "aos.storage.get"
     STORAGE_SET = "aos.storage.set"
     STORAGE_DELETE = "aos.storage.delete"
     STORAGE_LIST = "aos.storage.list"
     STORAGE_RESULT = "aos.storage.result"
-    
+
     # Orchestration Operations
     DECISION_REQUEST = "aos.decision.request"
     DECISION_RESULT = "aos.decision.result"
-    
+
     # MCP Operations
     MCP_CALL = "aos.mcp.call"
     MCP_RESULT = "aos.mcp.result"
-    
+
     # System Operations
     HEALTH_CHECK = "aos.system.health"
     HEALTH_RESPONSE = "aos.system.health.response"
     PING = "aos.system.ping"
     PONG = "aos.system.pong"
-    
+
     # Events
     EVENT_NOTIFICATION = "aos.event.notification"
     ERROR = "aos.error"
@@ -69,7 +69,7 @@ class MessagePriority(str, Enum):
 @dataclass
 class AOSMessageHeader:
     """Standard message header for all AOS messages."""
-    
+
     message_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     correlation_id: Optional[str] = None
     reply_to: Optional[str] = None
@@ -79,10 +79,10 @@ class AOSMessageHeader:
     message_type: str = ""
     priority: str = MessagePriority.NORMAL.value
     ttl_seconds: int = 300  # 5 minutes default
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AOSMessageHeader":
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
@@ -92,29 +92,29 @@ class AOSMessageHeader:
 class AOSMessage:
     """
     Base message format for AOS Service Bus communication.
-    
+
     All messages follow this structure:
     - header: Metadata about the message
     - payload: The actual message content
     """
-    
+
     header: AOSMessageHeader
     payload: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_json(self) -> str:
         """Serialize message to JSON string."""
         return json.dumps({
             "header": self.header.to_dict(),
             "payload": self.payload
         })
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert message to dictionary."""
         return {
             "header": self.header.to_dict(),
             "payload": self.payload
         }
-    
+
     @classmethod
     def from_json(cls, json_str: str) -> "AOSMessage":
         """Deserialize message from JSON string."""
@@ -123,7 +123,7 @@ class AOSMessage:
             header=AOSMessageHeader.from_dict(data.get("header", {})),
             payload=data.get("payload", {})
         )
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AOSMessage":
         """Create message from dictionary."""
@@ -131,7 +131,7 @@ class AOSMessage:
             header=AOSMessageHeader.from_dict(data.get("header", {})),
             payload=data.get("payload", {})
         )
-    
+
     @classmethod
     def create_request(
         cls,
@@ -154,7 +154,7 @@ class AOSMessage:
             ),
             payload=payload
         )
-    
+
     @classmethod
     def create_response(
         cls,
@@ -186,7 +186,7 @@ class AgentQueryPayload:
     context: Dict[str, Any] = field(default_factory=dict)
     max_tokens: int = 1000
     temperature: float = 0.7
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -200,7 +200,7 @@ class AgentResponsePayload:
     sources: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -212,7 +212,7 @@ class WorkflowExecutePayload:
     workflow_name: str
     inputs: Dict[str, Any] = field(default_factory=dict)
     options: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -225,7 +225,7 @@ class WorkflowResultPayload:
     outputs: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
     execution_time_ms: int = 0
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -238,7 +238,7 @@ class StorageOperationPayload:
     key: Optional[str] = None
     value: Optional[Any] = None
     prefix: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -251,7 +251,7 @@ class StorageResultPayload:
     data: Optional[Any] = None
     keys: List[str] = field(default_factory=list)
     error: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -263,7 +263,7 @@ class ErrorPayload:
     error_message: str
     details: Dict[str, Any] = field(default_factory=dict)
     stack_trace: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -272,13 +272,13 @@ class ErrorPayload:
 
 class AOSQueues:
     """Standard queue names for AOS communication."""
-    
+
     # Request queues (BI -> AOS)
     AOS_REQUESTS = "aos-requests"
-    
+
     # Response queues (AOS -> specific app)
     BUSINESS_INFINITY_RESPONSES = "businessinfinity-responses"
-    
+
     # Event topics
     AOS_EVENTS = "aos-events"
     AGENT_EVENTS = "aos-agent-events"
@@ -287,7 +287,7 @@ class AOSQueues:
 
 class AOSTopics:
     """Standard topic names for AOS event broadcasting."""
-    
+
     # Main event topics
     AOS_EVENTS = "aos-events"
     AGENT_EVENTS = "aos-agent-events"

@@ -12,10 +12,10 @@ application layer (e.g., BusinessInfinity).
 
 Usage:
     from AgentOperatingSystem.monitoring.audit_trail_generic import AuditTrailManager, AuditEvent
-    
+
     # Create manager
     audit = AuditTrailManager(storage_path="./audit_logs")
-    
+
     # Log generic event
     event_id = audit.log_event(
         event_type="action_performed",
@@ -24,7 +24,7 @@ Usage:
         action="Executed workflow",
         context={"workflow_id": "onboarding"}
     )
-    
+
     # Query events
     events = audit.query_events(subject_id="agent_123", limit=10)
 """
@@ -53,7 +53,7 @@ class AuditSeverity(Enum):
 class AuditEvent:
     """
     Represents a single audit event with comprehensive metadata and integrity protection.
-    
+
     This is a generic audit event that can be extended by application-specific
     implementations.
     """
@@ -61,63 +61,63 @@ class AuditEvent:
     event_type: str  # Generic string type - applications define their own types
     timestamp: datetime
     severity: AuditSeverity
-    
+
     # Subject information
     subject_id: str  # Agent ID, User ID, System ID
     subject_type: str  # "agent", "user", "system", etc.
     action: str  # What was done
-    
+
     # Optional fields
     subject_role: Optional[str] = None  # Role or function
     target: Optional[str] = None  # What was acted upon
-    
+
     # Context and metadata
     context: Dict[str, Any] = field(default_factory=dict)
     rationale: Optional[str] = None  # Reasoning behind the action
     evidence: List[str] = field(default_factory=list)  # Supporting evidence
-    
+
     # Quantitative data
     metrics: Dict[str, float] = field(default_factory=dict)
-    
+
     # Integrity protection
     checksum: Optional[str] = None
     signature: Optional[str] = None
-    
+
     # Compliance and retention
     compliance_tags: Set[str] = field(default_factory=set)
     retention_until: Optional[datetime] = None
-    
+
     def __post_init__(self):
         """Calculate checksum for integrity protection"""
         if not self.checksum:
             self.checksum = self._calculate_checksum()
-    
+
     def _calculate_checksum(self) -> str:
         """Calculate SHA-256 checksum for tamper detection"""
         # Create a copy without checksum and signature for hashing
         data = asdict(self)
         data.pop('checksum', None)
         data.pop('signature', None)
-        
+
         # Convert sets to lists for JSON serialization
         if 'compliance_tags' in data:
             data['compliance_tags'] = list(data['compliance_tags'])
-        
+
         # Convert datetime objects to ISO format for deterministic serialization
         if 'timestamp' in data and isinstance(data['timestamp'], datetime):
             data['timestamp'] = data['timestamp'].isoformat()
         if 'retention_until' in data and data['retention_until'] and isinstance(data['retention_until'], datetime):
             data['retention_until'] = data['retention_until'].isoformat()
-        
+
         # Serialize to JSON string with deterministic ordering
         json_str = json.dumps(data, sort_keys=True)
         return hashlib.sha256(json_str.encode()).hexdigest()
-    
+
     def verify_integrity(self) -> bool:
         """Verify the integrity of this audit event"""
         expected_checksum = self._calculate_checksum()
         return self.checksum == expected_checksum
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary"""
         data = asdict(self)
@@ -147,26 +147,26 @@ class AuditQuery:
 class AuditTrailManager:
     """
     Generic audit trail management with integrity protection and compliance support.
-    
+
     This is a base implementation that applications can extend with domain-specific
     event types and business logic.
     """
-    
+
     def __init__(self, storage_path: Optional[str] = None):
         """
         Initialize audit trail manager.
-        
+
         Args:
             storage_path: Path to store audit logs (defaults to "./audit_logs")
         """
         self.storage_path = Path(storage_path or "audit_logs")
         self.storage_path.mkdir(exist_ok=True)
-        
+
         self.logger = logging.getLogger(__name__)
         self._event_buffer: List[AuditEvent] = []
         self._buffer_lock = threading.Lock()
         self._buffer_max_size = 100
-        
+
         # Compliance retention policies (in days)
         # Applications can override or extend these
         self._retention_policies = {
@@ -176,26 +176,26 @@ class AuditTrailManager:
             "pci_dss": 365,  # 1 year for PCI DSS
             "default": 365  # 1 year default
         }
-        
+
         self.logger.info("AuditTrailManager initialized")
-    
+
     def set_retention_policy(self, tag: str, days: int):
         """
         Set or update a retention policy.
-        
+
         Args:
             tag: Compliance tag
             days: Retention period in days
         """
         self._retention_policies[tag] = days
-    
+
     def _calculate_retention(self, compliance_tags: Set[str]) -> datetime:
         """
         Calculate retention period based on compliance tags.
-        
+
         Args:
             compliance_tags: Set of compliance tags
-            
+
         Returns:
             Retention deadline datetime
         """
@@ -204,13 +204,13 @@ class AuditTrailManager:
         else:
             # Use the longest retention period among applicable tags
             days = max(
-                (self._retention_policies.get(tag, self._retention_policies["default"]) 
+                (self._retention_policies.get(tag, self._retention_policies["default"])
                  for tag in compliance_tags),
                 default=self._retention_policies["default"]
             )
-        
+
         return datetime.utcnow() + timedelta(days=days)
-    
+
     def log_event(self,
                   event_type: str,
                   subject_id: str,
@@ -220,7 +220,7 @@ class AuditTrailManager:
                   **kwargs) -> str:
         """
         Log a single audit event.
-        
+
         Args:
             event_type: Type of event being logged (application-defined)
             subject_id: ID of the subject performing the action
@@ -228,16 +228,16 @@ class AuditTrailManager:
             action: Description of the action taken
             severity: Severity level of the event
             **kwargs: Additional event data (context, rationale, evidence, etc.)
-            
+
         Returns:
             The event ID of the logged event
         """
         event_id = str(uuid.uuid4())
-        
+
         # Calculate retention based on compliance tags
         compliance_tags = set(kwargs.get('compliance_tags', []))
         retention_until = self._calculate_retention(compliance_tags)
-        
+
         event = AuditEvent(
             event_id=event_id,
             event_type=event_type,
@@ -255,9 +255,9 @@ class AuditTrailManager:
             compliance_tags=compliance_tags,
             retention_until=retention_until
         )
-        
+
         self._add_to_buffer(event)
-        
+
         # Log to standard logging as well
         log_message = f"AUDIT: {event_type} by {subject_id} ({subject_type}): {action}"
         if event.severity == AuditSeverity.CRITICAL:
@@ -268,42 +268,42 @@ class AuditTrailManager:
             self.logger.warning(log_message)
         else:
             self.logger.info(log_message)
-        
+
         return event_id
-    
+
     def _add_to_buffer(self, event: AuditEvent):
         """Add event to buffer and flush if needed"""
         with self._buffer_lock:
             self._event_buffer.append(event)
             if len(self._event_buffer) >= self._buffer_max_size:
                 self._flush_buffer()
-    
+
     def _flush_buffer(self):
         """Flush buffered events to storage"""
         if not self._event_buffer:
             return
-        
+
         # Write to daily log file
         today = datetime.utcnow().strftime("%Y-%m-%d")
         log_file = self.storage_path / f"audit_{today}.jsonl"
-        
+
         try:
             with open(log_file, 'a') as f:
                 for event in self._event_buffer:
                     json_line = json.dumps(event.to_dict())
                     f.write(json_line + '\n')
-            
+
             self.logger.debug(f"Flushed {len(self._event_buffer)} events to {log_file}")
             self._event_buffer.clear()
-            
+
         except Exception as e:
             self.logger.error(f"Failed to flush audit events: {e}")
-    
+
     def flush(self):
         """Manually flush buffered events"""
         with self._buffer_lock:
             self._flush_buffer()
-    
+
     def query_events(self,
                     start_time: Optional[datetime] = None,
                     end_time: Optional[datetime] = None,
@@ -314,7 +314,7 @@ class AuditTrailManager:
                     limit: int = 1000) -> List[AuditEvent]:
         """
         Query audit events.
-        
+
         Args:
             start_time: Start of time range
             end_time: End of time range
@@ -323,12 +323,12 @@ class AuditTrailManager:
             subject_type: Filter by subject type
             severity: Filter by severity
             limit: Maximum number of events to return
-            
+
         Returns:
             List of matching audit events
         """
         events = []
-        
+
         # Determine which log files to scan
         if start_time and end_time:
             days_to_scan = (end_time.date() - start_time.date()).days + 1
@@ -337,38 +337,38 @@ class AuditTrailManager:
             # Scan all available log files
             dates = [f.stem.replace('audit_', '') for f in self.storage_path.glob('audit_*.jsonl')]
             dates = [datetime.strptime(d, '%Y-%m-%d').date() for d in dates]
-        
+
         # Read and filter events
         for date in dates:
             log_file = self.storage_path / f"audit_{date.strftime('%Y-%m-%d')}.jsonl"
             if not log_file.exists():
                 continue
-            
+
             try:
                 with open(log_file, 'r') as f:
                     for line in f:
                         try:
                             data = json.loads(line)
-                            
+
                             # Convert back to AuditEvent
                             # Parse timestamp
                             if isinstance(data.get('timestamp'), str):
                                 data['timestamp'] = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
-                            
+
                             # Parse severity
                             if isinstance(data.get('severity'), str):
                                 data['severity'] = AuditSeverity(data['severity'])
-                            
+
                             # Parse compliance tags
                             if isinstance(data.get('compliance_tags'), list):
                                 data['compliance_tags'] = set(data['compliance_tags'])
-                            
+
                             # Parse retention_until
                             if data.get('retention_until') and isinstance(data['retention_until'], str):
                                 data['retention_until'] = datetime.fromisoformat(data['retention_until'].replace('Z', '+00:00'))
-                            
+
                             event = AuditEvent(**data)
-                            
+
                             # Apply filters
                             if start_time and event.timestamp < start_time:
                                 continue
@@ -382,46 +382,46 @@ class AuditTrailManager:
                                 continue
                             if severity and event.severity != severity:
                                 continue
-                            
+
                             events.append(event)
-                            
+
                             if len(events) >= limit:
                                 return events
-                                
+
                         except Exception as e:
                             self.logger.warning(f"Failed to parse audit event: {e}")
                             continue
-                            
+
             except Exception as e:
                 self.logger.error(f"Failed to read audit log {log_file}: {e}")
-        
+
         return events[:limit]
-    
+
     def verify_integrity(self, event_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Verify the integrity of audit events.
-        
+
         Args:
             event_id: Specific event ID to verify, or None to verify all
-            
+
         Returns:
             Verification result with statistics
         """
         total = 0
         valid = 0
         invalid = []
-        
+
         for log_file in self.storage_path.glob('audit_*.jsonl'):
             try:
                 with open(log_file, 'r') as f:
                     for line in f:
                         try:
                             data = json.loads(line)
-                            
+
                             # Skip if looking for specific event
                             if event_id and data.get('event_id') != event_id:
                                 continue
-                            
+
                             # Parse and verify
                             if isinstance(data.get('timestamp'), str):
                                 data['timestamp'] = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
@@ -431,25 +431,25 @@ class AuditTrailManager:
                                 data['compliance_tags'] = set(data['compliance_tags'])
                             if data.get('retention_until') and isinstance(data['retention_until'], str):
                                 data['retention_until'] = datetime.fromisoformat(data['retention_until'].replace('Z', '+00:00'))
-                            
+
                             event = AuditEvent(**data)
                             total += 1
-                            
+
                             if event.verify_integrity():
                                 valid += 1
                             else:
                                 invalid.append(event.event_id)
-                            
+
                             # If looking for specific event, stop after finding it
                             if event_id and event.event_id == event_id:
                                 break
-                                
+
                         except Exception as e:
                             self.logger.warning(f"Failed to verify event: {e}")
-                            
+
             except Exception as e:
                 self.logger.error(f"Failed to read audit log {log_file}: {e}")
-        
+
         return {
             "total_verified": total,
             "valid": valid,
@@ -457,50 +457,50 @@ class AuditTrailManager:
             "invalid_event_ids": invalid,
             "integrity_rate": (valid / total * 100) if total > 0 else 0
         }
-    
+
     def cleanup_expired(self) -> int:
         """
         Remove events that have exceeded their retention period.
-        
+
         Returns:
             Number of events removed
         """
         removed = 0
         now = datetime.utcnow()
-        
+
         for log_file in self.storage_path.glob('audit_*.jsonl'):
             temp_file = log_file.with_suffix('.tmp')
-            
+
             try:
                 with open(log_file, 'r') as infile, open(temp_file, 'w') as outfile:
                     for line in infile:
                         try:
                             data = json.loads(line)
-                            
+
                             # Check retention
                             retention_until = data.get('retention_until')
                             if retention_until:
                                 if isinstance(retention_until, str):
                                     retention_until = datetime.fromisoformat(retention_until.replace('Z', '+00:00'))
-                                
+
                                 if retention_until < now:
                                     removed += 1
                                     continue  # Skip this event (remove it)
-                            
+
                             # Keep this event
                             outfile.write(line)
-                            
+
                         except Exception as e:
                             self.logger.warning(f"Failed to process event during cleanup: {e}")
                             outfile.write(line)  # Keep on error
-                
+
                 # Replace original with cleaned file
                 temp_file.replace(log_file)
-                
+
             except Exception as e:
                 self.logger.error(f"Failed to cleanup audit log {log_file}: {e}")
                 if temp_file.exists():
                     temp_file.unlink()
-        
+
         self.logger.info(f"Removed {removed} expired audit events")
         return removed

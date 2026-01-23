@@ -22,33 +22,33 @@ class WorkflowStep:
     error: Optional[str] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-    
+
     def __post_init__(self):
         if self.depends_on is None:
             self.depends_on = []
-    
+
     def start(self):
         """Mark step as started"""
         self.status = "running"
         self.started_at = datetime.now(timezone.utc)
-    
+
     def complete(self, result: Dict[str, Any] = None):
         """Mark step as completed"""
         self.status = "completed"
         self.completed_at = datetime.now(timezone.utc)
         if result:
             self.result = result
-    
+
     def fail(self, error: str):
         """Mark step as failed"""
         self.status = "failed"
         self.completed_at = datetime.now(timezone.utc)
         self.error = error
-    
+
     def is_ready(self, completed_steps: set) -> bool:
         """Check if this step is ready to run based on dependencies"""
         return all(dep_id in completed_steps for dep_id in self.depends_on)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         return {

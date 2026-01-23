@@ -43,7 +43,7 @@ except ImportError:
 
 __all__ = [
     "Message",
-    "MessageType", 
+    "MessageType",
     "MessagePriority",
     "MessageBus",
     "MessageRouter",
@@ -85,7 +85,7 @@ try:
     from .saga import SagaOrchestrator, SagaStatus, ChoreographyEngine
     from .routing import IntelligentRouter
     from .priority import PriorityQueueManager, PriorityLevel
-    
+
     __all__.extend([
         "EventStream",
         "StreamProcessor",

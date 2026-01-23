@@ -15,7 +15,7 @@ import uuid
 class MessageEnvelope(BaseModel):
     """
     Universal message format for all platform communications.
-    
+
     Standardized envelope with type, version, timestamp, correlation/causation IDs,
     actor, scope, attributes, and payload.
     """
@@ -29,7 +29,7 @@ class MessageEnvelope(BaseModel):
     scope: str  # Domain/context scope (e.g., "finance", "operations")
     attributes: Dict[str, Any] = Field(default_factory=dict)  # Metadata
     payload: Dict[str, Any]  # Actual message content
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -51,7 +51,7 @@ class FailureMode(str, Enum):
 class CommandContract(BaseModel):
     """
     Command contract: intent, preconditions, expected outcomes, failure modes.
-    
+
     Commands represent actions to be performed with clear intent and expectations.
     """
     command_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -63,7 +63,7 @@ class CommandContract(BaseModel):
     actor: str  # Who is executing this command
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     idempotency_key: Optional[str] = None  # For idempotent execution
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -80,7 +80,7 @@ class ConsistencyLevel(str, Enum):
 class QueryContract(BaseModel):
     """
     Query contract: selectors, filters, projections, pagination, consistency.
-    
+
     Queries retrieve data with specific selection criteria and consistency requirements.
     """
     query_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -91,7 +91,7 @@ class QueryContract(BaseModel):
     page_token: Optional[str] = None
     consistency_level: ConsistencyLevel = ConsistencyLevel.EVENTUAL
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -108,7 +108,7 @@ class DeliverySemantics(str, Enum):
 class EventContract(BaseModel):
     """
     Event contract: topic, schema version, source, causality, delivery semantics.
-    
+
     Events represent things that have happened in the system.
     """
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -120,7 +120,7 @@ class EventContract(BaseModel):
     delivery_semantics: DeliverySemantics = DeliverySemantics.AT_LEAST_ONCE
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     payload: Dict[str, Any]
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -140,7 +140,7 @@ class AgentIdentity(BaseModel):
     capabilities: List[str] = Field(default_factory=list)  # What this agent can do
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -157,7 +157,7 @@ class PolicyDecision(str, Enum):
 class PolicyInterface(BaseModel):
     """
     Policy interface: evaluate, enforce, assert, explain.
-    
+
     Supports rule sets, exceptions with expiry, and evidence links.
     """
     policy_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -169,18 +169,18 @@ class PolicyInterface(BaseModel):
     version: str = "1.0.0"
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     def evaluate(self, context: Dict[str, Any]) -> PolicyDecision:
         """Evaluate policy against given context"""
         # Implementation would check rules and exceptions
         # This is a placeholder for the interface
         return PolicyDecision.ALLOW
-    
+
     def enforce(self, context: Dict[str, Any]) -> bool:
         """Enforce policy, returning True if allowed"""
         decision = self.evaluate(context)
         return decision in [PolicyDecision.ALLOW, PolicyDecision.ALLOW_WITH_CONDITIONS]
-    
+
     def assert_compliance(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Assert compliance and return assertion details"""
         decision = self.evaluate(context)
@@ -190,12 +190,12 @@ class PolicyInterface(BaseModel):
             "timestamp": datetime.utcnow().isoformat(),
             "context": context
         }
-    
+
     def explain(self, context: Dict[str, Any]) -> str:
         """Explain policy decision for given context"""
         decision = self.evaluate(context)
         return f"Policy {self.name} evaluated to {decision.value} for context: {context}"
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()

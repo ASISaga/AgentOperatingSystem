@@ -2,7 +2,7 @@
 AOS Learning Module
 
 Provides self-learning capabilities for all agents in the Agent Operating System.
-Includes knowledge management, RAG (Retrieval-Augmented Generation), 
+Includes knowledge management, RAG (Retrieval-Augmented Generation),
 interaction learning, and continuous improvement features.
 """
 
@@ -18,7 +18,7 @@ from .self_learning_agents import SelfLearningAgent, SelfLearningStatefulAgent
 
 __all__ = [
     "KnowledgeManager",
-    "RAGEngine", 
+    "RAGEngine",
     "InteractionLearner",
     "SelfLearningMixin",
     "DomainExpert",

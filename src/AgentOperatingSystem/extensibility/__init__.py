@@ -39,14 +39,14 @@ __all__ = [
     "PluginRegistry",
     "PluginType",
     "PluginStatus",
-    
+
     # Schema Registry
     "SchemaRegistry",
     "SchemaVersion",
     "SchemaMigration",
     "SchemaStatus",
     "CompatibilityMode",
-    
+
     # Enhanced Agent Registry
     "EnhancedAgentRegistry",
     "AgentCapability",

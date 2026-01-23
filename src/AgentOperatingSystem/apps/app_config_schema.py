@@ -32,10 +32,10 @@ class AgentReference(BaseModel):
 class AppConfiguration(BaseModel):
     """
     Complete configuration for an app running on AgentOperatingSystem.
-    
+
     This enables plug-and-play app deployment similar to BusinessInfinity.
     The app developer provides the purpose and selects agents to orchestrate.
-    
+
     Example:
         {
             "app_id": "business_infinity",
@@ -68,7 +68,7 @@ class AppConfiguration(BaseModel):
     app_id: str = Field(..., description="Unique identifier for the app")
     app_name: str = Field(..., description="Human-readable name of the app")
     app_type: AppType = Field(..., description="Type of app")
-    
+
     # App purpose and description
     purpose: str = Field(
         ...,
@@ -78,25 +78,25 @@ class AppConfiguration(BaseModel):
         default=None,
         description="Detailed description of the app"
     )
-    
+
     # Agent orchestration
     agents_to_orchestrate: List[AgentReference] = Field(
         default_factory=list,
         description="Agents that this app orchestrates"
     )
-    
+
     # MCP server dependencies
     mcp_servers_required: List[str] = Field(
         default_factory=list,
         description="IDs of MCP servers this app requires"
     )
-    
+
     # Azure resources configuration
     azure_resources: Dict[str, Any] = Field(
         default_factory=dict,
         description="Azure resources required by this app"
     )
-    
+
     # Repository and deployment
     repository_url: Optional[str] = Field(
         default=None,
@@ -106,7 +106,7 @@ class AppConfiguration(BaseModel):
         default=None,
         description="Deployment-specific configuration"
     )
-    
+
     # Lifecycle
     enabled: bool = Field(
         default=True,
@@ -116,7 +116,7 @@ class AppConfiguration(BaseModel):
         default="1.0.0",
         description="App version"
     )
-    
+
     # Metadata
     metadata: Dict[str, Any] = Field(
         default_factory=dict,
@@ -134,22 +134,22 @@ class AppRegistry(BaseModel):
         default="1.0",
         description="Registry schema version"
     )
-    
+
     def get_enabled_apps(self) -> List[AppConfiguration]:
         """Get all enabled apps"""
         return [app for app in self.apps if app.enabled]
-    
+
     def get_app_by_id(self, app_id: str) -> Optional[AppConfiguration]:
         """Get app configuration by ID"""
         for app in self.apps:
             if app.app_id == app_id:
                 return app
         return None
-    
+
     def get_apps_by_type(self, app_type: AppType) -> List[AppConfiguration]:
         """Get all apps of a specific type"""
         return [app for app in self.apps if app.app_type == app_type]
-    
+
     def get_apps_using_agent(self, agent_id: str) -> List[AppConfiguration]:
         """Get all apps that orchestrate a specific agent"""
         result = []
