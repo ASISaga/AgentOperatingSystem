@@ -145,18 +145,23 @@ class CMOAgent(LeadershipAgent):
             f"Executing task with {purpose_type} purpose using adapter: {adapter_name}"
         )
         
-        # Temporarily switch adapter for this task execution
+        # Store original adapter and ensure restoration in all cases
         original_adapter = self.adapter_name
-        self.adapter_name = adapter_name
         
         try:
+            # Temporarily switch adapter for this task execution
+            self.adapter_name = adapter_name
+            
             # Execute task with the purpose-specific adapter
             result = await self.handle_event(task)
             result["purpose_type"] = purpose_type
             result["adapter_used"] = adapter_name
             return result
+        except Exception as e:
+            self.logger.error(f"Error executing task with {purpose_type} purpose: {e}")
+            raise
         finally:
-            # Restore original adapter
+            # Always restore original adapter, even if exception occurred
             self.adapter_name = original_adapter
     
     async def get_status(self) -> Dict[str, Any]:

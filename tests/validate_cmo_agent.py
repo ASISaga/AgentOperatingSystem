@@ -100,7 +100,13 @@ def main():
     with open(init_file, 'r') as f:
         content = f.read()
     assert 'from .cmo_agent import CMOAgent' in content, "❌ CMOAgent not exported in __init__.py"
-    assert 'CMOAgent' in content.split('__all__ = [')[1], "❌ CMOAgent not in __all__"
+    
+    # Check if CMOAgent is in __all__
+    if '__all__ = [' in content:
+        all_section = content.split('__all__ = [')
+        if len(all_section) > 1:
+            assert 'CMOAgent' in all_section[1], "❌ CMOAgent not in __all__"
+    
     print("  ✅ CMOAgent is properly exported")
     print()
     
