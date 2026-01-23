@@ -1,39 +1,29 @@
 """
 AOS Agent Module
 
-Base agent classes and agent-related functionality.
+Core agent classes for the Agent Operating System.
 
-Includes PurposeDrivenAgent - the fundamental building block of AOS.
-PurposeDrivenAgentFoundry extends it with Microsoft Foundry Agent Service runtime.
+Contains only the fundamental agent classes:
+- PurposeDrivenAgent: The fundamental building block of AOS (includes BaseAgent, 
+  PerpetualAgent, and LeadershipAgent functionality)
+- CMOAgent: Chief Marketing Officer agent extending PurposeDrivenAgent
+
+All orchestration-related classes have been moved to the orchestration module.
 """
 
-# v2.0.0 - Canonical implementations
-from .base_agent import BaseAgent
-from .leadership_agent import LeadershipAgent
-from .cmo_agent import CMOAgent
-from .perpetual import PerpetualAgent
-from .purpose_driven import PurposeDrivenAgent
-from .purpose_driven_foundry import PurposeDrivenAgentFoundry
-from .multi_agent import (
-    MultiAgentSystem, 
-    BusinessAnalystAgent, 
-    SoftwareEngineerAgent, 
-    ProductOwnerAgent,
-    ApprovalTerminationStrategy
+# v2.0.0 - Consolidated agent classes
+from .purpose_driven import (
+    BaseAgent,
+    PerpetualAgent,
+    PurposeDrivenAgent,
+    LeadershipAgent
 )
-from .manager import UnifiedAgentManager
+from .cmo_agent import CMOAgent
 
 __all__ = [
     "BaseAgent",
+    "PerpetualAgent", 
+    "PurposeDrivenAgent",
     "LeadershipAgent",
     "CMOAgent",
-    "PerpetualAgent",
-    "PurposeDrivenAgent",
-    "PurposeDrivenAgentFoundry",
-    "MultiAgentSystem",
-    "BusinessAnalystAgent",
-    "SoftwareEngineerAgent", 
-    "ProductOwnerAgent",
-    "ApprovalTerminationStrategy",
-    "UnifiedAgentManager"
 ]

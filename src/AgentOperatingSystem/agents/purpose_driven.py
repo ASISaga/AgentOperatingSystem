@@ -1,9 +1,15 @@
 """
-PurposeDrivenAgent - Fundamental Building Block of AgentOperatingSystem
+PurposeDrivenAgent - Consolidated Fundamental Building Block of AgentOperatingSystem
 
-PurposeDrivenAgent inherits from PerpetualAgent and works against a perpetual,
-assigned purpose rather than short-term tasks. This is the fundamental building
-block that makes AOS an operating system of Purpose-Driven, Perpetual Agents.
+This file consolidates:
+- BaseAgent: Generic agent with lifecycle, messaging, and state management
+- PerpetualAgent: Agents that run indefinitely and respond to events  
+- LeadershipAgent: Decision-making and coordination capabilities
+- PurposeDrivenAgent: Purpose-driven perpetual agents (the fundamental building block)
+
+PurposeDrivenAgent works against a perpetual, assigned purpose rather than short-term 
+tasks. This is the fundamental building block that makes AOS an operating system of 
+Purpose-Driven, Perpetual Agents.
 
 Architecture Components:
 - LoRA Adapters: Provide domain-specific knowledge (language, vocabulary, concepts,
@@ -15,10 +21,513 @@ Architecture Components:
 PurposeDrivenAgent will eventually be moved to a dedicated repository.
 """
 
-from typing import Dict, Any, Optional, Callable, List
+from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
+from abc import ABC, abstractmethod
 import logging
-from .perpetual import PerpetualAgent
+import asyncio
+import uuid
+from ..ml.pipeline_ops import trigger_lora_training, run_azure_ml_pipeline, aml_infer
+from ..mcp.context_server import ContextMCPServer
+
+
+class BaseAgent(ABC):
+    """
+    Generic base agent providing:
+    - Unique identity and metadata
+    - Lifecycle management (initialize, start, stop, health)
+    - Message handling and routing
+    - State persistence
+    - Event publishing
+    - Health monitoring
+    """
+    
+    def __init__(
+        self,
+        agent_id: str,
+        name: str = None,
+        role: str = None,
+        agent_type: str = None,
+        config: Dict[str, Any] = None
+    ):
+        """
+        Initialize base agent.
+        
+        Args:
+            agent_id: Unique identifier for this agent
+            name: Human-readable agent name
+            role: Agent role/type
+            agent_type: Type of agent (e.g., "perpetual", "purpose_driven")
+            config: Optional configuration dictionary
+        """
+        self.agent_id = agent_id
+        self.name = name or agent_id
+        self.role = role or "agent"
+        self.agent_type = agent_type or "base"
+        self.config = config or {}
+        self.metadata = {
+            "created_at": datetime.utcnow().isoformat(),
+            "version": "1.0.0"
+        }
+        self.state = "initialized"
+        self.logger = logging.getLogger(f"aos.agent.{agent_id}")
+        
+    @abstractmethod
+    async def initialize(self) -> bool:
+        """
+        Initialize agent resources and connections.
+        
+        This method should be called before the agent starts processing.
+        Use this to set up any required resources, connections, or initial state.
+        
+        Returns:
+            True if initialization was successful, False otherwise
+            
+        Raises:
+            Exception: If initialization fails critically
+        """
+        pass
+    
+    @abstractmethod
+    async def start(self) -> bool:
+        """
+        Start agent operations.
+        
+        This method begins the agent's main processing loop or activates
+        its message handling capabilities.
+        
+        Returns:
+            True if started successfully, False otherwise
+            
+        Raises:
+            Exception: If the agent cannot start
+        """
+        pass
+    
+    @abstractmethod
+    async def stop(self) -> bool:
+        """
+        Stop agent operations gracefully.
+        
+        This method should cleanly shut down the agent, releasing resources
+        and completing any in-flight operations.
+        
+        Returns:
+            True if stopped successfully, False otherwise
+            
+        Raises:
+            Exception: If shutdown encounters critical errors
+        """
+        pass
+    
+    @abstractmethod
+    async def handle_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Handle incoming message.
+        
+        Process a message and return a response. This is the main entry point
+        for agent communication.
+        
+        Args:
+            message: Message payload with type, data, metadata
+            
+        Returns:
+            Response dictionary with processing results
+            
+        Raises:
+            ValueError: If message format is invalid
+            Exception: If message processing fails
+        """
+        pass
+    
+    async def health_check(self) -> Dict[str, Any]:
+        """
+        Perform health check.
+        
+        Returns:
+            Health status with state, metrics, issues
+        """
+        return {
+            "agent_id": self.agent_id,
+            "state": self.state,
+            "healthy": self.state in ["initialized", "running"],
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    
+    def get_metadata(self) -> Dict[str, Any]:
+        """Get agent metadata."""
+        return {
+            "agent_id": self.agent_id,
+            "name": self.name,
+            "role": self.role,
+            "state": self.state,
+            "metadata": self.metadata
+        }
+
+
+class PerpetualAgent(BaseAgent):
+    """
+    A perpetual agent that runs indefinitely and responds to events.
+    
+    Key characteristics:
+    - Persistent: Remains registered and active indefinitely
+    - Event-driven: Awakens in response to events
+    - Stateful: Maintains context across all interactions via MCP
+    - Resource-efficient: Sleeps when idle, awakens on events
+    
+    This is the foundational agent type for AOS. PurposeDrivenAgent extends
+    this to work against a perpetual, assigned purpose.
+    
+    Example:
+        >>> agent = PerpetualAgent(
+        ...     agent_id="ceo",
+        ...     adapter_name="ceo"
+        ... )
+        >>> await agent.subscribe_to_event("DecisionRequested", handler)
+        >>> # Agent runs perpetually, responding to events
+    """
+    
+    def __init__(self, agent_id=None, tools=None, system_message=None, adapter_name=None):
+        super().__init__(
+            agent_id=agent_id or f"perpetual_{adapter_name}" if adapter_name else "perpetual_agent",
+            agent_type="perpetual"
+        )
+        self.tools = tools or []
+        self.system_message = system_message or ""
+        self.adapter_name = adapter_name  # e.g., 'ceo', 'cfo', 'coo', etc.
+        
+        # Perpetual operation state
+        self.is_running = False
+        self.sleep_mode = True
+        self.event_subscriptions: Dict[str, List[Callable]] = {}
+        self.wake_count = 0
+        self.total_events_processed = 0
+        
+        # Context is preserved via ContextMCPServer (common infrastructure)
+        # Each perpetual agent has a dedicated ContextMCPServer instance
+        self.mcp_context_server: Optional[ContextMCPServer] = None
+        
+        self.logger = logging.getLogger(f"aos.perpetual.{self.agent_id}")
+        self.logger.info(f"PerpetualAgent {self.agent_id} created - will run indefinitely")
+
+    async def initialize(self) -> bool:
+        """
+        Initialize agent resources and MCP context server.
+        
+        For perpetual agents, this sets up the dedicated MCP server for
+        context preservation, event listeners, and recovery mechanisms.
+        
+        Returns:
+            True if initialization successful
+        """
+        try:
+            self.logger.info(f"Initializing perpetual agent {self.agent_id}")
+            
+            # Initialize MCP context server for persistence
+            await self._setup_mcp_context_server()
+            
+            # Load any previously saved context from MCP
+            await self._load_context_from_mcp()
+            
+            # Set up event listeners
+            await self._setup_event_listeners()
+            
+            self.logger.info(f"Perpetual agent {self.agent_id} initialized")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to initialize perpetual agent {self.agent_id}: {e}")
+            return False
+
+    async def start(self) -> bool:
+        """
+        Start perpetual operations - agent runs indefinitely.
+        
+        Unlike task-based agents that complete and terminate, perpetual agents
+        enter an indefinite run loop that only exits on explicit shutdown.
+        
+        Returns:
+            True when agent is running
+        """
+        try:
+            self.logger.info(f"Starting perpetual agent {self.agent_id}")
+            
+            self.is_running = True
+            
+            # Enter perpetual loop
+            asyncio.create_task(self._perpetual_loop())
+            
+            self.logger.info(f"Perpetual agent {self.agent_id} is now running indefinitely")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to start perpetual agent {self.agent_id}: {e}")
+            return False
+
+    async def stop(self) -> bool:
+        """
+        Stop perpetual operations gracefully.
+        
+        This is rarely called - perpetual agents typically run for the
+        lifetime of the system. When called, ensures clean shutdown and
+        context preservation to MCP.
+        
+        Returns:
+            True if stopped successfully
+        """
+        try:
+            self.logger.info(f"Stopping perpetual agent {self.agent_id}")
+            
+            # Save context to MCP before shutdown
+            await self._save_context_to_mcp()
+            
+            self.is_running = False
+            
+            self.logger.info(f"Perpetual agent {self.agent_id} stopped gracefully")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error stopping perpetual agent {self.agent_id}: {e}")
+            return False
+
+    async def handle_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Handle incoming message - redirects to handle_event for perpetual agents.
+        
+        Args:
+            message: Message payload
+            
+        Returns:
+            Response dictionary
+        """
+        return await self.handle_event(message)
+
+    async def subscribe_to_event(
+        self,
+        event_type: str,
+        handler: Callable[[Dict[str, Any]], Any]
+    ) -> bool:
+        """
+        Subscribe to an event type.
+        
+        When the specified event occurs, the agent will awaken from sleep
+        and execute the handler.
+        
+        Args:
+            event_type: Type of event to subscribe to
+            handler: Async function to call when event occurs
+            
+        Returns:
+            True if subscription successful
+        """
+        try:
+            if event_type not in self.event_subscriptions:
+                self.event_subscriptions[event_type] = []
+            
+            self.event_subscriptions[event_type].append(handler)
+            
+            self.logger.info(
+                f"Agent {self.agent_id} subscribed to event: {event_type} "
+                f"(total subscriptions: {len(self.event_subscriptions[event_type])})"
+            )
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to subscribe to event {event_type}: {e}")
+            return False
+
+    async def handle_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Handle incoming event - awakens agent from sleep if needed.
+        
+        This is the core of the perpetual model: the agent awakens,
+        processes the event, updates context via MCP, then returns to sleep.
+        
+        Args:
+            event: Event payload
+            
+        Returns:
+            Response dictionary
+        """
+        try:
+            # Awaken from sleep
+            await self._awaken()
+            
+            event_type = event.get("type")
+            self.logger.info(f"Agent {self.agent_id} processing event: {event_type}")
+            
+            result = {"status": "success", "processed_by": self.agent_id}
+            
+            # Check if we have subscribed handlers for this event
+            if event_type in self.event_subscriptions:
+                handlers = self.event_subscriptions[event_type]
+                handler_results = []
+                
+                for handler in handlers:
+                    try:
+                        handler_result = await handler(event.get("data", {}))
+                        handler_results.append(handler_result)
+                    except Exception as e:
+                        self.logger.error(f"Handler error for {event_type}: {e}")
+                        handler_results.append({"error": str(e)})
+                
+                result["handler_results"] = handler_results
+            
+            # Save context to MCP after processing
+            await self._save_context_to_mcp()
+            
+            self.total_events_processed += 1
+            
+            # Return to sleep
+            await self._sleep()
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Error handling event: {e}")
+            return {"status": "error", "error": str(e)}
+
+    async def act(self, action: str, params: Dict[str, Any]) -> Any:
+        """
+        Perform an action. Supports ML pipeline operations.
+        """
+        # Always inject this agent's adapter_name if not explicitly set in params
+        if self.adapter_name and action in ("trigger_lora_training", "aml_infer"):
+            if action == "trigger_lora_training":
+                for adapter in params.get("adapters", []):
+                    if "adapter_name" not in adapter:
+                        adapter["adapter_name"] = self.adapter_name
+            elif action == "aml_infer":
+                params.setdefault("agent_id", self.adapter_name)
+
+        if action == "trigger_lora_training":
+            return await trigger_lora_training(params["training_params"], params["adapters"])
+        elif action == "run_azure_ml_pipeline":
+            return await run_azure_ml_pipeline(
+                params["subscription_id"],
+                params["resource_group"],
+                params["workspace_name"]
+            )
+        elif action == "aml_infer":
+            return await aml_infer(params["agent_id"], params["prompt"])
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    async def execute_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute a task with perpetual operation capabilities.
+        """
+        try:
+            action = task.get("action")
+            params = task.get("params", {})
+            
+            if action:
+                result = await self.act(action, params)
+                return {"status": "success", "result": result}
+            else:
+                return {"status": "error", "error": "No action specified"}
+                
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+
+    async def get_state(self) -> Dict[str, Any]:
+        """
+        Get current perpetual state.
+        
+        Returns:
+            Current state dictionary including MCP context status
+        """
+        return {
+            "agent_id": self.agent_id,
+            "adapter_name": self.adapter_name,
+            "is_running": self.is_running,
+            "sleep_mode": self.sleep_mode,
+            "wake_count": self.wake_count,
+            "total_events_processed": self.total_events_processed,
+            "subscriptions": list(self.event_subscriptions.keys()),
+            "mcp_context_preserved": self.mcp_context_server is not None
+        }
+
+    async def _perpetual_loop(self) -> None:
+        """
+        Main perpetual loop - runs indefinitely.
+        
+        This loop keeps the agent alive and responsive to events.
+        """
+        self.logger.info(f"Agent {self.agent_id} entered perpetual loop")
+        
+        while self.is_running:
+            try:
+                # Health check
+                if self.wake_count % 100 == 0:  # Periodic logging
+                    self.logger.debug(
+                        f"Agent {self.agent_id} heartbeat - "
+                        f"processed {self.total_events_processed} events, "
+                        f"awoken {self.wake_count} times"
+                    )
+                
+                # Sleep briefly to avoid busy-waiting
+                await asyncio.sleep(1)
+                
+            except Exception as e:
+                self.logger.error(f"Error in perpetual loop: {e}")
+                # Don't exit on errors - perpetual agents are resilient
+                await asyncio.sleep(5)
+        
+        self.logger.info(f"Agent {self.agent_id} exited perpetual loop")
+
+    async def _awaken(self) -> None:
+        """Awaken agent from sleep mode."""
+        if self.sleep_mode:
+            self.sleep_mode = False
+            self.wake_count += 1
+            self.logger.debug(f"Agent {self.agent_id} awakened (count: {self.wake_count})")
+
+    async def _sleep(self) -> None:
+        """Put agent into sleep mode."""
+        if not self.sleep_mode:
+            self.sleep_mode = True
+            self.logger.debug(f"Agent {self.agent_id} sleeping")
+
+    async def _setup_mcp_context_server(self) -> None:
+        """
+        Set up dedicated ContextMCPServer for context preservation.
+        
+        Each perpetual agent has its own ContextMCPServer instance that preserves
+        context across all events and agent restarts. This is a key differentiator
+        from task-based frameworks.
+        """
+        try:
+            self.mcp_context_server = ContextMCPServer(
+                agent_id=self.agent_id,
+                config=self.config.get("context_server", {}) if hasattr(self, 'config') else {}
+            )
+            await self.mcp_context_server.initialize()
+            self.logger.info(f"ContextMCPServer initialized for agent {self.agent_id}")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize ContextMCPServer: {e}")
+            raise
+
+    async def _setup_event_listeners(self) -> None:
+        """Set up event listening infrastructure."""
+        # This would integrate with the messaging/event bus in production
+        self.logger.debug(f"Event listeners set up for agent {self.agent_id}")
+
+    async def _load_context_from_mcp(self) -> None:
+        """Load previously saved context from ContextMCPServer."""
+        if self.mcp_context_server:
+            # Context is automatically loaded during ContextMCPServer initialization
+            context = await self.mcp_context_server.get_all_context()
+            self.logger.debug(f"Loaded {len(context)} context items from ContextMCPServer")
+
+    async def _save_context_to_mcp(self) -> None:
+        """Save current context to ContextMCPServer."""
+        if self.mcp_context_server:
+            # Save current processing state
+            await self.mcp_context_server.set_context("wake_count", self.wake_count)
+            await self.mcp_context_server.set_context("total_events_processed", self.total_events_processed)
+            await self.mcp_context_server.set_context("last_active", datetime.utcnow().isoformat())
+            self.logger.debug(f"Saved context to ContextMCPServer")
 
 
 class PurposeDrivenAgent(PerpetualAgent):
@@ -418,3 +927,122 @@ class PurposeDrivenAgent(PerpetualAgent):
         except Exception as e:
             self.logger.error(f"Error stopping PurposeDrivenAgent: {e}")
             return False
+
+
+class LeadershipAgent(PurposeDrivenAgent):
+    """
+    Leadership agent providing:
+    - Decision-making capabilities
+    - Stakeholder coordination
+    - Consensus building
+    - Delegation patterns
+    - Decision provenance
+    
+    The Leadership purpose is mapped to the "leadership" LoRA adapter, which provides
+    leadership-specific domain knowledge and agent persona. The core purpose is added
+    to the primary LLM context to guide agent behavior.
+    """
+    
+    def __init__(
+        self,
+        agent_id: str,
+        name: str = None,
+        role: str = None,
+        purpose: str = None,
+        purpose_scope: str = None,
+        success_criteria: List[str] = None,
+        tools: List[Any] = None,
+        system_message: str = None,
+        adapter_name: str = None,
+        config: Dict[str, Any] = None
+    ):
+        # Default leadership purpose and adapter if not provided
+        if purpose is None:
+            purpose = "Leadership: Strategic decision-making, team coordination, and organizational guidance"
+        if adapter_name is None:
+            adapter_name = "leadership"
+        if purpose_scope is None:
+            purpose_scope = "Leadership and decision-making domain"
+        
+        super().__init__(
+            agent_id=agent_id,
+            purpose=purpose,
+            purpose_scope=purpose_scope,
+            success_criteria=success_criteria,
+            tools=tools,
+            system_message=system_message,
+            adapter_name=adapter_name
+        )
+        
+        # Legacy compatibility
+        self.name = name or agent_id
+        self.role = role or "leader"
+        self.config = config or {}
+        
+        self.decisions_made = []
+        self.stakeholders = []
+        
+    async def make_decision(
+        self,
+        context: Dict[str, Any],
+        stakeholders: List[str] = None,
+        mode: str = "autonomous"
+    ) -> Dict[str, Any]:
+        """
+        Make a decision based on context.
+        
+        Args:
+            context: Decision context and inputs
+            stakeholders: Optional list of stakeholder agent IDs to consult
+            mode: Decision mode ("autonomous", "consensus", "delegated")
+            
+        Returns:
+            Decision with rationale, confidence, metadata
+        """
+        decision = {
+            "id": str(uuid.uuid4()),
+            "agent_id": self.agent_id,
+            "context": context,
+            "mode": mode,
+            "stakeholders": stakeholders or [],
+            "timestamp": datetime.utcnow().isoformat(),
+            "decision": await self._evaluate_decision(context),
+            "confidence": 0.0,
+            "rationale": ""
+        }
+        
+        self.decisions_made.append(decision)
+        return decision
+    
+    async def _evaluate_decision(self, context: Dict[str, Any]) -> Any:
+        """
+        Evaluate and make decision. Override in subclasses.
+        
+        Args:
+            context: Decision context
+            
+        Returns:
+            Decision outcome
+        """
+        # Base implementation - override in subclasses
+        return {"decision": "pending", "reason": "not_implemented"}
+    
+    async def consult_stakeholders(
+        self,
+        stakeholders: List[str],
+        topic: str,
+        context: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Consult stakeholder agents on a topic.
+        
+        Args:
+            stakeholders: List of agent IDs to consult
+            topic: Consultation topic
+            context: Context for consultation
+            
+        Returns:
+            List of stakeholder responses
+        """
+        # TODO: Implement with message bus integration
+        raise NotImplementedError("Stakeholder consultation requires message bus integration")

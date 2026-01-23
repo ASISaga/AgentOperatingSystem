@@ -11,7 +11,7 @@ Architecture:
 
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from .leadership_agent import LeadershipAgent
+from .purpose_driven import LeadershipAgent
 
 
 class CMOAgent(LeadershipAgent):
