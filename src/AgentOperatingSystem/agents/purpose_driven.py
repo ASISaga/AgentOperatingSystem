@@ -170,6 +170,19 @@ class PurposeDrivenAgent(ABC):
             f"adapter: {self.adapter_name}"
         )
 
+    @abstractmethod
+    def get_agent_type(self) -> str:
+        """
+        Get the specific type of this agent.
+        
+        Subclasses must implement this method to identify their type.
+        This ensures PurposeDrivenAgent cannot be directly instantiated.
+        
+        Returns:
+            String identifying the agent type (e.g., "generic", "leadership", "cmo")
+        """
+        pass
+
     async def initialize(self) -> bool:
         """
         Initialize agent resources and MCP context server.
@@ -795,7 +808,12 @@ class GenericPurposeDrivenAgent(PurposeDrivenAgent):
         >>> await agent.start()
     """
     
-    # This is a concrete class with no additional abstract methods
-    # It inherits all functionality from PurposeDrivenAgent
-    pass
+    def get_agent_type(self) -> str:
+        """
+        Get the agent type.
+        
+        Returns:
+            "generic" - identifies this as a generic purpose-driven agent
+        """
+        return "generic"
 

@@ -117,6 +117,15 @@ class CMOAgent(LeadershipAgent):
             f"Leadership (adapter: {self.leadership_adapter_name})"
         )
 
+    def get_agent_type(self) -> str:
+        """
+        Get the agent type.
+        
+        Returns:
+            "cmo" - identifies this as a Chief Marketing Officer agent
+        """
+        return "cmo"
+
     def get_adapter_for_purpose(self, purpose_type: str) -> str:
         """
         Get the LoRA adapter name for a specific purpose type.

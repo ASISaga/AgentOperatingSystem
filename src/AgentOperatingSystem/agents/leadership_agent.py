@@ -65,6 +65,15 @@ class LeadershipAgent(PurposeDrivenAgent):
         self.decisions_made = []
         self.stakeholders = []
 
+    def get_agent_type(self) -> str:
+        """
+        Get the agent type.
+        
+        Returns:
+            "leadership" - identifies this as a leadership agent
+        """
+        return "leadership"
+
     async def make_decision(
         self,
         context: Dict[str, Any],

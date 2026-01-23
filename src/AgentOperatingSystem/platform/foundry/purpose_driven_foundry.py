@@ -111,6 +111,15 @@ class PurposeDrivenAgentFoundry(PurposeDrivenAgent):
             f"PurposeDrivenAgentFoundry {self.agent_id} created with Llama 3.3 70B + LoRA adapter '{self.lora_adapter_name}'"
         )
 
+    def get_agent_type(self) -> str:
+        """
+        Get the agent type.
+        
+        Returns:
+            "foundry" - identifies this as a Foundry-enabled purpose-driven agent
+        """
+        return "foundry"
+
     async def initialize(self) -> bool:
         """
         Initialize the agent on Foundry Agent Service runtime.
