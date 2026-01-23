@@ -2,7 +2,58 @@
 
 ## Overview
 
-This document provides comprehensive code quality guidelines for the Agent Operating System (AOS) repository, integrated with Pylint for automated code quality assurance.
+This document provides comprehensive code quality guidelines for the Agent Operating System (AOS) repository, using a **best-in-class code quality stack** that includes:
+
+- **Pylint** (10.00/10 score) - Comprehensive linting
+- **Black** - Uncompromising code formatter
+- **isort** - Import statement organizer
+- **mypy** - Static type checker
+- **Bandit** - Security linter
+- **Safety** - Dependency vulnerability scanner
+- **Flake8** - Additional style checking
+- **pytest + pytest-cov** - Testing with coverage
+- **Pre-commit hooks** - Automated quality checks
+
+For detailed information about the complete quality stack, see `docs/CODE_QUALITY_STACK.md`.
+
+## Quick Start
+
+### Install All Tools
+
+```bash
+# Install all development dependencies
+pip install -e ".[dev]"
+
+# Set up pre-commit hooks (optional but recommended)
+pre-commit install
+```
+
+### Run Full Quality Check
+
+```bash
+# Format code
+black src/ tests/ function_app.py
+isort src/ tests/ function_app.py
+
+# Lint code
+pylint src/AgentOperatingSystem
+
+# Type check (optional)
+mypy src/AgentOperatingSystem
+
+# Security scan
+bandit -r src/
+
+# Run tests with coverage
+pytest --cov=src/AgentOperatingSystem
+```
+
+### Or Use Pre-commit (Recommended)
+
+```bash
+# Run all checks automatically
+pre-commit run --all-files
+```
 
 ## Pylint Integration
 

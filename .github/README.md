@@ -8,17 +8,21 @@ Welcome to the Agent Operating System (AOS) repository! This directory contains 
 .github/
 ├── README.md                    # This file - main onboarding entry point
 ├── instructions/                # General repository instructions
-│   └── Readme.md               # Comprehensive onboarding guide
+│   ├── Readme.md               # Comprehensive onboarding guide
+│   └── code-quality.instructions.md  # Code quality guidelines
 ├── skills/                      # Specialized skills for specific tasks
 │   ├── perpetual-agents/       # Working with perpetual agents
 │   ├── azure-functions/        # Azure Functions deployment
 │   ├── async-python-testing/   # Testing async Python code
 │   ├── aos-architecture/       # Understanding AOS architecture
+│   ├── code-quality-pylint/    # Pylint usage and best practices
+│   ├── integrated-quality-stack/ # Complete quality stack (NEW)
 │   └── Readme.md               # Skills catalog
 └── prompts/                     # Expert agent personas
     ├── python-expert.md        # Python development expertise
     ├── azure-expert.md         # Azure/cloud expertise
     ├── testing-expert.md       # Testing expertise
+    ├── integrated-quality-expert.md  # Quality tools expertise (NEW)
     └── README.md               # Prompts catalog
 ```
 
@@ -33,6 +37,12 @@ Welcome to the Agent Operating System (AOS) repository! This directory contains 
 1. Use [prompts/python-expert.md](prompts/python-expert.md) for Python development
 2. Reference [skills/perpetual-agents/SKILL.md](skills/perpetual-agents/SKILL.md) for agent patterns
 3. See [skills/async-python-testing/SKILL.md](skills/async-python-testing/SKILL.md) for testing
+
+### Ensuring Code Quality? ⭐ **NEW**
+1. Use [prompts/integrated-quality-expert.md](prompts/integrated-quality-expert.md) for comprehensive quality guidance
+2. Reference [skills/integrated-quality-stack/SKILL.md](skills/integrated-quality-stack/SKILL.md) for complete quality stack
+3. See [docs/CODE_QUALITY_STACK.md](../docs/CODE_QUALITY_STACK.md) for detailed documentation
+4. Quick start: `pip install -e ".[dev]"` then `pre-commit install`
 
 ### Deploying to Azure?
 1. Use [prompts/azure-expert.md](prompts/azure-expert.md) for deployment guidance
@@ -67,6 +77,14 @@ This fundamental difference makes AOS a true "operating system" - agents are lik
 - **Testing Guide**: [skills/async-python-testing/SKILL.md](skills/async-python-testing/SKILL.md)
 - **Testing Expert**: [prompts/testing-expert.md](prompts/testing-expert.md)
 - **Test Files**: [../tests/](../tests/)
+
+### Code Quality ⭐ **NEW**
+- **Integrated Quality Stack**: [skills/integrated-quality-stack/SKILL.md](skills/integrated-quality-stack/SKILL.md)
+- **Quality Expert**: [prompts/integrated-quality-expert.md](prompts/integrated-quality-expert.md)
+- **Complete Stack Docs**: [../docs/CODE_QUALITY_STACK.md](../docs/CODE_QUALITY_STACK.md)
+- **Pylint Skill**: [skills/code-quality-pylint/SKILL.md](skills/code-quality-pylint/SKILL.md)
+- **Quality Instructions**: [instructions/code-quality.instructions.md](instructions/code-quality.instructions.md)
+- **Tools**: Pylint (10/10), Black, isort, mypy, Bandit, Safety, pytest
 
 ### Azure & Deployment
 - **Azure Functions**: [skills/azure-functions/SKILL.md](skills/azure-functions/SKILL.md)
