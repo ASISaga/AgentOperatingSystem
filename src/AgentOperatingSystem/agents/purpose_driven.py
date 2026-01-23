@@ -79,6 +79,14 @@ class PurposeDrivenAgent(ABC):
         >>> await agent.initialize()  # Sets up MCP context server
         >>> await agent.start()
         >>> # Agent now runs perpetually, working toward its purpose
+        >>> 
+        >>> # Or use GenericPurposeDrivenAgent for general-purpose agents:
+        >>> from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
+        >>> generic_agent = GenericPurposeDrivenAgent(
+        ...     agent_id="assistant",
+        ...     purpose="General task execution",
+        ...     adapter_name="general"
+        ... )
     """
 
     def __init__(
@@ -178,8 +186,14 @@ class PurposeDrivenAgent(ABC):
         Subclasses must implement this method to identify their type.
         This ensures PurposeDrivenAgent cannot be directly instantiated.
         
+        The agent type should be:
+        - Lowercase string
+        - Alphanumeric characters only (no spaces or special characters)
+        - Descriptive and unique to the agent subclass
+        - Examples: "generic", "leadership", "cmo", "foundry"
+        
         Returns:
-            String identifying the agent type (e.g., "generic", "leadership", "cmo")
+            String identifying the agent type
         """
         pass
 
