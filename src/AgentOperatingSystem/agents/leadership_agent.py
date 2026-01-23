@@ -30,15 +30,15 @@ class LeadershipAgent(PurposeDrivenAgent):
     def __init__(
         self,
         agent_id: str,
-        name: str = None,
-        role: str = None,
-        purpose: str = None,
-        purpose_scope: str = None,
-        success_criteria: List[str] = None,
-        tools: List[Any] = None,
-        system_message: str = None,
-        adapter_name: str = None,
-        config: Dict[str, Any] = None
+        name: Optional[str] = None,
+        role: Optional[str] = None,
+        purpose: Optional[str] = None,
+        purpose_scope: Optional[str] = None,
+        success_criteria: Optional[List[str]] = None,
+        tools: Optional[List[Any]] = None,
+        system_message: Optional[str] = None,
+        adapter_name: Optional[str] = None,
+        config: Optional[Dict[str, Any]] = None
     ):
         # Default leadership purpose and adapter if not provided
         if purpose is None:

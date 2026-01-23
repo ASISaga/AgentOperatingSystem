@@ -708,6 +708,9 @@ class PurposeDrivenAgent:
         Each perpetual agent has its own ContextMCPServer instance that preserves
         context across all events and agent restarts. This is a key differentiator
         from task-based frameworks.
+        
+        Note: self.config is always initialized in __init__ (line 114), so no
+        defensive check is needed here.
         """
         try:
             self.mcp_context_server = ContextMCPServer(
