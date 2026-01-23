@@ -426,7 +426,7 @@ SCOPE: {purpose_scope or "General purpose operation"}
         
         instructions += f"""
 
-You are powered by Llama 3.3 70B Instruct"""
+You are powered by {self.config.base_model}"""
         
         if adapter_name:
             instructions += f" with domain-specific LoRA adapter ('{adapter_name}')"""
@@ -438,7 +438,22 @@ Work continuously toward your purpose. Make decisions aligned with your purpose 
         return instructions
     
     def _build_toolset(self, tools: List[Any]) -> Optional[ToolSet]:
-        """Convert agent tools to Foundry ToolSet."""
+        """
+        Convert agent tools to Foundry ToolSet.
+        
+        Expected tool format:
+        {
+            'name': str,           # Tool name
+            'description': str,    # Tool description
+            'parameters': dict     # Tool parameters schema
+        }
+        
+        Args:
+            tools: List of tool dictionaries
+            
+        Returns:
+            Foundry ToolSet or None
+        """
         if not tools:
             return None
         
@@ -446,6 +461,11 @@ Work continuously toward your purpose. Make decisions aligned with your purpose 
         
         for tool in tools:
             try:
+                # Validate tool structure
+                if not isinstance(tool, dict):
+                    self.logger.warning(f"Skipping non-dict tool: {type(tool)}")
+                    continue
+                
                 # Convert tool to FunctionTool
                 function_def = FunctionDefinition(
                     name=tool.get('name', 'unknown_tool'),

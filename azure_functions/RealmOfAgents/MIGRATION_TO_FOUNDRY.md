@@ -96,7 +96,7 @@ foundry_agent = await runtime.deploy_agent(
 
 ### Step 1: Update Dependencies
 
-Dependencies remain the same - `azure-ai-agents` and `azure-ai-projects` are used internally by `PurposeDrivenAgentFoundry`:
+Dependencies remain the same - `azure-ai-agents` and `azure-ai-projects` are used internally by `AgentRuntimeProvider`:
 
 ```txt
 # Already included
@@ -168,8 +168,8 @@ Agent configurations in `agent_registry.json` remain **completely unchanged**:
 
 The system automatically:
 1. Detects `USE_FOUNDRY_RUNTIME=true`
-2. Creates `PurposeDrivenAgentFoundry` instead of base `PurposeDrivenAgent`
-3. Uses `llama-3.3-70b-{domain}` as the model deployment
+2. Creates `PurposeDrivenAgent` (pure MS Agent Framework)
+3. Deploys agent to infrastructure runtime with `llama-3.3-70b-{domain}` LoRA adapter
 
 ### Step 5: Deploy Function App
 
@@ -187,7 +187,7 @@ curl https://<your-app>.azurewebsites.net/api/health
 # Expected response:
 {
   "status": "healthy",
-  "runtime": "Foundry Agent Service (Llama 3.3 70B + LoRA)",
+  "runtime": "Infrastructure Runtime (Llama 3.3 70B + LoRA)",
   "active_agents": 4,
   "agent_ids": ["ceo", "cfo", "cmo", "coo"]
 }
@@ -199,9 +199,9 @@ curl https://<your-app>.azurewebsites.net/api/agents/ceo/status
 {
   "agent_id": "ceo",
   "status": "running",
-  "type": "PurposeDrivenAgentFoundry",
-  "runtime": "Foundry Agent Service (Llama 3.3 70B + LoRA)",
-  "lora_adapter": "ceo"
+  "type": "PurposeDrivenAgent",
+  "runtime": "Infrastructure Runtime (Llama 3.3 70B + LoRA)",
+  "adapter_name": "ceo"
 }
 ```
 

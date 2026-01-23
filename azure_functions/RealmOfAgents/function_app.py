@@ -192,8 +192,8 @@ async def instantiate_agent(config: AgentConfiguration) -> Optional[Any]:
                     adapter_name=config.domain_knowledge.domain  # LoRA adapter name
                 )
                 
-                # Store foundry agent reference for infrastructure-level operations
-                agent._foundry_agent_id = foundry_agent.id if foundry_agent else None
+                # Store foundry agent reference using public property
+                agent.runtime_agent_id = foundry_agent.id if foundry_agent else None
                 
                 logger.info(f"Created {config.agent_id} with infrastructure runtime "
                            f"(Llama 3.3 70B + {config.domain_knowledge.domain} LoRA)")
@@ -413,7 +413,7 @@ async def get_agent_status(req: func.HttpRequest) -> func.HttpResponse:
             agent = agent_instances[agent_id]
             
             # Check if agent is deployed to infrastructure runtime
-            has_runtime = hasattr(agent, '_foundry_agent_id') and agent._foundry_agent_id is not None
+            has_runtime = hasattr(agent, 'runtime_agent_id') and agent.runtime_agent_id is not None
             
             status = {
                 "agent_id": agent_id,
@@ -425,7 +425,7 @@ async def get_agent_status(req: func.HttpRequest) -> func.HttpResponse:
             
             # Add infrastructure runtime details
             if has_runtime:
-                status["foundry_agent_id"] = agent._foundry_agent_id
+                status["foundry_agent_id"] = agent.runtime_agent_id
                 status["adapter_name"] = getattr(agent, 'adapter_name', None)
             
             # Add purpose-driven agent details

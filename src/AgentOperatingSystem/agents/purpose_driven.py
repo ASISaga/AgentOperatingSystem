@@ -89,6 +89,9 @@ class PurposeDrivenAgent(PerpetualAgent):
         self.active_goals: List[Dict[str, Any]] = []
         self.completed_goals: List[Dict[str, Any]] = []
         
+        # Infrastructure runtime reference (set by infrastructure layer if deployed)
+        self.runtime_agent_id: Optional[str] = None
+        
         self.logger = logging.getLogger(f"aos.purpose_driven.{self.agent_id}")
         self.logger.info(
             f"PurposeDrivenAgent {self.agent_id} created with purpose: {self.purpose}"
