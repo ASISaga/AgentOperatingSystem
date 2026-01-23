@@ -8,10 +8,11 @@ Includes LoRAx integration for cost-effective multi-adapter inference.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from ..config.ml import MLConfig
-from .pipeline_ops import trigger_lora_training, run_azure_ml_pipeline, aml_infer
+from .pipeline_ops import aml_infer, run_azure_ml_pipeline, trigger_lora_training
 
 
 class MLPipelineManager:
@@ -87,7 +88,7 @@ class MLPipelineManager:
         import asyncio
         asyncio.create_task(self._execute_training(job_id))
 
-        self.logger.info(f"Started training job: {job_id}")
+        self.logger.info("Started training job: %s", job_id)
         return job_id
 
     async def train_lora_adapter(self, agent_role: str, training_params: Dict[str, Any]) -> str:
@@ -136,11 +137,11 @@ class MLPipelineManager:
             # Check cache first
             cache_key = f"{model_name}_{hash(str(input_data))}"
             if cache_key in self.inference_cache:
-                self.logger.debug(f"Returning cached inference for {model_name}")
+                self.logger.debug("Returning cached inference for %s", model_name)
                 return self.inference_cache[cache_key]
 
             # Perform inference
-            self.logger.debug(f"Running inference with {model_name}")
+            self.logger.debug("Running inference with %s", model_name)
 
             # Placeholder for actual inference logic
             result = {
@@ -162,9 +163,9 @@ class MLPipelineManager:
 
             return result
 
-        except Exception as e:
-            self.logger.error(f"Error during inference: {e}")
-            return {"error": str(e)}
+        except Exception as error:
+            self.logger.error("Error during inference: %s", str(error))
+            return {"error": str(error)}
 
     async def get_agent_inference(self, agent_role: str, prompt: str) -> Dict[str, Any]:
         """
@@ -213,10 +214,10 @@ class MLPipelineManager:
         """
         try:
             result = await run_azure_ml_pipeline(subscription_id, resource_group, workspace_name)
-            self.logger.info(f"Azure ML pipeline executed successfully")
+            self.logger.info("Azure ML pipeline executed successfully")
             return result
-        except Exception as e:
-            self.logger.error(f"Azure ML pipeline failed: {e}")
+        except Exception as error:
+            self.logger.error("Azure ML pipeline failed: %s", str(error))
             raise
 
     async def infer_with_adapter(self, agent_role: str, prompt: str) -> Any:
@@ -236,12 +237,12 @@ class MLPipelineManager:
             # Use the pipeline ops for inference
             result = await aml_infer(agent_role, prompt)
 
-            self.logger.debug(f"Inference completed for {agent_role}")
+            self.logger.debug("Inference completed for %s", agent_role)
             return result
 
-        except Exception as e:
-            self.logger.error(f"Inference failed for {agent_role}: {e}")
-            return {"error": str(e)}
+        except Exception as error:
+            self.logger.error("Inference failed for %s: %s", agent_role, str(error))
+            return {"error": str(error)}
 
     async def train_adapter_with_pipeline_ops(self, agent_role: str, training_params: Dict[str, Any], adapter_config: Dict[str, Any]) -> str:
         """
@@ -264,11 +265,11 @@ class MLPipelineManager:
                 "created_at": datetime.utcnow().isoformat()
             }
 
-            self.logger.info(f"LoRA adapter training completed for {agent_role}")
+            self.logger.info("LoRA adapter training completed for %s", agent_role)
             return result
 
-        except Exception as e:
-            self.logger.error(f"Adapter training failed for {agent_role}: {e}")
+        except Exception as error:
+            self.logger.error("Adapter training failed for %s: %s", agent_role, str(error))
             # Update adapter status
             if agent_role in self.active_adapters:
                 self.active_adapters[agent_role]["status"] = "failed"
@@ -302,7 +303,7 @@ class MLPipelineManager:
             job["status"] = "running"
             job["started_at"] = datetime.utcnow().isoformat()
 
-            self.logger.info(f"Starting training job: {job_id}")
+            self.logger.info("Starting training job: %s", job_id)
 
             # Placeholder for actual training logic
             # This would integrate with Azure ML, local training, etc.
@@ -329,19 +330,19 @@ class MLPipelineManager:
             if agent_role and agent_role in self.active_adapters:
                 self.active_adapters[agent_role]["status"] = "ready"
 
-            self.logger.info(f"Training job completed: {job_id}")
+            self.logger.info("Training job completed: %s", job_id)
 
-        except Exception as e:
+        except Exception as error:
             job["status"] = "failed"
             job["completed_at"] = datetime.utcnow().isoformat()
-            job["error"] = str(e)
+            job["error"] = str(error)
 
             # Update adapter status
             agent_role = job["config"].get("agent_role")
             if agent_role and agent_role in self.active_adapters:
                 self.active_adapters[agent_role]["status"] = "failed"
 
-            self.logger.error(f"Training job failed: {job_id}, error: {e}")
+            self.logger.error("Training job failed: %s, error: %s", job_id, str(error))
 
     async def train_dpo_adapter(
         self,
@@ -422,7 +423,7 @@ class MLPipelineManager:
             "type": "dpo"
         }
 
-        self.logger.info(f"Started DPO training job: {job_id} for {agent_role}")
+        self.logger.info("Started DPO training job: %s for %s", job_id, agent_role)
         return job_id
 
     async def _execute_dpo_training(self, job_id: str):
@@ -433,13 +434,13 @@ class MLPipelineManager:
             job["status"] = "running"
             job["started_at"] = datetime.utcnow().isoformat()
 
-            self.logger.info(f"Starting DPO training job: {job_id}")
+            self.logger.info("Starting DPO training job: %s", job_id)
 
             # Import DPO trainer
             try:
-                from .dpo_trainer import DPOTrainer, DPOConfig, PreferenceDataCollector
-            except ImportError as e:
-                raise RuntimeError(f"DPO trainer not available: {e}")
+                from .dpo_trainer import DPOConfig, DPOTrainer, PreferenceDataCollector
+            except ImportError as error:
+                raise RuntimeError(f"DPO trainer not available: {error}")
 
             # Load preference data
             collector = PreferenceDataCollector()
@@ -497,12 +498,12 @@ class MLPipelineManager:
                 self.active_adapters[adapter_key]["status"] = "ready"
                 self.active_adapters[adapter_key]["model_path"] = job["model_path"]
 
-            self.logger.info(f"DPO training job completed: {job_id}, metrics: {job['metrics']}")
+            self.logger.info("DPO training job completed: %s, metrics: %s", job_id, job['metrics'])
 
-        except Exception as e:
+        except Exception as error:
             job["status"] = "failed"
             job["completed_at"] = datetime.utcnow().isoformat()
-            job["error"] = str(e)
+            job["error"] = str(error)
 
             # Update adapter status
             agent_role = job["config"].get("agent_role")
@@ -511,7 +512,7 @@ class MLPipelineManager:
                 if adapter_key in self.active_adapters:
                     self.active_adapters[adapter_key]["status"] = "failed"
 
-            self.logger.error(f"DPO training job failed: {job_id}, error: {e}")
+            self.logger.error("DPO training job failed: %s, error: %s", job_id, str(error))
 
     def collect_preference_data(
         self,
@@ -550,7 +551,7 @@ class MLPipelineManager:
         try:
             collector.load_preferences()
         except (FileNotFoundError, IOError) as e:
-            self.logger.debug(f"No existing preferences found: {e}")
+            self.logger.debug("No existing preferences found: %s", e)
 
         # Add new preference
         collector.add_human_preference(
@@ -567,7 +568,7 @@ class MLPipelineManager:
         # Save updated preferences
         collector.save_preferences()
 
-        self.logger.info(f"Collected preference data for {agent_role}. Total: {len(collector.preferences)}")
+        self.logger.info("Collected preference data for %s. Total: %s", agent_role, len(collector.preferences))
 
     def get_dpo_status(self, agent_role: str) -> Dict[str, Any]:
         """
@@ -601,10 +602,10 @@ class MLPipelineManager:
         preference_count = 0
         if has_preference_data:
             try:
-                with open(pref_path, 'r') as f:
-                    preference_count = sum(1 for _ in f)
+                with open(pref_path, 'r', encoding="utf-8") as file_obj:
+                    preference_count = sum(1 for _ in file_obj)
             except (IOError, PermissionError) as e:
-                self.logger.warning(f"Could not count preferences in {pref_path}: {e}")
+                self.logger.warning("Could not count preferences in %s: %s", pref_path, e)
 
         return {
             "status": adapter_info.get("status", "unknown"),
@@ -623,7 +624,7 @@ class MLPipelineManager:
     def _initialize_lorax(self):
         """Initialize LoRAx server for multi-adapter inference."""
         try:
-            from .lorax_server import LoRAxServer, LoRAxConfig
+            from .lorax_server import LoRAxConfig, LoRAxServer
 
             lorax_config = LoRAxConfig(
                 base_model=self.config.lorax_base_model,
@@ -639,8 +640,8 @@ class MLPipelineManager:
             self.lorax_server = LoRAxServer(lorax_config)
             self.logger.info("LoRAx server initialized")
 
-        except ImportError as e:
-            self.logger.warning(f"LoRAx not available: {e}")
+        except ImportError as error:
+            self.logger.warning("LoRAx not available: %s", str(error))
             self.lorax_server = None
 
     async def start_lorax_server(self) -> bool:
@@ -712,11 +713,11 @@ class MLPipelineManager:
                 metadata=metadata
             )
 
-            self.logger.info(f"Registered LoRAx adapter {adapter_id} for {agent_role}")
+            self.logger.info("Registered LoRAx adapter %s for %s", adapter_id, agent_role)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to register LoRAx adapter: {e}")
+        except Exception as error:
+            self.logger.error("Failed to register LoRAx adapter: %s", str(error))
             return False
 
     async def lorax_inference(
@@ -762,9 +763,9 @@ class MLPipelineManager:
 
             return result
 
-        except Exception as e:
-            self.logger.error(f"LoRAx inference failed: {e}")
-            return {"error": str(e)}
+        except Exception as error:
+            self.logger.error("LoRAx inference failed: %s", str(error))
+            return {"error": str(error)}
 
     async def lorax_batch_inference(
         self,
@@ -795,7 +796,7 @@ class MLPipelineManager:
                     req["agent_role"]
                 )
                 if not adapter_info:
-                    self.logger.warning(f"No adapter for agent {req['agent_role']}")
+                    self.logger.warning("No adapter for agent %s", req['agent_role'])
                     continue
 
                 lorax_requests.append({
@@ -807,9 +808,9 @@ class MLPipelineManager:
             results = await self.lorax_server.batch_inference(lorax_requests)
             return results
 
-        except Exception as e:
-            self.logger.error(f"LoRAx batch inference failed: {e}")
-            return [{"error": str(e)}] * len(requests)
+        except Exception as error:
+            self.logger.error("LoRAx batch inference failed: %s", str(error))
+            return [{"error": str(error)}] * len(requests)
 
     def get_lorax_status(self) -> Dict[str, Any]:
         """

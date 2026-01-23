@@ -1,8 +1,10 @@
 """
 MCP Response data model - represents MCP response messages
 """
-from pydantic import BaseModel
 from typing import Any, Optional
+
+from pydantic import BaseModel
+
 
 class MCPResponse(BaseModel):
     """

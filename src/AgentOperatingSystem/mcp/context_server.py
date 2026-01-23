@@ -11,9 +11,8 @@ This server will eventually be moved to a dedicated repository.
 """
 
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
-import json
+from typing import Any, Dict, List
 
 
 class ContextMCPServer:
@@ -89,7 +88,7 @@ class ContextMCPServer:
             True if initialization successful
         """
         try:
-            self.logger.info(f"Initializing ContextMCPServer for agent {self.agent_id}")
+            self.logger.info("Initializing ContextMCPServer for agent %s", self.agent_id)
 
             # Load existing context if available
             await self._load_from_storage()
@@ -97,11 +96,11 @@ class ContextMCPServer:
             self.is_initialized = True
             self.is_connected = True
 
-            self.logger.info(f"ContextMCPServer initialized for agent {self.agent_id}")
+            self.logger.info("ContextMCPServer initialized for agent %s", self.agent_id)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize ContextMCPServer: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize ContextMCPServer: %s", str(error))
             return False
 
     async def shutdown(self) -> bool:
@@ -114,18 +113,18 @@ class ContextMCPServer:
             True if shutdown successful
         """
         try:
-            self.logger.info(f"Shutting down ContextMCPServer for agent {self.agent_id}")
+            self.logger.info("Shutting down ContextMCPServer for agent %s", self.agent_id)
 
             # Save context to storage
             await self._save_to_storage()
 
             self.is_connected = False
 
-            self.logger.info(f"ContextMCPServer shut down for agent {self.agent_id}")
+            self.logger.info("ContextMCPServer shut down for agent %s", self.agent_id)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error shutting down ContextMCPServer: {e}")
+        except Exception as error:
+            self.logger.error("Error shutting down ContextMCPServer: %s", str(error))
             return False
 
     async def set_context(self, key: str, value: Any) -> bool:
@@ -146,11 +145,11 @@ class ContextMCPServer:
             # Auto-save on write (could be optimized with batching)
             await self._save_to_storage()
 
-            self.logger.debug(f"Set context: {key}")
+            self.logger.debug("Set context: %s", key)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error setting context {key}: {e}")
+        except Exception as error:
+            self.logger.error("Error setting context %s: %s", key, str(error))
             return False
 
     async def get_context(self, key: str, default: Any = None) -> Any:
@@ -166,7 +165,7 @@ class ContextMCPServer:
         """
         self.stats["total_context_reads"] += 1
         value = self.context.get(key, default)
-        self.logger.debug(f"Get context: {key} -> {value}")
+        self.logger.debug("Get context: %s -> %s", key, value)
         return value
 
     async def update_context(self, updates: Dict[str, Any]) -> bool:
@@ -185,11 +184,11 @@ class ContextMCPServer:
 
             await self._save_to_storage()
 
-            self.logger.debug(f"Updated context with {len(updates)} items")
+            self.logger.debug("Updated context with %s items", len(updates))
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error updating context: {e}")
+        except Exception as error:
+            self.logger.error("Error updating context: %s", str(error))
             return False
 
     async def get_all_context(self) -> Dict[str, Any]:
@@ -227,11 +226,11 @@ class ContextMCPServer:
 
             await self._save_to_storage()
 
-            self.logger.debug(f"Stored event in history")
+            self.logger.debug("Stored event in history")
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error storing event: {e}")
+        except Exception as error:
+            self.logger.error("Error storing event: %s", str(error))
             return False
 
     async def get_event_history(self, limit: int = None) -> List[Dict[str, Any]]:
@@ -273,11 +272,11 @@ class ContextMCPServer:
 
             await self._save_to_storage()
 
-            self.logger.debug(f"Added memory item")
+            self.logger.debug("Added memory item")
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error adding memory: {e}")
+        except Exception as error:
+            self.logger.error("Error adding memory: %s", str(error))
             return False
 
     async def get_memory(self, limit: int = None) -> List[Dict[str, Any]]:
@@ -328,11 +327,11 @@ class ContextMCPServer:
 
             await self._save_to_storage()
 
-            self.logger.info(f"Cleared context")
+            self.logger.info("Cleared context")
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error clearing context: {e}")
+        except Exception as error:
+            self.logger.error("Error clearing context: %s", str(error))
             return False
 
     async def _load_from_storage(self) -> None:
@@ -344,7 +343,7 @@ class ContextMCPServer:
         """
         # Placeholder for storage backend integration
         # Would integrate with Azure Blob Storage, Cosmos DB, etc.
-        self.logger.debug(f"Loaded context from storage (placeholder)")
+        self.logger.debug("Loaded context from storage (placeholder)")
 
     async def _save_to_storage(self) -> None:
         """
@@ -355,7 +354,7 @@ class ContextMCPServer:
         """
         # Placeholder for storage backend integration
         # Would integrate with Azure Blob Storage, Cosmos DB, etc.
-        self.logger.debug(f"Saved context to storage (placeholder)")
+        self.logger.debug("Saved context to storage (placeholder)")
 
     def __repr__(self) -> str:
         return f"ContextMCPServer(agent_id='{self.agent_id}', connected={self.is_connected})"

@@ -2,23 +2,24 @@
 ML Pipeline Operations for AgentOperatingSystem (AOS)
 Provides wrappers to trigger ML pipeline actions from agents or teams.
 """
-from typing import Any, Dict
 import logging
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
 # Import the refactored ML pipeline from FineTunedLLM
 try:
-    from azure_ml_lora import MLManager, LoRATrainer, LoRAPipeline, UnifiedMLManager
+    from azure_ml_lora import LoRAPipeline, LoRATrainer, UnifiedMLManager
     ML_AVAILABLE = True
 except ImportError:
     # Fallback for local dev if not installed as package
     try:
-        import sys, os
+        import os
+        import sys
         aos_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../FineTunedLLM'))
         if aos_root not in sys.path:
             sys.path.insert(0, aos_root)
-        from azure_ml_lora import MLManager, LoRATrainer, LoRAPipeline, UnifiedMLManager
+        from azure_ml_lora import LoRAPipeline, LoRATrainer, UnifiedMLManager
         ML_AVAILABLE = True
     except ImportError:
         logger.warning("Azure ML components not available")

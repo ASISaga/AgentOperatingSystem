@@ -5,12 +5,11 @@ Deterministic handlers keyed by message IDs and business keys to ensure
 operations can be safely retried without side effects.
 """
 
-from typing import Dict, Any, Optional, Callable, TypeVar, Generic
-from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
 import hashlib
-import json
+from datetime import datetime, timedelta
+from typing import Any, Callable, Dict, Generic, Optional, TypeVar
 
+from pydantic import BaseModel, Field
 
 T = TypeVar('T')
 

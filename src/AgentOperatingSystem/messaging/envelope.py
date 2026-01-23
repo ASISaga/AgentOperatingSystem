@@ -2,9 +2,10 @@
 Message Envelope - Standardized message format with correlation.
 """
 
-from typing import Dict, Any, Optional
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any, Dict, Optional
+
 
 class MessageEnvelope:
     """

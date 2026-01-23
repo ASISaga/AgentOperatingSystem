@@ -6,28 +6,27 @@ Provides comprehensive model management, Azure ML integration, and semantic kern
 """
 
 import asyncio
+import json
 import logging
 import os
-import json
-import requests
-from typing import Dict, Any, List, Optional, Callable, Union
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import requests
 
 # Optional Azure ML imports
 try:
     from azure.ai.ml import MLClient
-    from azure.ai.ml.dsl import pipeline
     from azure.identity import DefaultAzureCredential
-    from azure.ai.ml.entities import CommandComponent, Job
     AZURE_ML_AVAILABLE = True
 except ImportError:
     AZURE_ML_AVAILABLE = False
 
 # Optional Agent Framework imports
 try:
-    from agent_framework import ChatAgent, WorkflowBuilder
+    from agent_framework import ChatAgent
     AGENT_FRAMEWORK_AVAILABLE = True
 except ImportError:
     AGENT_FRAMEWORK_AVAILABLE = False
@@ -132,8 +131,8 @@ class ModelOrchestrator:
 
             self.logger.info("Model orchestrator initialized successfully")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize model orchestrator: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize model orchestrator: %s", str(error))
 
     async def _load_configuration(self, config_dir: str) -> None:
         """Load model orchestrator configuration"""
@@ -142,8 +141,8 @@ class ModelOrchestrator:
             config_path = Path(config_dir) / "orchestrator_config.json"
 
             if config_path.exists():
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
+                with open(config_path, 'r', encoding="utf-8") as file_obj:
+                    config = json.load(file_obj)
 
                 # Update vLLM configuration
                 if "vllm_server_url" in config:
@@ -164,8 +163,8 @@ class ModelOrchestrator:
             else:
                 self.logger.info("No orchestrator config found, using defaults")
 
-        except Exception as e:
-            self.logger.error(f"Failed to load configuration: {e}")
+        except Exception as error:
+            self.logger.error("Failed to load configuration: %s", str(error))
 
     async def _initialize_azure_ml(self) -> None:
         """Initialize Azure ML client"""
@@ -182,8 +181,8 @@ class ModelOrchestrator:
 
             self.logger.info("Azure ML client initialized")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Azure ML: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Azure ML: %s", str(error))
             self.azure_ml_client = None
 
     async def _initialize_agent_framework(self) -> None:
@@ -202,8 +201,8 @@ class ModelOrchestrator:
             )
             self.logger.info("Agent Framework initialized")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Agent Framework: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Agent Framework: %s", str(error))
             self.agent_framework_client = None
 
     async def process_model_request(self, model_type: ModelType, domain: str,
@@ -239,15 +238,15 @@ class ModelOrchestrator:
                 "timestamp": datetime.utcnow().isoformat()
             }
 
-        except Exception as e:
+        except Exception as error:
             execution_time = (datetime.utcnow() - start_time).total_seconds()
-            await self._record_model_failure(model_type.value, str(e), execution_time)
+            await self._record_model_failure(model_type.value, str(error), execution_time)
 
             return {
                 "conversationId": conversation_id,
                 "domain": domain,
                 "model_type": model_type.value,
-                "error": str(e),
+                "error": str(error),
                 "success": False,
                 "execution_time": execution_time,
                 "source": "model_orchestrator"
@@ -277,8 +276,8 @@ class ModelOrchestrator:
                 "model_details": result.get("model_info", {})
             }
 
-        except Exception as e:
-            self.logger.error(f"vLLM request failed: {e}")
+        except Exception as error:
+            self.logger.error("vLLM request failed: %s", str(error))
             raise
 
     async def _handle_azure_ml_request(self, domain: str, user_input: str,
@@ -311,8 +310,8 @@ class ModelOrchestrator:
                 "predictions": result.get("predictions", [])
             }
 
-        except Exception as e:
-            self.logger.error(f"Azure ML request failed: {e}")
+        except Exception as error:
+            self.logger.error("Azure ML request failed: %s", str(error))
             raise
 
     async def _handle_agent_framework_request(self, domain: str, user_input: str,
@@ -340,8 +339,8 @@ class ModelOrchestrator:
                 "source": "agent_framework"
             }
 
-        except Exception as e:
-            self.logger.error(f"Agent Framework request failed: {e}")
+        except Exception as error:
+            self.logger.error("Agent Framework request failed: %s", str(error))
             raise
 
     async def _handle_openai_request(self, domain: str, user_input: str,
@@ -362,8 +361,8 @@ class ModelOrchestrator:
                 "note": "OpenAI integration requires implementation"
             }
 
-        except Exception as e:
-            self.logger.error(f"OpenAI request failed: {e}")
+        except Exception as error:
+            self.logger.error("OpenAI request failed: %s", str(error))
             raise
 
     async def _handle_foundry_agent_service_request(self, domain: str, user_input: str,
@@ -412,8 +411,8 @@ class ModelOrchestrator:
                 "model_details": result.get("model_info", {})
             }
 
-        except Exception as e:
-            self.logger.error(f"Foundry Agent Service request failed: {e}")
+        except Exception as error:
+            self.logger.error("Foundry Agent Service request failed: %s", str(error))
             raise
 
     async def _call_foundry_agent_service(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -448,11 +447,11 @@ class ModelOrchestrator:
                 }
             }
 
-        except requests.RequestException as e:
-            self.logger.error(f"Foundry Agent Service API request failed: {e}")
+        except requests.RequestException as error:
+            self.logger.error("Foundry Agent Service API request failed: %s", str(error))
             raise
-        except Exception as e:
-            self.logger.error(f"Foundry Agent Service processing failed: {e}")
+        except Exception as error:
+            self.logger.error("Foundry Agent Service processing failed: %s", str(error))
             raise
 
     async def _call_vllm(self, prompt: str) -> Dict[str, Any]:
@@ -489,11 +488,11 @@ class ModelOrchestrator:
                 "usage": result.get("usage", {})
             }
 
-        except requests.RequestException as e:
-            self.logger.error(f"vLLM API request failed: {e}")
+        except requests.RequestException as error:
+            self.logger.error("vLLM API request failed: %s", str(error))
             raise
-        except Exception as e:
-            self.logger.error(f"vLLM processing failed: {e}")
+        except Exception as error:
+            self.logger.error("vLLM processing failed: %s", str(error))
             raise
 
     async def _call_azure_ml_endpoint(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -523,11 +522,11 @@ class ModelOrchestrator:
                 "model_info": result.get("model", {})
             }
 
-        except requests.RequestException as e:
-            self.logger.error(f"Azure ML endpoint request failed: {e}")
+        except requests.RequestException as error:
+            self.logger.error("Azure ML endpoint request failed: %s", str(error))
             raise
-        except Exception as e:
-            self.logger.error(f"Azure ML processing failed: {e}")
+        except Exception as error:
+            self.logger.error("Azure ML processing failed: %s", str(error))
             raise
 
     async def select_optimal_model(self, domain: str, complexity: str = "medium",
@@ -622,16 +621,16 @@ class ModelOrchestrator:
         if self.vllm_config["server_url"]:
             try:
                 # Simple health check request
-                result = await self._call_vllm("Health check")
+                await self._call_vllm("Health check")
                 health_results[ModelType.VLLM.value] = {
                     "status": "healthy",
                     "response_time": 0,  # Would measure actual response time
                     "last_check": datetime.utcnow().isoformat()
                 }
-            except Exception as e:
+            except Exception as error:
                 health_results[ModelType.VLLM.value] = {
                     "status": "unhealthy",
-                    "error": str(e),
+                    "error": str(error),
                     "last_check": datetime.utcnow().isoformat()
                 }
 

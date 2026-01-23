@@ -4,12 +4,11 @@ Priority-Based Message Queuing
 Provides multi-priority queuing with weighted fair scheduling.
 """
 
-import logging
-import asyncio
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
-from dataclasses import dataclass
 import heapq
+import logging
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -51,7 +50,7 @@ class PriorityQueueManager:
             levels: List of priority level configurations
             scheduling_algorithm: Scheduling algorithm to use
         """
-        self.logger.info(f"Configuring {len(levels)} priority levels")
+        self.logger.info("Configuring %s priority levels", len(levels))
 
         self.scheduling_algorithm = scheduling_algorithm
 

@@ -4,14 +4,13 @@ AOS Environment Manager
 Unified environment variable and configuration management for AOS.
 """
 
-import os
 import logging
-from typing import Any, Optional, Dict, List
+import os
+from typing import Any, Dict, List
 
 
 class EnvironmentError(Exception):
     """Environment configuration errors"""
-    pass
 
 
 class EnvironmentManager:
@@ -91,7 +90,7 @@ class EnvironmentManager:
         for key in keys:
             value = os.environ.get(key)
             if value:
-                self.logger.debug(f"Found environment variable: {key}")
+                self.logger.debug("Found environment variable: %s", key)
                 return value
 
         error_msg = error_message or f"At least one of these environment variables is required: {', '.join(keys)}"
@@ -233,7 +232,7 @@ class EnvironmentManager:
                 missing.append(var)
 
         if missing:
-            self.logger.warning(f"Missing required environment variables: {missing}")
+            self.logger.warning("Missing required environment variables: %s", missing)
 
         return missing
 
@@ -261,7 +260,7 @@ class EnvironmentManager:
         for key, value in defaults.items():
             if key not in os.environ:
                 os.environ[key] = value
-                self.logger.debug(f"Set default environment variable: {key}")
+                self.logger.debug("Set default environment variable: %s", key)
 
     def get_ml_config(self) -> Dict[str, Any]:
         """
@@ -330,8 +329,8 @@ class EnvironmentManager:
             return default
         try:
             return json.loads(value)
-        except json.JSONDecodeError as e:
-            self.logger.warning(f"Failed to parse JSON from {key}: {e}")
+        except json.JSONDecodeError as error:
+            self.logger.warning("Failed to parse JSON from %s: %s", key, str(error))
             return default
 
     def get_env_vars_by_prefix(self, prefix: str) -> Dict[str, str]:

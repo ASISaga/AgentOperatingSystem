@@ -6,13 +6,12 @@ Integrates knowledge management, RAG, and interaction learning.
 """
 
 import logging
-import asyncio
-from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
+from typing import Any, Dict, Optional
 
+from .interaction_learner import InteractionLearner
 from .knowledge_manager import KnowledgeManager
 from .rag_engine import RAGEngine
-from .interaction_learner import InteractionLearner
 
 
 class SelfLearningMixin:
@@ -66,8 +65,8 @@ class SelfLearningMixin:
 
             self.learning_logger.info("Learning components initialized for agent")
 
-        except Exception as e:
-            self.learning_logger.error(f"Failed to initialize learning components: {e}")
+        except Exception as error:
+            self.learning_logger.error("Failed to initialize learning components: %s", str(error))
 
     async def handle_user_request(self, user_input: str, domain: str = None,
                                 conversation_id: str = None, **kwargs) -> Dict[str, Any]:
@@ -114,10 +113,10 @@ class SelfLearningMixin:
                 "success": True
             }
 
-        except Exception as e:
-            self.learning_logger.error(f"Error in learning-enhanced request handling: {e}")
+        except Exception as error:
+            self.learning_logger.error("Error in learning-enhanced request handling: %s", str(error))
             return {
-                "error": str(e),
+                "error": str(error),
                 "domain": domain,
                 "conversation_id": conversation_id,
                 "success": False
@@ -150,8 +149,8 @@ class SelfLearningMixin:
                 knowledge = await self.knowledge_manager.get_domain_knowledge(domain)
                 context["domain_knowledge"] = knowledge
 
-            except Exception as e:
-                self.learning_logger.warning(f"Failed to get knowledge manager context: {e}")
+            except Exception as error:
+                self.learning_logger.warning("Failed to get knowledge manager context: %s", str(error))
 
         # Get RAG snippets if available
         if self.rag_engine and self.enable_rag:
@@ -163,8 +162,8 @@ class SelfLearningMixin:
                 similar_interactions = await self.rag_engine.get_similar_interactions(query, domain)
                 context["similar_interactions"] = similar_interactions
 
-            except Exception as e:
-                self.learning_logger.warning(f"Failed to get RAG context: {e}")
+            except Exception as error:
+                self.learning_logger.warning("Failed to get RAG context: %s", str(error))
                 context["rag_snippets"] = []
                 context["similar_interactions"] = []
 
@@ -297,9 +296,9 @@ class SelfLearningMixin:
             else:
                 return {"error": "Interaction learning not available", "success": False}
 
-        except Exception as e:
-            self.learning_logger.error(f"Error rating interaction: {e}")
-            return {"error": str(e), "success": False}
+        except Exception as error:
+            self.learning_logger.error("Error rating interaction: %s", str(error))
+            return {"error": str(error), "success": False}
 
     async def get_learning_status(self) -> Dict[str, Any]:
         """Get the learning status of this agent"""
@@ -327,15 +326,15 @@ class SelfLearningMixin:
             try:
                 rag_stats = await self.rag_engine.get_system_statistics()
                 status["rag_statistics"] = rag_stats
-            except Exception as e:
-                self.learning_logger.warning(f"Failed to get RAG statistics: {e}")
+            except Exception as error:
+                self.learning_logger.warning("Failed to get RAG statistics: %s", str(error))
 
         if self.interaction_learner:
             try:
                 learning_summary = await self.interaction_learner.get_learning_summary()
                 status["learning_summary"] = learning_summary
-            except Exception as e:
-                self.learning_logger.warning(f"Failed to get learning summary: {e}")
+            except Exception as error:
+                self.learning_logger.warning("Failed to get learning summary: %s", str(error))
 
         return status
 
@@ -352,7 +351,7 @@ class SelfLearningMixin:
 
                 await self.rag_engine.add_knowledge_entry(domain, entry_id, content, metadata)
 
-            self.learning_logger.info(f"Added knowledge entry to domain: {domain}")
+            self.learning_logger.info("Added knowledge entry to domain: %s", domain)
             return True
 
         return False
@@ -371,14 +370,14 @@ class SelfLearningMixin:
             try:
                 learning_insights = await self.interaction_learner.get_domain_insights(domain)
                 insights.update(learning_insights)
-            except Exception as e:
-                self.learning_logger.warning(f"Failed to get interaction insights: {e}")
+            except Exception as error:
+                self.learning_logger.warning("Failed to get interaction insights: %s", str(error))
 
         if self.rag_engine:
             try:
                 rag_stats = await self.rag_engine.get_domain_statistics(domain)
                 insights["rag_statistics"] = rag_stats
-            except Exception as e:
-                self.learning_logger.warning(f"Failed to get RAG domain statistics: {e}")
+            except Exception as error:
+                self.learning_logger.warning("Failed to get RAG domain statistics: %s", str(error))
 
         return insights

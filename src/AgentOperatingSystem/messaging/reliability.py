@@ -3,10 +3,10 @@ Reliability Patterns - Retry, circuit breaker, idempotency.
 """
 
 import asyncio
-import time
 import random
-from typing import Callable, Any, Optional
-from functools import wraps
+import time
+from typing import Any, Callable
+
 
 class RetryPolicy:
     """Exponential backoff retry with jitter."""
@@ -32,8 +32,8 @@ class RetryPolicy:
         for attempt in range(self.max_attempts):
             try:
                 return await func(*args, **kwargs)
-            except Exception as e:
-                last_exception = e
+            except Exception as error:
+                last_exception = error
                 if attempt < self.max_attempts - 1:
                     delay = min(
                         self.initial_delay * (self.exponential_base ** attempt),
@@ -75,9 +75,9 @@ class CircuitBreaker:
             result = await func(*args, **kwargs)
             self._on_success()
             return result
-        except Exception as e:
+        except Exception as error:
             self._on_failure()
-            raise e
+            raise error
 
     def _on_success(self):
         """Handle successful execution."""

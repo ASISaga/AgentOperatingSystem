@@ -6,15 +6,16 @@ Unified authentication system for AOS supporting multiple providers.
 
 import logging
 import os
-import jwt
-from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
+from typing import Any, Dict
+
+import jwt
+
 from ..config.auth import AuthConfig
 
 
 class AuthenticationError(Exception):
     """Authentication-related errors"""
-    pass
 
 
 class AuthManager:
@@ -42,7 +43,7 @@ class AuthManager:
             "jwt": self._configure_jwt()
         }
 
-        self.logger.info(f"AuthManager initialized with provider: {config.auth_provider}")
+        self.logger.info("AuthManager initialized with provider: %s", config.auth_provider)
 
     def _configure_azure_b2c(self) -> Dict[str, Any]:
         """Configure Azure B2C authentication"""
@@ -102,11 +103,11 @@ class AuthManager:
             else:
                 raise AuthenticationError(f"Unsupported authentication type: {auth_type}")
 
-        except Exception as e:
-            self.logger.error(f"Authentication failed: {e}")
+        except Exception as error:
+            self.logger.error("Authentication failed: %s", str(error))
             return {
                 "success": False,
-                "error": str(e)
+                "error": str(error)
             }
 
     async def validate_token(self, token: str) -> Dict[str, Any]:
@@ -155,9 +156,9 @@ class AuthManager:
             return {"valid": False, "error": "Token expired"}
         except jwt.InvalidTokenError:
             return {"valid": False, "error": "Invalid token"}
-        except Exception as e:
-            self.logger.error(f"Token validation failed: {e}")
-            return {"valid": False, "error": str(e)}
+        except Exception as error:
+            self.logger.error("Token validation failed: %s", str(error))
+            return {"valid": False, "error": str(error)}
 
     async def create_session(self, user: Dict[str, Any]) -> str:
         """
@@ -187,7 +188,7 @@ class AuthManager:
             "expires_at": payload["exp"]
         }
 
-        self.logger.info(f"Created session for user: {user.get('id', 'unknown')}")
+        self.logger.info("Created session for user: %s", user.get('id', 'unknown'))
         return token
 
     async def revoke_session(self, token: str) -> bool:
@@ -321,9 +322,9 @@ class AuthManager:
                 "profile": profile_data
             }
 
-        except Exception as e:
-            self.logger.error(f"LinkedIn authentication failed: {e}")
-            raise AuthenticationError(f"LinkedIn authentication failed: {str(e)}")
+        except Exception as error:
+            self.logger.error("LinkedIn authentication failed: %s", str(error))
+            raise AuthenticationError(f"LinkedIn authentication failed: {str(error)}")
 
     async def _authenticate_oauth(self, credentials: Dict[str, Any]) -> Dict[str, Any]:
         """Authenticate using OAuth provider"""

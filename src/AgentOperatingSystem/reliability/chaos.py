@@ -4,12 +4,12 @@ Chaos Engineering Tools
 Provides controlled chaos testing for resilience validation.
 """
 
-import logging
 import asyncio
+import logging
 import random
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List
 
 
 class ChaosType(Enum):
@@ -112,10 +112,10 @@ class ChaosOrchestrator:
 
             return experiment
 
-        except Exception as e:
-            self.logger.error(f"Error in chaos experiment: {e}")
+        except Exception as error:
+            self.logger.error("Error in chaos experiment: %s", str(error))
             experiment["status"] = "failed"
-            experiment["error"] = str(e)
+            experiment["error"] = str(error)
             return experiment
 
     async def _inject_failure(
@@ -137,7 +137,7 @@ class ChaosOrchestrator:
         """
         failure_type = scenario.get("type")
 
-        self.logger.info(f"Injecting failure: {failure_type}")
+        self.logger.info("Injecting failure: %s", failure_type)
 
         result = {
             "type": failure_type,
@@ -196,7 +196,7 @@ class ChaosOrchestrator:
         """Inject network latency"""
         increase_ms = scenario.get("increase_ms", 500)
 
-        self.logger.info(f"Injecting {increase_ms}ms network latency")
+        self.logger.info("Injecting %sms network latency", increase_ms)
 
         # Simulate latency increase
         await asyncio.sleep(increase_ms / 1000.0)
@@ -214,7 +214,7 @@ class ChaosOrchestrator:
         resource = scenario.get("resource", "memory")
         limit = scenario.get("limit", "50%")
 
-        self.logger.info(f"Exhausting {resource} to {limit}")
+        self.logger.info("Exhausting %s to %s", resource, limit)
 
         return {
             "resource": resource,
@@ -230,7 +230,7 @@ class ChaosOrchestrator:
         """Simulate message loss"""
         loss_rate = scenario.get("loss_rate", 0.1)  # 10% loss
 
-        self.logger.info(f"Injecting {loss_rate*100}% message loss")
+        self.logger.info("Injecting %s% message loss", loss_rate*100)
 
         return {
             "loss_rate": loss_rate,
@@ -243,7 +243,7 @@ class ChaosOrchestrator:
         scenario: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Validate that system recovered from failure"""
-        self.logger.info(f"Validating recovery for {target}")
+        self.logger.info("Validating recovery for %s", target)
 
         # In real implementation, would check actual system state
         # For now, simulate successful recovery
@@ -259,7 +259,7 @@ class ChaosOrchestrator:
 
     async def _rollback_experiment(self, experiment_id: str):
         """Rollback a chaos experiment"""
-        self.logger.info(f"Rolling back experiment {experiment_id}")
+        self.logger.info("Rolling back experiment %s", experiment_id)
 
         experiment = self.active_experiments.get(experiment_id)
         if not experiment:
@@ -324,8 +324,8 @@ class ChaosOrchestrator:
                 else:
                     await asyncio.sleep(3600)
 
-            except Exception as e:
-                self.logger.error(f"Error in continuous testing: {e}")
+            except Exception as error:
+                self.logger.error("Error in continuous testing: %s", str(error))
                 await asyncio.sleep(300)  # Wait 5 minutes on error
 
     async def _should_run_test(self) -> bool:

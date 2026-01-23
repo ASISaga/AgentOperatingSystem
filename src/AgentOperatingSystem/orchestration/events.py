@@ -4,11 +4,11 @@ Event-Driven Orchestration
 Provides complex event processing and reactive workflow triggering.
 """
 
-import logging
 import asyncio
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime, timedelta
+import logging
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -52,7 +52,7 @@ class EventDrivenOrchestrator:
             workflow_trigger: Workflow to trigger when pattern matches
             context_enrichment: Additional context to include
         """
-        self.logger.info(f"Registering event pattern: {pattern.name}")
+        self.logger.info("Registering event pattern: %s", pattern.name)
 
         self.patterns[pattern.name] = {
             "pattern": pattern,
@@ -116,8 +116,8 @@ class EventDrivenOrchestrator:
 
                 await asyncio.sleep(10)  # Check every 10 seconds
 
-            except Exception as e:
-                self.logger.error(f"Error processing events: {e}")
+            except Exception as error:
+                self.logger.error("Error processing events: %s", str(error))
                 await asyncio.sleep(5)
 
     async def _check_patterns(self, new_event: Dict[str, Any]):
@@ -126,7 +126,7 @@ class EventDrivenOrchestrator:
             pattern = pattern_data["pattern"]
 
             if await self._matches_pattern(new_event, pattern):
-                self.logger.info(f"Event pattern '{pattern_name}' matched!")
+                self.logger.info("Event pattern '%s' matched!", pattern_name)
 
                 # Trigger workflow
                 workflow_id = pattern_data["workflow_trigger"]
@@ -218,7 +218,7 @@ class EventDrivenOrchestrator:
         context_enrichment: List[str]
     ):
         """Trigger a workflow based on pattern match"""
-        self.logger.info(f"Triggering workflow '{workflow_id}' from pattern '{pattern_name}'")
+        self.logger.info("Triggering workflow '%s' from pattern '%s'", workflow_id, pattern_name)
 
         # In real implementation, would call orchestration engine
         # For now, just log
@@ -229,7 +229,7 @@ class EventDrivenOrchestrator:
             "triggered_at": datetime.utcnow().isoformat()
         }
 
-        self.logger.debug(f"Workflow context: {context}")
+        self.logger.debug("Workflow context: %s", context)
 
     async def setup_stream_processing(self, stream_config: Dict[str, Any]):
         """
@@ -251,4 +251,4 @@ class EventDrivenOrchestrator:
             "trigger_workflows": trigger_workflows
         }
 
-        self.logger.info(f"Configured {len(sources)} stream sources")
+        self.logger.info("Configured %s stream sources", len(sources))

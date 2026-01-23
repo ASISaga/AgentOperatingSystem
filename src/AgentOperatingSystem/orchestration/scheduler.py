@@ -5,10 +5,9 @@ Provides advanced resource scheduling and allocation for workflows.
 """
 
 import logging
-import asyncio
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class WorkflowPriority(Enum):
@@ -47,7 +46,7 @@ class IntelligentScheduler:
             policies: Scheduling configuration
         """
         self.policies = policies
-        self.logger.info(f"Configured scheduler with {len(policies)} policies")
+        self.logger.info("Configured scheduler with %s policies", len(policies))
 
         # Extract resource quotas
         if "resource_quotas" in policies:
@@ -71,7 +70,7 @@ class IntelligentScheduler:
             affinity_rules: Agent-to-node affinity
             anti_affinity_rules: Agent-to-node anti-affinity
         """
-        self.logger.info(f"Scheduling workflow {workflow_id} with priority {priority.name}")
+        self.logger.info("Scheduling workflow %s with priority %s", workflow_id, priority.name)
 
         schedule_entry = {
             "workflow_id": workflow_id,
@@ -139,7 +138,7 @@ class IntelligentScheduler:
         Args:
             target_metrics: Target performance metrics
         """
-        self.logger.info(f"Enabling auto-scaling with targets: {target_metrics}")
+        self.logger.info("Enabling auto-scaling with targets: %s", target_metrics)
         self.policies["auto_scale"] = True
         self.policies["target_metrics"] = target_metrics
 
@@ -167,7 +166,7 @@ class ResourcePredictor:
         Returns:
             Predicted resource requirements
         """
-        self.logger.info(f"Predicting resources for workflow type: {workflow_type}")
+        self.logger.info("Predicting resources for workflow type: %s", workflow_type)
 
         # Simple average-based prediction
         # Can be enhanced with ML models

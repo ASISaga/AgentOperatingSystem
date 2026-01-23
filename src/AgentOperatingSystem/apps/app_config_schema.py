@@ -6,9 +6,10 @@ Similar to how BusinessInfinity is installed on AOS, this enables plug-and-play
 app deployment with configuration-driven agent orchestration.
 """
 
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class AppType(str, Enum):

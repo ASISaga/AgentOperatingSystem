@@ -8,10 +8,10 @@ Implements core governance capabilities as specified in features.md:
 - Decision rationale (structured memos for precedent)
 """
 
-from .audit import AuditLogger, AuditEntry, AuditLevel
+from .audit import AuditEntry, AuditLevel, AuditLogger
 from .compliance import ComplianceAssertion, ComplianceFramework, ControlMapping
-from .risk import RiskRegistry, RiskEntry, RiskLevel, RiskStatus
-from .decision_rationale import DecisionRationale, DecisionOutcome
+from .decision_rationale import DecisionOutcome, DecisionRationale
+from .risk import RiskEntry, RiskLevel, RiskRegistry, RiskStatus
 
 __all__ = [
     'AuditLogger',

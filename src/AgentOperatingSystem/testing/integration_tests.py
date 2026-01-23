@@ -5,11 +5,11 @@ Provides end-to-end integration testing capabilities for cross-agent
 interactions, workflows, and persistence validation.
 """
 
-from typing import Dict, Any, List, Optional, Callable, Awaitable
-from datetime import datetime
 import asyncio
 import logging
+from datetime import datetime
 from enum import Enum
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from ..platform.contracts import MessageEnvelope
 from ..platform.events import BaseEvent
@@ -82,16 +82,16 @@ class TestScenario:
             else:
                 self.status = TestScenarioStatus.PASSED
 
-        except Exception as e:
+        except Exception as error:
             self.status = TestScenarioStatus.FAILED
-            self.error = str(e)
+            self.error = str(error)
 
         finally:
             # Teardown phase
             if self.teardown:
                 try:
                     await self.teardown()
-                except Exception as e:
+                except Exception:
                     # Log teardown errors but don't fail the test
                     pass
 
@@ -142,7 +142,7 @@ class IntegrationTestFramework:
             scenario: TestScenario to register
         """
         self.scenarios.append(scenario)
-        self.logger.info(f"Registered test scenario: {scenario.name}")
+        self.logger.info("Registered test scenario: %s", scenario.name)
 
     async def run_all_scenarios(self) -> Dict[str, Any]:
         """
@@ -151,17 +151,17 @@ class IntegrationTestFramework:
         Returns:
             Comprehensive test report
         """
-        self.logger.info(f"Running {len(self.scenarios)} integration test scenarios")
+        self.logger.info("Running %s integration test scenarios", len(self.scenarios))
 
         for scenario in self.scenarios:
-            self.logger.info(f"Running scenario: {scenario.name}")
+            self.logger.info("Running scenario: %s", scenario.name)
             result = await scenario.run()
             self.test_results.append(result)
 
             if result["status"] == TestScenarioStatus.PASSED.value:
-                self.logger.info(f"✅ Scenario passed: {scenario.name}")
+                self.logger.info("✅ Scenario passed: %s", scenario.name)
             else:
-                self.logger.error(f"❌ Scenario failed: {scenario.name} - {result.get('error')}")
+                self.logger.error("❌ Scenario failed: %s - %s", scenario.name, result.get('error'))
 
         return self.generate_report()
 
@@ -180,7 +180,7 @@ class IntegrationTestFramework:
         if not scenario:
             raise ValueError(f"Scenario not found: {scenario_name}")
 
-        self.logger.info(f"Running scenario: {scenario_name}")
+        self.logger.info("Running scenario: %s", scenario_name)
         result = await scenario.run()
         self.test_results.append(result)
 
@@ -254,7 +254,7 @@ class EndToEndTestRunner:
 
         try:
             # This is a template - actual implementation would integrate with messaging layer
-            self.logger.info(f"Testing interaction: {agent1_id} -> {agent2_id}")
+            self.logger.info("Testing interaction: %s -> %s", agent1_id, agent2_id)
 
             # Validate message structure
             assert message.actor == agent1_id, "Message actor must match sending agent"
@@ -270,12 +270,12 @@ class EndToEndTestRunner:
                 pass
 
             result["status"] = "passed"
-            self.logger.info(f"✅ Agent interaction test passed")
+            self.logger.info("✅ Agent interaction test passed")
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Agent interaction test failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Agent interaction test failed: %s", str(error))
 
         return result
 
@@ -306,14 +306,14 @@ class EndToEndTestRunner:
         }
 
         try:
-            self.logger.info(f"Testing workflow: {workflow_name} ({len(workflow_steps)} steps)")
+            self.logger.info("Testing workflow: %s (%s steps)", workflow_name, len(workflow_steps))
 
             current_state = initial_state.copy()
 
             # Execute workflow steps
             for i, step in enumerate(workflow_steps):
                 step_name = step.get("name", f"step_{i}")
-                self.logger.debug(f"Executing step: {step_name}")
+                self.logger.debug("Executing step: %s", step_name)
 
                 # In a real implementation, this would:
                 # 1. Execute the actual workflow step
@@ -331,12 +331,12 @@ class EndToEndTestRunner:
 
             result["status"] = "passed"
             result["final_state"] = current_state
-            self.logger.info(f"✅ Workflow execution test passed")
+            self.logger.info("✅ Workflow execution test passed")
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Workflow execution test failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Workflow execution test failed: %s", str(error))
 
         return result
 
@@ -365,7 +365,7 @@ class EndToEndTestRunner:
         }
 
         try:
-            self.logger.info(f"Testing persistence for: {entity_type}")
+            self.logger.info("Testing persistence for: %s", entity_type)
 
             # In a real implementation, this would:
             # 1. Store the entity
@@ -386,12 +386,12 @@ class EndToEndTestRunner:
 
             result["status"] = "passed"
             result["entity_id"] = entity_id
-            self.logger.info(f"✅ Persistence test passed")
+            self.logger.info("✅ Persistence test passed")
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Persistence test failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Persistence test failed: %s", str(error))
 
         return result
 
@@ -420,7 +420,7 @@ class EndToEndTestRunner:
         }
 
         try:
-            self.logger.info(f"Testing event propagation to {len(expected_subscribers)} subscribers")
+            self.logger.info("Testing event propagation to %s subscribers", len(expected_subscribers))
 
             # In a real implementation, this would:
             # 1. Publish the event
@@ -443,11 +443,11 @@ class EndToEndTestRunner:
 
             result["status"] = "passed"
             result["received_by"] = received_by
-            self.logger.info(f"✅ Event propagation test passed")
+            self.logger.info("✅ Event propagation test passed")
 
-        except Exception as e:
+        except Exception as error:
             result["status"] = "failed"
-            result["error"] = str(e)
-            self.logger.error(f"❌ Event propagation test failed: {e}")
+            result["error"] = str(error)
+            self.logger.error("❌ Event propagation test failed: %s", str(error))
 
         return result

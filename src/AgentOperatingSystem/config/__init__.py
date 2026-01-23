@@ -10,16 +10,17 @@ AOS Core Configuration Management
 Centralized configuration for the Agent Operating System.
 """
 
+from .aos import AOSConfig, default_config
+from .auth import AuthConfig
+from .decision import DecisionConfig
+from .learning import LearningConfig
+
 # Refactored: All config classes are now in their own modules.
 from .messagebus import MessageBusConfig
-from .decision import DecisionConfig
+from .ml import MLConfig
+from .monitoring import MonitoringConfig
 from .orchestration import OrchestrationConfig
 from .storage import StorageConfig
-from .monitoring import MonitoringConfig
-from .ml import MLConfig
-from .auth import AuthConfig
-from .learning import LearningConfig
-from .aos import AOSConfig, default_config
 
 __all__ = [
     "MessageBusConfig",

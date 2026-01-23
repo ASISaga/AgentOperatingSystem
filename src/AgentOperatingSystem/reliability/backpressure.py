@@ -5,13 +5,12 @@ Queue monitoring, rate limiting, and load shedding for non-critical tasks
 to prevent system overload.
 """
 
-from typing import Optional, Callable, Any
-from datetime import datetime, timedelta
-from collections import deque
-from pydantic import BaseModel, Field
-import asyncio
 import logging
+from collections import deque
+from datetime import datetime, timedelta
+from typing import Any, Callable, Optional
 
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +164,7 @@ class BackpressureController:
         # Check load shedding
         if self.should_shed_load(is_critical):
             self._total_shed += 1
-            logger.warning(f"Shedding load for {self.name} (total shed: {self._total_shed})")
+            logger.warning("Shedding load for %s (total shed: %s)", self.name, self._total_shed)
             raise LoadSheddingError(f"Load shed by {self.name}")
 
         # Check rate limit
@@ -209,7 +208,7 @@ class BackpressureController:
         # Check load shedding
         if self.should_shed_load(is_critical):
             self._total_shed += 1
-            logger.warning(f"Shedding load for {self.name} (total shed: {self._total_shed})")
+            logger.warning("Shedding load for %s (total shed: %s)", self.name, self._total_shed)
             raise LoadSheddingError(f"Load shed by {self.name}")
 
         # Check rate limit
@@ -313,14 +312,11 @@ class LoadShedder:
 
 class BackpressureError(Exception):
     """Base exception for backpressure-related errors"""
-    pass
 
 
 class LoadSheddingError(BackpressureError):
     """Exception raised when load is shed"""
-    pass
 
 
 class RateLimitError(BackpressureError):
     """Exception raised when rate limit is exceeded"""
-    pass

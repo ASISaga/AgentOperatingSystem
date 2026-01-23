@@ -9,29 +9,16 @@ Implements core reliability patterns as specified in features.md:
 - Backpressure controls
 """
 
-from .idempotency import IdempotencyHandler, IdempotencyKey
-from .retry import RetryPolicy, RetryHandler, BackoffStrategy
-from .circuit_breaker import CircuitBreaker, CircuitState
-from .state_machine import StateMachine, State, Transition
-from .backpressure import BackpressureController, LoadShedder
 
 # Generic reliability patterns from migration
 try:
-    from .patterns import (
-        CircuitBreaker as GenericCircuitBreaker,
-        RetryPolicy as GenericRetryPolicy,
-        IdempotencyHandler as GenericIdempotencyHandler,
-        with_retry,
-        with_circuit_breaker
-    )
     HAS_PATTERNS = True
 except ImportError:
     HAS_PATTERNS = False
 
 # Advanced reliability features
 try:
-    from .state_machine_advanced import DistributedStateMachine, StateTransitionError
-    from .chaos import ChaosOrchestrator, ChaosType
+    pass
 
     base_exports = [
         'IdempotencyHandler',

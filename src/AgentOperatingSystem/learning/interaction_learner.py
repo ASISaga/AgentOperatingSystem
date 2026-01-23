@@ -6,11 +6,10 @@ Provides feedback processing and continuous learning capabilities.
 """
 
 import logging
-import asyncio
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timedelta
-from collections import defaultdict
 import statistics
+from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 from ..storage.manager import StorageManager
 
@@ -51,8 +50,8 @@ class InteractionLearner:
 
             self.logger.info("Interaction Learner initialized successfully")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Interaction Learner: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Interaction Learner: %s", str(error))
             raise
 
     async def _load_interaction_history(self):
@@ -61,13 +60,13 @@ class InteractionLearner:
             if await self.storage.exists(self.interactions_path):
                 data = await self.storage.read_json(self.interactions_path)
                 self.interaction_history = data.get("interactions", [])
-                self.logger.info(f"Loaded {len(self.interaction_history)} interactions")
+                self.logger.info("Loaded %s interactions", len(self.interaction_history))
             else:
                 self.interaction_history = []
                 await self._save_interaction_history()
 
-        except Exception as e:
-            self.logger.error(f"Failed to load interaction history: {e}")
+        except Exception as error:
+            self.logger.error("Failed to load interaction history: %s", str(error))
 
     async def _load_patterns(self):
         """Load conversation patterns from storage"""
@@ -77,12 +76,12 @@ class InteractionLearner:
                 # Convert defaultdict back from regular dict
                 for key, value in data.items():
                     self.conversation_patterns[key] = value
-                self.logger.info(f"Loaded patterns for {len(self.conversation_patterns)} categories")
+                self.logger.info("Loaded patterns for %s categories", len(self.conversation_patterns))
             else:
                 await self._save_patterns()
 
-        except Exception as e:
-            self.logger.error(f"Failed to load patterns: {e}")
+        except Exception as error:
+            self.logger.error("Failed to load patterns: %s", str(error))
 
     async def _load_metrics(self):
         """Load success metrics from storage"""
@@ -92,12 +91,12 @@ class InteractionLearner:
                 # Convert defaultdict back from regular dict
                 for key, value in data.items():
                     self.success_metrics[key] = value
-                self.logger.info(f"Loaded metrics for {len(self.success_metrics)} categories")
+                self.logger.info("Loaded metrics for %s categories", len(self.success_metrics))
             else:
                 await self._save_metrics()
 
-        except Exception as e:
-            self.logger.error(f"Failed to load metrics: {e}")
+        except Exception as error:
+            self.logger.error("Failed to load metrics: %s", str(error))
 
     async def _save_interaction_history(self):
         """Save interaction history to storage"""
@@ -146,7 +145,7 @@ class InteractionLearner:
         # Save to storage
         await self._save_interaction_history()
 
-        self.logger.debug(f"Logged interaction for agent {agent_id} in domain {domain}")
+        self.logger.debug("Logged interaction for agent %s in domain %s", agent_id, domain)
 
     async def add_feedback(self, conversation_id: str, rating: float, feedback: str = None):
         """Add user feedback to an interaction"""
@@ -163,10 +162,10 @@ class InteractionLearner:
                 await self._save_interaction_history()
                 await self._save_metrics()
 
-                self.logger.info(f"Added feedback (rating: {rating}) to conversation {conversation_id}")
+                self.logger.info("Added feedback (rating: %s) to conversation %s", rating, conversation_id)
                 return True
 
-        self.logger.warning(f"Conversation {conversation_id} not found for feedback")
+        self.logger.warning("Conversation %s not found for feedback", conversation_id)
         return False
 
     async def _analyze_interaction(self, interaction: Dict[str, Any]):
@@ -246,7 +245,7 @@ class InteractionLearner:
 
         removed_count = original_count - len(self.interaction_history)
         if removed_count > 0:
-            self.logger.debug(f"Cleaned up {removed_count} old interactions")
+            self.logger.debug("Cleaned up %s old interactions", removed_count)
 
     async def get_domain_insights(self, domain: str) -> Dict[str, Any]:
         """Get learning insights for a specific domain"""

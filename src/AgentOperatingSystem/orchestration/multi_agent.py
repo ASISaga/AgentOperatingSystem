@@ -5,14 +5,12 @@ Provides multi-agent orchestration capabilities using Microsoft Agent Framework.
 Supports agent collaboration, workflow execution, and advanced orchestration patterns.
 """
 
-import os
-import asyncio
 import logging
-from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict, List
 
 try:
-    from agent_framework import ChatAgent, WorkflowBuilder
+    from agent_framework import ChatAgent
     AGENT_FRAMEWORK_AVAILABLE = True
 except ImportError:
     AGENT_FRAMEWORK_AVAILABLE = False
@@ -21,8 +19,8 @@ except ImportError:
 if TYPE_CHECKING:
     from agent_framework import ChatAgent
 
-from .agent_framework_system import AgentFrameworkSystem
 from ..agents.purpose_driven import BaseAgent
+from .agent_framework_system import AgentFrameworkSystem
 
 # Agent role definitions
 BA_AGENT_NAME = "BusinessAnalyst"
@@ -106,8 +104,8 @@ class MultiAgentSystem:
             self.is_initialized = True
             self.logger.info("Multi-Agent System initialized successfully")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Multi-Agent System: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Multi-Agent System: %s", str(error))
             raise
 
     async def _initialize_default_agents(self):
@@ -128,10 +126,10 @@ class MultiAgentSystem:
             await po_agent.initialize()
             self.agents[PO_AGENT_NAME] = po_agent
 
-            self.logger.info(f"Initialized {len(self.agents)} default agents")
+            self.logger.info("Initialized %s default agents", len(self.agents))
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize default agents: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize default agents: %s", str(error))
 
     async def run_multi_agent_conversation(self, input_message: str, agent_roles: List[str] = None) -> Dict[str, Any]:
         """
@@ -149,7 +147,7 @@ class MultiAgentSystem:
 
         try:
             conversation_id = f"conversation_{datetime.now().timestamp()}"
-            self.logger.info(f"Starting multi-agent conversation: {conversation_id}")
+            self.logger.info("Starting multi-agent conversation: %s", conversation_id)
 
             # Use Agent Framework system for conversation
             result = await self.agent_framework_system.run_multi_agent_conversation(
@@ -167,12 +165,12 @@ class MultiAgentSystem:
             result["conversation_id"] = conversation_id
             return result
 
-        except Exception as e:
-            self.logger.error(f"Multi-agent conversation failed: {e}")
+        except Exception as error:
+            self.logger.error("Multi-agent conversation failed: %s", str(error))
             self.stats["failed_completions"] += 1
             return {
                 "success": False,
-                "error": str(e),
+                "error": str(error),
                 "conversation_id": conversation_id
             }
 
@@ -226,8 +224,8 @@ class MultiAgentSystem:
                 "reason": "max_iterations_reached"
             }
 
-        except Exception as e:
-            self.logger.error(f"Basic conversation failed: {e}")
+        except Exception as error:
+            self.logger.error("Basic conversation failed: %s", str(error))
             raise
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -285,8 +283,8 @@ class MultiAgentSystem:
 
             self.logger.info("Multi-Agent System shutdown completed")
 
-        except Exception as e:
-            self.logger.error(f"Error during shutdown: {e}")
+        except Exception as error:
+            self.logger.error("Error during shutdown: %s", str(error))
 
 
 class BusinessAnalystAgent(BaseAgent):

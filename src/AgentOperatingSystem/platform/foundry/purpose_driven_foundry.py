@@ -12,18 +12,17 @@ Architecture:
 - Stateful threads managed by Azure AI Agents
 """
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+import json
 import logging
 import os
-import json
+from typing import Any, Dict, List, Optional
+
 from azure.ai.agents import AgentsClient
 from azure.ai.agents.models import (
     Agent,
     AgentThread,
-    ThreadRun,
-    FunctionTool,
     FunctionDefinition,
+    FunctionTool,
     ToolSet,
 )
 from azure.identity.aio import DefaultAzureCredential
@@ -178,8 +177,8 @@ class PurposeDrivenAgentFoundry(PurposeDrivenAgent):
 
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize on Foundry runtime: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize on Foundry runtime: %s", str(error))
             return False
 
     def _build_agent_instructions(self) -> str:
@@ -225,8 +224,8 @@ Work continuously toward your purpose. Make decisions aligned with your purpose 
                 )
                 function_tool = FunctionTool(function=function_def)
                 toolset.add_tool(function_tool)
-            except Exception as e:
-                self.logger.warning(f"Failed to convert tool to Foundry ToolSet: {e}")
+            except Exception as error:
+                self.logger.warning("Failed to convert tool to Foundry ToolSet: %s", str(error))
 
         return toolset
 
@@ -275,11 +274,11 @@ Work continuously toward your purpose. Make decisions aligned with your purpose 
                 "run_id": run.id
             }
 
-        except Exception as e:
-            self.logger.error(f"Failed to process event on Foundry runtime: {e}")
+        except Exception as error:
+            self.logger.error("Failed to process event on Foundry runtime: %s", str(error))
             return {
                 "success": False,
-                "error": str(e)
+                "error": str(error)
             }
 
     async def start(self):
@@ -294,7 +293,7 @@ Work continuously toward your purpose. Make decisions aligned with your purpose 
 
         self.is_running = True
         self.logger.info(
-            f"Agent {self.agent_id} running on Foundry runtime with Llama 3.3 70B + {self.lora_adapter_name} LoRA"
+            "Agent %s running on Foundry runtime with Llama 3.3 70B + %s LoRA", self.agent_id, self.lora_adapter_name
         )
 
     async def stop(self):
@@ -304,7 +303,7 @@ Work continuously toward your purpose. Make decisions aligned with your purpose 
         Note: The Foundry agent itself continues to exist but won't process new events.
         """
         self.is_running = False
-        self.logger.info(f"Agent {self.agent_id} stopped (Foundry agent still exists)")
+        self.logger.info("Agent %s stopped (Foundry agent still exists)", self.agent_id)
 
     async def cleanup(self):
         """
@@ -316,6 +315,6 @@ Work continuously toward your purpose. Make decisions aligned with your purpose 
             if self.foundry_client and self.foundry_agent:
                 # Optionally delete the Foundry agent
                 # await self.foundry_client.delete_agent(self.foundry_agent.id)
-                self.logger.info(f"Agent {self.agent_id} cleanup completed")
-        except Exception as e:
-            self.logger.error(f"Error during cleanup: {e}")
+                self.logger.info("Agent %s cleanup completed", self.agent_id)
+        except Exception as error:
+            self.logger.error("Error during cleanup: %s", str(error))

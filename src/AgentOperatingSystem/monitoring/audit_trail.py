@@ -13,17 +13,17 @@ Supports compliance requirements (SOX, GDPR, HIPAA) and audit trail integrity.
 This is the OS-level audit infrastructure.
 """
 
+import hashlib
 import json
 import logging
-import hashlib
+import threading
 import uuid
-from typing import Dict, Any, List, Optional, Set
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
-from dataclasses import dataclass, field, asdict
 from enum import Enum
 from pathlib import Path
-import threading
-from contextlib import contextmanager
+from typing import Any, Dict, List, Optional, Set
 
 
 class AuditEventType(Enum):
@@ -284,7 +284,7 @@ class AuditTrailManager:
         if severity in [AuditSeverity.ERROR, AuditSeverity.CRITICAL]:
             self._flush_buffer()
 
-        self.logger.debug(f"Audit event logged: {event_id} - {action}")
+        self.logger.debug("Audit event logged: %s - %s", event_id, action)
         return event_id
 
     def _flush_buffer(self):
@@ -303,8 +303,8 @@ class AuditTrailManager:
 
             self._event_buffer.clear()
 
-        except Exception as e:
-            self.logger.error(f"Failed to flush audit buffer: {e}")
+        except Exception as error:
+            self.logger.error("Failed to flush audit buffer: %s", str(error))
 
     async def query_events(self, query: AuditQuery) -> List[AuditEvent]:
         """Query audit events based on specified criteria"""
@@ -333,8 +333,8 @@ class AuditTrailManager:
                             if len(events) >= query.limit:
                                 return events[query.offset:]
 
-            except Exception as e:
-                self.logger.error(f"Error reading log file {log_file}: {e}")
+            except Exception as error:
+                self.logger.error("Error reading log file %s: %s", log_file, str(error))
 
         return events[query.offset:]
 
@@ -416,19 +416,18 @@ class AuditTrailManager:
         config_file = self.storage_path / "audit_config.json"
         if config_file.exists():
             try:
-                with config_file.open('r') as f:
+                with config_file.open('r', encoding="utf-8") as f:
                     config = json.load(f)
                     self._retention_policies.update(config.get('retention_policies', {}))
                     self._buffer_max_size = config.get('buffer_max_size', self._buffer_max_size)
-            except Exception as e:
-                self.logger.error(f"Failed to load audit config: {e}")
+            except Exception as error:
+                self.logger.error("Failed to load audit config: %s", str(error))
 
     async def _start_background_tasks(self):
         """Start background maintenance tasks"""
         # Start periodic buffer flush
         # Start log rotation and cleanup
         # These would be implemented as asyncio tasks
-        pass
 
     async def health_check(self) -> Dict[str, Any]:
         """Get health status of audit trail manager"""
@@ -490,15 +489,15 @@ def audit_context(action: str,
             **kwargs
         )
 
-    except Exception as e:
+    except Exception as error:
         # Log failure
         duration = (datetime.now() - start_time).total_seconds()
         audit_log(
             AuditEventType.SYSTEM_ERROR,
-            f"{action} failed: {str(e)}",
+            f"{action} failed: {str(error)}",
             subject_id=subject_id,
             severity=AuditSeverity.ERROR,
-            context={"error": str(e), "error_type": type(e).__name__},
+            context={"error": str(error), "error_type": type(error).__name__},
             metrics={"duration_seconds": duration},
             **kwargs
         )

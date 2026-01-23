@@ -9,8 +9,8 @@ Architecture:
 - MCP provides context management and domain-specific tools
 """
 
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Any, Dict, List
+
 from .leadership_agent import LeadershipAgent
 
 
@@ -177,8 +177,8 @@ class CMOAgent(LeadershipAgent):
             result["purpose_type"] = purpose_type
             result["adapter_used"] = adapter_name
             return result
-        except Exception as e:
-            self.logger.error(f"Error executing task with {purpose_type} purpose: {e}")
+        except Exception as error:
+            self.logger.error("Error executing task with %s purpose: %s", purpose_type, str(error))
             raise
         finally:
             # Always restore original adapter, even if exception occurred

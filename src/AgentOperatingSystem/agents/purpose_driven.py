@@ -18,13 +18,13 @@ Architecture Components:
 PurposeDrivenAgent will eventually be moved to a dedicated repository.
 """
 
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime
-import logging
 import asyncio
-import uuid
-from ..ml.pipeline_ops import trigger_lora_training, run_azure_ml_pipeline, aml_infer
+import logging
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional
+
 from ..mcp.context_server import ContextMCPServer
+from ..ml.pipeline_ops import aml_infer, run_azure_ml_pipeline, trigger_lora_training
 
 
 class PurposeDrivenAgent:
@@ -178,7 +178,7 @@ class PurposeDrivenAgent:
             True if initialization successful
         """
         try:
-            self.logger.info(f"Initializing perpetual agent {self.agent_id}")
+            self.logger.info("Initializing perpetual agent %s", self.agent_id)
 
             # Initialize MCP context server for persistence
             await self._setup_mcp_context_server()
@@ -189,7 +189,7 @@ class PurposeDrivenAgent:
             # Set up event listeners
             await self._setup_event_listeners()
 
-            self.logger.info(f"Perpetual agent {self.agent_id} initialized")
+            self.logger.info("Perpetual agent %s initialized", self.agent_id)
 
             # Purpose-specific initialization
             try:
@@ -209,12 +209,12 @@ class PurposeDrivenAgent:
                 )
                 return True
 
-            except Exception as e:
-                self.logger.error(f"Failed to initialize PurposeDrivenAgent: {e}")
+            except Exception as error:
+                self.logger.error("Failed to initialize PurposeDrivenAgent: %s", str(error))
                 return False
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize perpetual agent {self.agent_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize perpetual agent %s: %s", self.agent_id, str(error))
             return False
 
     async def start(self) -> bool:
@@ -228,18 +228,18 @@ class PurposeDrivenAgent:
             True when agent is running
         """
         try:
-            self.logger.info(f"Starting perpetual agent {self.agent_id}")
+            self.logger.info("Starting perpetual agent %s", self.agent_id)
 
             self.is_running = True
 
             # Enter perpetual loop
             asyncio.create_task(self._perpetual_loop())
 
-            self.logger.info(f"Perpetual agent {self.agent_id} is now running indefinitely")
+            self.logger.info("Perpetual agent %s is now running indefinitely", self.agent_id)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to start perpetual agent {self.agent_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to start perpetual agent %s: %s", self.agent_id, str(error))
             return False
 
     async def stop(self) -> bool:
@@ -256,7 +256,7 @@ class PurposeDrivenAgent:
             True if stopped successfully
         """
         try:
-            self.logger.info(f"Stopping perpetual agent {self.agent_id}")
+            self.logger.info("Stopping perpetual agent %s", self.agent_id)
 
             # Save purpose-specific state
             if self.mcp_context_server:
@@ -269,11 +269,11 @@ class PurposeDrivenAgent:
 
             self.is_running = False
 
-            self.logger.info(f"Perpetual agent {self.agent_id} stopped gracefully")
+            self.logger.info("Perpetual agent %s stopped gracefully", self.agent_id)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error stopping perpetual agent {self.agent_id}: {e}")
+        except Exception as error:
+            self.logger.error("Error stopping perpetual agent %s: %s", self.agent_id, str(error))
             return False
 
     async def handle_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
@@ -342,8 +342,8 @@ class PurposeDrivenAgent:
             )
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to subscribe to event {event_type}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to subscribe to event %s: %s", event_type, str(error))
             return False
 
     async def handle_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
@@ -372,7 +372,7 @@ class PurposeDrivenAgent:
             await self._awaken()
 
             event_type = event.get("type")
-            self.logger.info(f"Agent {self.agent_id} processing event: {event_type}")
+            self.logger.info("Agent %s processing event: %s", self.agent_id, event_type)
 
             result = {"status": "success", "processed_by": self.agent_id}
 
@@ -385,9 +385,9 @@ class PurposeDrivenAgent:
                     try:
                         handler_result = await handler(event.get("data", {}))
                         handler_results.append(handler_result)
-                    except Exception as e:
-                        self.logger.error(f"Handler error for {event_type}: {e}")
-                        handler_results.append({"error": str(e)})
+                    except Exception as error:
+                        self.logger.error("Handler error for %s: %s", event_type, str(error))
+                        handler_results.append({"error": str(error)})
 
                 result["handler_results"] = handler_results
 
@@ -405,9 +405,9 @@ class PurposeDrivenAgent:
 
             return result
 
-        except Exception as e:
-            self.logger.error(f"Error handling event: {e}")
-            return {"status": "error", "error": str(e)}
+        except Exception as error:
+            self.logger.error("Error handling event: %s", str(error))
+            return {"status": "error", "error": str(error)}
 
     async def act(self, action: str, params: Dict[str, Any]) -> Any:
         """
@@ -449,8 +449,8 @@ class PurposeDrivenAgent:
             else:
                 return {"status": "error", "error": "No action specified"}
 
-        except Exception as e:
-            return {"status": "error", "error": str(e)}
+        except Exception as error:
+            return {"status": "error", "error": str(error)}
 
     async def get_state(self) -> Dict[str, Any]:
         """
@@ -548,7 +548,7 @@ class PurposeDrivenAgent:
                 "decision": decision
             })
 
-        self.logger.info(f"Made purpose-driven decision: {decision['decision_id']}")
+        self.logger.info("Made purpose-driven decision: %s", decision['decision_id'])
 
         return decision
 
@@ -590,7 +590,7 @@ class PurposeDrivenAgent:
                 goal
             )
 
-        self.logger.info(f"Added goal: {goal_id} - {goal_description}")
+        self.logger.info("Added goal: %s - %s", goal_id, goal_description)
 
         return goal_id
 
@@ -628,7 +628,7 @@ class PurposeDrivenAgent:
                     self.active_goals.remove(goal)
                     self.completed_goals.append(goal)
                     self.purpose_metrics["goals_achieved"] += 1
-                    self.logger.info(f"Goal completed: {goal_id}")
+                    self.logger.info("Goal completed: %s", goal_id)
 
                 # Update in context
                 if self.mcp_context_server:
@@ -666,7 +666,7 @@ class PurposeDrivenAgent:
 
         This loop keeps the agent alive and responsive to events.
         """
-        self.logger.info(f"Agent {self.agent_id} entered perpetual loop")
+        self.logger.info("Agent %s entered perpetual loop", self.agent_id)
 
         while self.is_running:
             try:
@@ -681,25 +681,25 @@ class PurposeDrivenAgent:
                 # Sleep briefly to avoid busy-waiting
                 await asyncio.sleep(1)
 
-            except Exception as e:
-                self.logger.error(f"Error in perpetual loop: {e}")
+            except Exception as error:
+                self.logger.error("Error in perpetual loop: %s", str(error))
                 # Don't exit on errors - perpetual agents are resilient
                 await asyncio.sleep(5)
 
-        self.logger.info(f"Agent {self.agent_id} exited perpetual loop")
+        self.logger.info("Agent %s exited perpetual loop", self.agent_id)
 
     async def _awaken(self) -> None:
         """Awaken agent from sleep mode."""
         if self.sleep_mode:
             self.sleep_mode = False
             self.wake_count += 1
-            self.logger.debug(f"Agent {self.agent_id} awakened (count: {self.wake_count})")
+            self.logger.debug("Agent %s awakened (count: %s)", self.agent_id, self.wake_count)
 
     async def _sleep(self) -> None:
         """Put agent into sleep mode."""
         if not self.sleep_mode:
             self.sleep_mode = True
-            self.logger.debug(f"Agent {self.agent_id} sleeping")
+            self.logger.debug("Agent %s sleeping", self.agent_id)
 
     async def _setup_mcp_context_server(self) -> None:
         """
@@ -718,22 +718,22 @@ class PurposeDrivenAgent:
                 config=self.config.get("context_server", {})
             )
             await self.mcp_context_server.initialize()
-            self.logger.info(f"ContextMCPServer initialized for agent {self.agent_id}")
-        except Exception as e:
-            self.logger.error(f"Failed to initialize ContextMCPServer: {e}")
+            self.logger.info("ContextMCPServer initialized for agent %s", self.agent_id)
+        except Exception as error:
+            self.logger.error("Failed to initialize ContextMCPServer: %s", str(error))
             raise
 
     async def _setup_event_listeners(self) -> None:
         """Set up event listening infrastructure."""
         # This would integrate with the messaging/event bus in production
-        self.logger.debug(f"Event listeners set up for agent {self.agent_id}")
+        self.logger.debug("Event listeners set up for agent %s", self.agent_id)
 
     async def _load_context_from_mcp(self) -> None:
         """Load previously saved context from ContextMCPServer."""
         if self.mcp_context_server:
             # Context is automatically loaded during ContextMCPServer initialization
             context = await self.mcp_context_server.get_all_context()
-            self.logger.debug(f"Loaded {len(context)} context items from ContextMCPServer")
+            self.logger.debug("Loaded %s context items from ContextMCPServer", len(context))
 
     async def _save_context_to_mcp(self) -> None:
         """Save current context to ContextMCPServer."""
@@ -742,7 +742,7 @@ class PurposeDrivenAgent:
             await self.mcp_context_server.set_context("wake_count", self.wake_count)
             await self.mcp_context_server.set_context("total_events_processed", self.total_events_processed)
             await self.mcp_context_server.set_context("last_active", datetime.utcnow().isoformat())
-            self.logger.debug(f"Saved context to ContextMCPServer")
+            self.logger.debug("Saved context to ContextMCPServer")
 
     async def _load_purpose_context(self) -> None:
         """
@@ -764,4 +764,4 @@ class PurposeDrivenAgent:
             if metrics_data:
                 self.purpose_metrics.update(metrics_data)
 
-        self.logger.debug(f"Loaded purpose context for {self.agent_id}")
+        self.logger.debug("Loaded purpose context for %s", self.agent_id)

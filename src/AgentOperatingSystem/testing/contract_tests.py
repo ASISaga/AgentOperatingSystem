@@ -5,15 +5,14 @@ Validates message schemas and topic envelopes across versions to ensure
 backward compatibility and proper evolution of contracts.
 """
 
-from typing import Dict, Any, List, Optional, Type
-from datetime import datetime
-import jsonschema
-from jsonschema import validate, ValidationError
-from pydantic import BaseModel, ValidationError as PydanticValidationError
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from ..platform.contracts import MessageEnvelope, CommandContract, QueryContract, EventContract
-from ..platform.events import BaseEvent
+from jsonschema import ValidationError, validate
+from pydantic import ValidationError as PydanticValidationError
+
+from ..platform.contracts import MessageEnvelope
 
 
 class MessageSchemaValidator:
@@ -47,7 +46,7 @@ class MessageSchemaValidator:
             self.version_history[message_type].append(version)
             self.version_history[message_type].sort()
 
-        self.logger.info(f"Registered schema: {key}")
+        self.logger.info("Registered schema: %s", key)
 
     def validate_message(self, message_type: str, version: str, payload: Dict[str, Any]) -> bool:
         """
@@ -70,10 +69,10 @@ class MessageSchemaValidator:
 
         try:
             validate(instance=payload, schema=schema)
-            self.logger.debug(f"Message validated successfully: {key}")
+            self.logger.debug("Message validated successfully: %s", key)
             return True
-        except ValidationError as e:
-            self.logger.error(f"Schema validation failed for {key}: {e}")
+        except ValidationError as error:
+            self.logger.error("Schema validation failed for %s: %s", key, str(error))
             raise
 
     def check_backward_compatibility(self, message_type: str, old_version: str, new_version: str) -> Dict[str, Any]:
@@ -190,7 +189,7 @@ class ContractTestFramework:
             return True
 
         except (PydanticValidationError, AssertionError) as e:
-            self.logger.error(f"Message envelope contract test failed: {e}")
+            self.logger.error("Message envelope contract test failed: %s", e)
             self.test_results.append({
                 "test": "message_envelope_contract",
                 "status": "failed",
@@ -232,12 +231,12 @@ class ContractTestFramework:
                         f"Backward compatibility issue: {event_type} "
                         f"{old_version} -> {new_version}"
                     )
-            except Exception as e:
-                self.logger.error(f"Compatibility check failed: {e}")
+            except Exception as error:
+                self.logger.error("Compatibility check failed: %s", str(error))
                 results["compatibility_checks"].append({
                     "old_version": old_version,
                     "new_version": new_version,
-                    "error": str(e)
+                    "error": str(error)
                 })
 
         self.test_results.append({
@@ -269,7 +268,7 @@ class ContractTestFramework:
             assert command.preconditions is not None, "preconditions must be specified"
             assert command.expected_outcomes, "expected_outcomes is required"
 
-            self.logger.info(f"Command contract test passed: {command.intent}")
+            self.logger.info("Command contract test passed: %s", command.intent)
             self.test_results.append({
                 "test": "command_contract",
                 "command": command.intent,
@@ -279,7 +278,7 @@ class ContractTestFramework:
             return True
 
         except (PydanticValidationError, AssertionError) as e:
-            self.logger.error(f"Command contract test failed: {e}")
+            self.logger.error("Command contract test failed: %s", e)
             self.test_results.append({
                 "test": "command_contract",
                 "status": "failed",
@@ -315,7 +314,7 @@ class ContractTestFramework:
             return True
 
         except (PydanticValidationError, AssertionError) as e:
-            self.logger.error(f"Query contract test failed: {e}")
+            self.logger.error("Query contract test failed: %s", e)
             self.test_results.append({
                 "test": "query_contract",
                 "status": "failed",

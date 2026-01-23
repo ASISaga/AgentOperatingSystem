@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Role(Enum):
     """Core boardroom roles"""
     FOUNDER = "founder"

@@ -5,13 +5,13 @@ Short-circuits failing dependencies with fallback mechanisms to prevent
 cascading failures and enable graceful degradation.
 """
 
-from typing import Callable, TypeVar, Optional, Any
-from enum import Enum
-from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
 import asyncio
 import logging
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Callable, Optional, TypeVar
 
+from pydantic import BaseModel
 
 T = TypeVar('T')
 logger = logging.getLogger(__name__)
@@ -95,9 +95,9 @@ class CircuitBreaker:
         current_state = self.state
 
         if current_state == CircuitState.OPEN:
-            logger.warning(f"Circuit breaker {self.name} is OPEN")
+            logger.warning("Circuit breaker %s is OPEN", self.name)
             if self.fallback:
-                logger.info(f"Using fallback for {self.name}")
+                logger.info("Using fallback for %s", self.name)
                 return await self._execute_fallback()
             else:
                 raise CircuitBreakerOpenError(
@@ -109,7 +109,7 @@ class CircuitBreaker:
             self._on_success()
             return result
 
-        except Exception as e:
+        except Exception:
             self._on_failure()
             raise
 
@@ -129,9 +129,9 @@ class CircuitBreaker:
         current_state = self.state
 
         if current_state == CircuitState.OPEN:
-            logger.warning(f"Circuit breaker {self.name} is OPEN")
+            logger.warning("Circuit breaker %s is OPEN", self.name)
             if self.fallback:
-                logger.info(f"Using fallback for {self.name}")
+                logger.info("Using fallback for %s", self.name)
                 return self.fallback()
             else:
                 raise CircuitBreakerOpenError(
@@ -143,7 +143,7 @@ class CircuitBreaker:
             self._on_success()
             return result
 
-        except Exception as e:
+        except Exception:
             self._on_failure()
             raise
 
@@ -186,18 +186,18 @@ class CircuitBreaker:
             if failure_count >= self.config.failure_threshold:
                 self._transition_to_open()
 
-    def _transition_to_open(self):
+    def _transition_to_open(self, encoding="utf-8"):
         """Transition to OPEN state"""
         self._state = CircuitState.OPEN
         self._opened_at = datetime.utcnow()
         self._success_count = 0
-        logger.warning(f"Circuit breaker {self.name} transitioned to OPEN")
+        logger.warning("Circuit breaker %s transitioned to OPEN", self.name)
 
-    def _transition_to_half_open(self):
+    def _transition_to_half_open(self, encoding="utf-8"):
         """Transition to HALF_OPEN state"""
         self._state = CircuitState.HALF_OPEN
         self._success_count = 0
-        logger.info(f"Circuit breaker {self.name} transitioned to HALF_OPEN")
+        logger.info("Circuit breaker %s transitioned to HALF_OPEN", self.name)
 
     def _transition_to_closed(self):
         """Transition to CLOSED state"""
@@ -206,7 +206,7 @@ class CircuitBreaker:
         self._success_count = 0
         self._opened_at = None
         self._failures_in_window.clear()
-        logger.info(f"Circuit breaker {self.name} transitioned to CLOSED")
+        logger.info("Circuit breaker %s transitioned to CLOSED", self.name)
 
     async def _execute_fallback(self) -> Any:
         """Execute fallback if it's async"""
@@ -217,7 +217,7 @@ class CircuitBreaker:
 
     def reset(self):
         """Manually reset circuit breaker to CLOSED state"""
-        logger.info(f"Manually resetting circuit breaker {self.name}")
+        logger.info("Manually resetting circuit breaker %s", self.name)
         self._transition_to_closed()
 
     def get_stats(self) -> dict:
@@ -234,4 +234,3 @@ class CircuitBreaker:
 
 class CircuitBreakerOpenError(Exception):
     """Exception raised when circuit breaker is open"""
-    pass

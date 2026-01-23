@@ -5,14 +5,14 @@ Append-only, tamper-evident audit logging with full context.
 Mandatory for all side effects in the system.
 """
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime
-from enum import Enum
-from pydantic import BaseModel, Field
 import hashlib
 import json
 import logging
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -136,8 +136,8 @@ class AuditLogger:
         if self.storage_backend:
             try:
                 self.storage_backend.store_audit_entry(entry)
-            except Exception as e:
-                logger.error(f"Failed to persist audit entry: {e}")
+            except Exception as error:
+                logger.error("Failed to persist audit entry: %s", str(error))
 
         logger.debug(
             f"Audit: {actor} performed {action} on {resource} -> {outcome}"

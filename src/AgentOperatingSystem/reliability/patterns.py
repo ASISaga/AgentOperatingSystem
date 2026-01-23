@@ -24,12 +24,11 @@ Usage:
 
 import asyncio
 import logging
+import random
 import time
-from typing import Callable, Any, Optional, Dict
 from enum import Enum
 from functools import wraps
-from datetime import datetime, timedelta
-import random
+from typing import Any, Callable, Dict, Optional
 
 
 class CircuitState(Enum):
@@ -116,7 +115,7 @@ class CircuitBreaker:
 
             return result
 
-        except self.expected_exception as e:
+        except self.expected_exception as error:
             # Record failure
             self.failure_count += 1
             self.last_failure_time = time.time()
@@ -125,8 +124,8 @@ class CircuitBreaker:
             if self.failure_count >= self.failure_threshold:
                 self.state = CircuitState.OPEN
                 self.logger.error(
-                    f"Circuit breaker opened after {self.failure_count} failures"
-                )
+            "Circuit breaker opened after %s failures", self.failure_count
+        )
 
             raise
 
@@ -202,24 +201,24 @@ class RetryPolicy:
                 result = await func(*args, **kwargs)
 
                 if attempt > 0:
-                    self.logger.info(f"Operation succeeded after {attempt} retries")
+                    self.logger.info("Operation succeeded after %s retries", attempt)
 
                 return result
 
-            except Exception as e:
-                last_exception = e
+            except Exception as error:
+                last_exception = error
 
                 if attempt < self.max_retries:
                     delay = self._calculate_delay(attempt)
                     self.logger.warning(
-                        f"Attempt {attempt + 1} failed: {e}. "
+                        f"Attempt {attempt + 1} failed: {error}. "
                         f"Retrying in {delay:.2f}s..."
                     )
                     await asyncio.sleep(delay)
                 else:
                     self.logger.error(
-                        f"All {self.max_retries} retries exhausted. Giving up."
-                    )
+            "All %s retries exhausted. Giving up.", self.max_retries
+        )
 
         raise last_exception
 
@@ -273,7 +272,7 @@ class IdempotencyHandler:
         if idempotency_key in self.cache:
             result, timestamp = self.cache[idempotency_key]
             if self._is_cache_valid(timestamp):
-                self.logger.info(f"Returning cached result for {idempotency_key}")
+                self.logger.info("Returning cached result for %s", idempotency_key)
                 return result
             else:
                 # Expired cache entry

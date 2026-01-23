@@ -5,12 +5,13 @@ Manages workflow orchestration and execution for the Agent Operating System.
 Handles complex multi-agent workflows with dependencies and error handling.
 """
 
-import logging
 import asyncio
+import logging
 import uuid
-from typing import Dict, Any, List, Optional
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from ..config.orchestration import OrchestrationConfig
 
 
@@ -145,11 +146,11 @@ class OrchestrationEngine:
             self.workflows[workflow_id] = workflow
             self.total_workflows += 1
 
-            self.logger.info(f"Workflow {workflow_id} created with {len(steps)} steps")
+            self.logger.info("Workflow %s created with %s steps", workflow_id, len(steps))
             return workflow_id
 
-        except Exception as e:
-            self.logger.error(f"Failed to start workflow: {e}")
+        except Exception as error:
+            self.logger.error("Failed to start workflow: %s", str(error))
             raise
 
     async def cancel_workflow(self, workflow_id: str) -> bool:
@@ -164,7 +165,7 @@ class OrchestrationEngine:
         workflow.status = WorkflowStatus.CANCELLED
         workflow.completed_at = datetime.utcnow()
 
-        self.logger.info(f"Workflow {workflow_id} cancelled")
+        self.logger.info("Workflow %s cancelled", workflow_id)
         return True
 
     async def get_workflow_status(self, workflow_id: str) -> Optional[Dict[str, Any]]:
@@ -236,8 +237,8 @@ class OrchestrationEngine:
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
-                self.logger.error(f"Error in workflow executor: {e}")
+            except Exception as error:
+                self.logger.error("Error in workflow executor: %s", str(error))
 
     async def _execute_workflow(self, workflow: Workflow):
         """Execute a single workflow"""
@@ -245,7 +246,7 @@ class OrchestrationEngine:
             workflow.status = WorkflowStatus.RUNNING
             workflow.started_at = datetime.utcnow()
 
-            self.logger.info(f"Starting workflow execution: {workflow.workflow_id}")
+            self.logger.info("Starting workflow execution: %s", workflow.workflow_id)
 
             # Execute steps with dependency resolution
             remaining_steps = set(workflow.steps.keys())
@@ -280,7 +281,7 @@ class OrchestrationEngine:
                             workflow.steps[step_id].error = "Skipped due to failed dependency"
                         break
                     else:
-                        self.logger.error(f"Workflow {workflow.workflow_id} has circular dependencies")
+                        self.logger.error("Workflow %s has circular dependencies", workflow.workflow_id)
                         workflow.status = WorkflowStatus.FAILED
                         break
 
@@ -305,13 +306,13 @@ class OrchestrationEngine:
 
             workflow.completed_at = datetime.utcnow()
 
-            self.logger.info(f"Workflow {workflow.workflow_id} completed with status: {workflow.status.value}")
+            self.logger.info("Workflow %s completed with status: %s", workflow.workflow_id, workflow.status.value)
 
-        except Exception as e:
+        except Exception as error:
             workflow.status = WorkflowStatus.FAILED
             workflow.completed_at = datetime.utcnow()
             self.failed_workflows += 1
-            self.logger.error(f"Workflow {workflow.workflow_id} failed: {e}")
+            self.logger.error("Workflow %s failed: %s", workflow.workflow_id, str(error))
 
     async def _execute_step(self, step: WorkflowStep):
         """Execute a single workflow step"""
@@ -321,7 +322,7 @@ class OrchestrationEngine:
         try:
             # This would integrate with the actual agent execution
             # For now, simulate step execution
-            self.logger.info(f"Executing step {step.step_id} on agent {step.agent_id}")
+            self.logger.info("Executing step %s on agent %s", step.step_id, step.agent_id)
 
             # Placeholder for actual agent task execution
             await asyncio.sleep(0.1)  # Simulate work
@@ -329,10 +330,10 @@ class OrchestrationEngine:
             step.result = {"status": "completed", "output": "Task completed successfully"}
             step.status = StepStatus.COMPLETED
 
-        except Exception as e:
+        except Exception as error:
             step.status = StepStatus.FAILED
-            step.error = str(e)
-            self.logger.error(f"Step {step.step_id} failed: {e}")
+            step.error = str(error)
+            self.logger.error("Step %s failed: %s", step.step_id, str(error))
 
         finally:
             step.completed_at = datetime.utcnow()

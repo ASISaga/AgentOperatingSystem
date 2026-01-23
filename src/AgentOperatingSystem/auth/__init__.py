@@ -4,7 +4,7 @@ AOS Authentication Module
 Authentication and authorization system for AOS.
 """
 
-from .manager import AuthManager, AuthenticationError
+from .manager import AuthenticationError, AuthManager
 
 __all__ = [
     "AuthManager",

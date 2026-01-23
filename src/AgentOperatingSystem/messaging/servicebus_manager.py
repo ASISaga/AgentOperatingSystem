@@ -4,14 +4,14 @@ Azure Service Bus Management Utilities for AOS
 Provides management utilities for Azure Service Bus topics and subscriptions.
 """
 
-import os
 import logging
+import os
 from typing import Optional
 
 try:
-    from azure.servicebus.aio import ServiceBusAdministrationClient, ServiceBusClient
+    from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
     from azure.servicebus import ServiceBusMessage
-    from azure.core.exceptions import ResourceNotFoundError, ResourceExistsError
+    from azure.servicebus.aio import ServiceBusAdministrationClient, ServiceBusClient
     AZURE_SERVICE_BUS_AVAILABLE = True
 except ImportError:
     AZURE_SERVICE_BUS_AVAILABLE = False
@@ -45,8 +45,8 @@ class ServiceBusManager:
             self.admin_client = ServiceBusAdministrationClient.from_connection_string(self.connection_str)
             self.client = ServiceBusClient.from_connection_string(self.connection_str)
             self.logger.info("Service Bus clients initialized")
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Service Bus clients: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Service Bus clients: %s", str(error))
             self.admin_client = None
             self.client = None
 
@@ -67,24 +67,24 @@ class ServiceBusManager:
         try:
             # Check if topic already exists
             await self.admin_client.get_topic_runtime_properties(topic_name)
-            self.logger.debug(f"Topic '{topic_name}' already exists")
+            self.logger.debug("Topic '%s' already exists", topic_name)
             return True
 
         except ResourceNotFoundError:
             # Topic doesn't exist, create it
             try:
                 await self.admin_client.create_topic(topic_name)
-                self.logger.info(f"Created topic '{topic_name}'")
+                self.logger.info("Created topic '%s'", topic_name)
                 return True
             except ResourceExistsError:
                 # Topic was created by another process
-                self.logger.debug(f"Topic '{topic_name}' was created by another process")
+                self.logger.debug("Topic '%s' was created by another process", topic_name)
                 return True
-            except Exception as e:
-                self.logger.error(f"Failed to create topic '{topic_name}': {e}")
+            except Exception as error:
+                self.logger.error("Failed to create topic '%s': %s", topic_name, str(error))
                 return False
-        except Exception as e:
-            self.logger.error(f"Error checking topic '{topic_name}': {e}")
+        except Exception as error:
+            self.logger.error("Error checking topic '%s': %s", topic_name, str(error))
             return False
 
     async def create_subscription(self, topic_name: str, subscription_name: str) -> bool:
@@ -105,24 +105,24 @@ class ServiceBusManager:
         try:
             # Check if subscription already exists
             await self.admin_client.get_subscription_runtime_properties(topic_name, subscription_name)
-            self.logger.debug(f"Subscription '{subscription_name}' on topic '{topic_name}' already exists")
+            self.logger.debug("Subscription '%s' on topic '%s' already exists", subscription_name, topic_name)
             return True
 
         except ResourceNotFoundError:
             # Subscription doesn't exist, create it
             try:
                 await self.admin_client.create_subscription(topic_name, subscription_name)
-                self.logger.info(f"Created subscription '{subscription_name}' on topic '{topic_name}'")
+                self.logger.info("Created subscription '%s' on topic '%s'", subscription_name, topic_name)
                 return True
             except ResourceExistsError:
                 # Subscription was created by another process
-                self.logger.debug(f"Subscription '{subscription_name}' was created by another process")
+                self.logger.debug("Subscription '%s' was created by another process", subscription_name)
                 return True
-            except Exception as e:
-                self.logger.error(f"Failed to create subscription '{subscription_name}' on topic '{topic_name}': {e}")
+            except Exception as error:
+                self.logger.error("Failed to create subscription '%s' on topic '%s': %s", subscription_name, topic_name, str(error))
                 return False
-        except Exception as e:
-            self.logger.error(f"Error checking subscription '{subscription_name}' on topic '{topic_name}': {e}")
+        except Exception as error:
+            self.logger.error("Error checking subscription '%s' on topic '%s': %s", subscription_name, topic_name, str(error))
             return False
 
     async def delete_topic(self, topic_name: str) -> bool:
@@ -141,13 +141,13 @@ class ServiceBusManager:
 
         try:
             await self.admin_client.delete_topic(topic_name)
-            self.logger.info(f"Deleted topic '{topic_name}'")
+            self.logger.info("Deleted topic '%s'", topic_name)
             return True
         except ResourceNotFoundError:
-            self.logger.debug(f"Topic '{topic_name}' doesn't exist")
+            self.logger.debug("Topic '%s' doesn't exist", topic_name)
             return True
-        except Exception as e:
-            self.logger.error(f"Failed to delete topic '{topic_name}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to delete topic '%s': %s", topic_name, str(error))
             return False
 
     async def delete_subscription(self, topic_name: str, subscription_name: str) -> bool:
@@ -167,13 +167,13 @@ class ServiceBusManager:
 
         try:
             await self.admin_client.delete_subscription(topic_name, subscription_name)
-            self.logger.info(f"Deleted subscription '{subscription_name}' from topic '{topic_name}'")
+            self.logger.info("Deleted subscription '%s' from topic '%s'", subscription_name, topic_name)
             return True
         except ResourceNotFoundError:
-            self.logger.debug(f"Subscription '{subscription_name}' on topic '{topic_name}' doesn't exist")
+            self.logger.debug("Subscription '%s' on topic '%s' doesn't exist", subscription_name, topic_name)
             return True
-        except Exception as e:
-            self.logger.error(f"Failed to delete subscription '{subscription_name}' from topic '{topic_name}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to delete subscription '%s' from topic '%s': %s", subscription_name, topic_name, str(error))
             return False
 
     async def list_topics(self) -> list:
@@ -192,8 +192,8 @@ class ServiceBusManager:
             async for topic in self.admin_client.list_topics():
                 topics.append(topic.name)
             return topics
-        except Exception as e:
-            self.logger.error(f"Failed to list topics: {e}")
+        except Exception as error:
+            self.logger.error("Failed to list topics: %s", str(error))
             return []
 
     async def list_subscriptions(self, topic_name: str) -> list:
@@ -215,8 +215,8 @@ class ServiceBusManager:
             async for subscription in self.admin_client.list_subscriptions(topic_name):
                 subscriptions.append(subscription.subscription_name)
             return subscriptions
-        except Exception as e:
-            self.logger.error(f"Failed to list subscriptions for topic '{topic_name}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to list subscriptions for topic '%s': %s", topic_name, str(error))
             return []
 
     async def get_topic_info(self, topic_name: str) -> dict:
@@ -243,9 +243,9 @@ class ServiceBusManager:
                 "size_in_bytes": properties.size_in_bytes,
                 "subscription_count": properties.subscription_count
             }
-        except Exception as e:
-            self.logger.error(f"Failed to get topic info for '{topic_name}': {e}")
-            return {"error": str(e)}
+        except Exception as error:
+            self.logger.error("Failed to get topic info for '%s': %s", topic_name, str(error))
+            return {"error": str(error)}
 
     def is_available(self) -> bool:
         """Check if Service Bus management is available"""
@@ -282,17 +282,17 @@ class ServiceBusManager:
             try:
                 async with self.client.get_queue_sender(queue_or_topic_name) as sender:
                     await sender.send_messages(message)
-                self.logger.info(f"Sent message to queue '{queue_or_topic_name}'")
+                self.logger.info("Sent message to queue '%s'", queue_or_topic_name)
                 return True
             except Exception:
                 # Try as topic
                 async with self.client.get_topic_sender(queue_or_topic_name) as sender:
                     await sender.send_messages(message)
-                self.logger.info(f"Sent message to topic '{queue_or_topic_name}'")
+                self.logger.info("Sent message to topic '%s'", queue_or_topic_name)
                 return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to send message to '{queue_or_topic_name}': {e}")
+        except Exception as error:
+            self.logger.error("Failed to send message to '%s': %s", queue_or_topic_name, str(error))
             return False
 
     async def receive_messages(self, queue_or_subscription_name: str, topic_name: str = None, max_messages: int = 1, max_wait_time: float = 5.0) -> list:
@@ -348,11 +348,11 @@ class ServiceBusManager:
                         # Complete the message
                         await receiver.complete_message(msg)
 
-            self.logger.info(f"Received {len(messages)} messages")
+            self.logger.info("Received %s messages", len(messages))
             return messages
 
-        except Exception as e:
-            self.logger.error(f"Failed to receive messages: {e}")
+        except Exception as error:
+            self.logger.error("Failed to receive messages: %s", str(error))
             return []
 
     async def peek_messages(self, queue_or_subscription_name: str, topic_name: str = None, max_messages: int = 1) -> list:
@@ -401,11 +401,11 @@ class ServiceBusManager:
                             "properties": dict(msg.application_properties) if msg.application_properties else {}
                         })
 
-            self.logger.info(f"Peeked {len(messages)} messages")
+            self.logger.info("Peeked %s messages", len(messages))
             return messages
 
-        except Exception as e:
-            self.logger.error(f"Failed to peek messages: {e}")
+        except Exception as error:
+            self.logger.error("Failed to peek messages: %s", str(error))
             return []
 
     def get_messaging_status(self) -> dict:

@@ -7,8 +7,8 @@ Manages continuous learning, knowledge updates, and system improvement.
 
 import logging
 import asyncio
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from typing import Dict, Any
+from datetime import datetime
 
 from .knowledge_manager import KnowledgeManager
 from .rag_engine import RAGEngine
@@ -69,8 +69,8 @@ class LearningPipeline:
 
             self.logger.info("Learning Pipeline initialized successfully")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Learning Pipeline: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Learning Pipeline: %s", str(error))
             raise
 
     async def _initialize_domain_experts(self):
@@ -91,10 +91,10 @@ class LearningPipeline:
                     await expert.initialize()
                     self.domain_experts[domain] = expert
 
-                    self.logger.info(f"Initialized domain expert for: {domain}")
+                    self.logger.info("Initialized domain expert for: %s", domain)
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize domain experts: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize domain experts: %s", str(error))
 
     async def start(self):
         """Start the learning pipeline"""
@@ -139,15 +139,17 @@ class LearningPipeline:
                 # Wait for next cycle
                 cycle_duration = datetime.utcnow() - cycle_start
                 wait_time = max(3600, self.learning_cycle_hours * 3600 - cycle_duration.total_seconds())
-
-                self.logger.info(f"Learning cycle completed in {cycle_duration.total_seconds():.1f}s, next cycle in {wait_time/3600:.1f}h")
+                
+                cycle_seconds = cycle_duration.total_seconds()
+                wait_hours = wait_time/3600
+                self.logger.info("Learning cycle completed in %.1fs, next cycle in %.1fh", cycle_seconds, wait_hours)
 
                 await asyncio.sleep(wait_time)
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
-                self.logger.error(f"Error in learning cycle: {e}")
+            except Exception as error:
+                self.logger.error("Error in learning cycle: %s", str(error))
                 await asyncio.sleep(300)  # Wait 5 minutes before retry
 
     async def _execute_learning_cycle(self):
@@ -200,8 +202,8 @@ class LearningPipeline:
 
             self.logger.debug("Completed interaction analysis")
 
-        except Exception as e:
-            self.logger.error(f"Error analyzing interactions: {e}")
+        except Exception as error:
+            self.logger.error("Error analyzing interactions: %s", str(error))
 
     async def _update_knowledge_base(self):
         """Update knowledge base with learned insights"""
@@ -232,10 +234,10 @@ class LearningPipeline:
 
                 self.learning_stats["knowledge_entries_added"] += 1
 
-            self.logger.debug(f"Added {len(high_rated)} knowledge entries from successful interactions")
+            self.logger.debug("Added %s knowledge entries from successful interactions", len(high_rated))
 
-        except Exception as e:
-            self.logger.error(f"Error updating knowledge base: {e}")
+        except Exception as error:
+            self.logger.error("Error updating knowledge base: %s", str(error))
 
     async def _optimize_rag_performance(self):
         """Optimize RAG engine performance"""
@@ -259,8 +261,8 @@ class LearningPipeline:
             self.learning_stats["optimizations_applied"] += 1
             self.logger.debug("Completed RAG optimization")
 
-        except Exception as e:
-            self.logger.error(f"Error optimizing RAG: {e}")
+        except Exception as error:
+            self.logger.error("Error optimizing RAG: %s", str(error))
 
     async def _populate_rag_from_knowledge_base(self, domain: str):
         """Populate RAG with entries from knowledge base"""
@@ -275,10 +277,10 @@ class LearningPipeline:
 
                     await self.rag_engine.add_knowledge_entry(domain, entry_id, content, metadata)
 
-            self.logger.info(f"Populated RAG for {domain} with {len(knowledge_entries)} entries")
+            self.logger.info("Populated RAG for %s with %s entries", domain, len(knowledge_entries))
 
-        except Exception as e:
-            self.logger.error(f"Error populating RAG for {domain}: {e}")
+        except Exception as error:
+            self.logger.error("Error populating RAG for %s: %s", domain, str(error))
 
     async def _cross_domain_learning(self):
         """Share successful patterns across domains"""
@@ -286,7 +288,7 @@ class LearningPipeline:
             # Get successful patterns from each domain
             successful_patterns = {}
 
-            for domain in self.domain_experts.keys():
+            for domain in self.domain_experts:
                 insights = await self.interaction_learner.get_domain_insights(domain)
                 avg_rating = insights.get("avg_rating")
 
@@ -303,8 +305,8 @@ class LearningPipeline:
 
             self.logger.debug("Completed cross-domain learning")
 
-        except Exception as e:
-            self.logger.error(f"Error in cross-domain learning: {e}")
+        except Exception as error:
+            self.logger.error("Error in cross-domain learning: %s", str(error))
 
     async def _share_patterns_between_domains(self, source_domain: str, target_domain: str, patterns: Dict[str, Any]):
         """Share patterns between two domains"""
@@ -329,8 +331,8 @@ class LearningPipeline:
 
                 self.learning_stats["patterns_learned"] += 1
 
-        except Exception as e:
-            self.logger.error(f"Error sharing patterns from {source_domain} to {target_domain}: {e}")
+        except Exception as error:
+            self.logger.error("Error sharing patterns from %s to %s: %s", source_domain, target_domain, str(error))
 
     async def _optimize_system_performance(self):
         """Optimize overall system performance"""
@@ -345,8 +347,8 @@ class LearningPipeline:
             self.learning_stats["optimizations_applied"] += 1
             self.logger.debug("Completed system optimization")
 
-        except Exception as e:
-            self.logger.error(f"Error in system optimization: {e}")
+        except Exception as error:
+            self.logger.error("Error in system optimization: %s", str(error))
 
     async def _cleanup_old_data(self):
         """Clean up old data to maintain performance"""
@@ -358,8 +360,8 @@ class LearningPipeline:
 
             self.logger.debug("Completed data cleanup")
 
-        except Exception as e:
-            self.logger.error(f"Error in data cleanup: {e}")
+        except Exception as error:
+            self.logger.error("Error in data cleanup: %s", str(error))
 
     async def _optimize_domain_expert(self, expert: DomainExpert):
         """Optimize a specific domain expert"""
@@ -368,12 +370,12 @@ class LearningPipeline:
             await expert._load_domain_capabilities()
             await expert._load_domain_context()
 
-        except Exception as e:
-            self.logger.error(f"Error optimizing domain expert {expert.domain}: {e}")
+        except Exception as error:
+            self.logger.error("Error optimizing domain expert %s: %s", expert.domain, str(error))
 
     async def _handle_low_performance_domain(self, domain: str, insights: Dict[str, Any]):
         """Handle domains with low performance ratings"""
-        self.logger.warning(f"Low performance detected in {domain} domain: {insights.get('avg_rating')}")
+        self.logger.warning("Low performance detected in %s domain: %s", domain, insights.get('avg_rating'))
 
         # Add improvement recommendations to knowledge base
         improvement_entry = {
@@ -388,7 +390,7 @@ class LearningPipeline:
 
     async def _handle_low_success_rate(self, domain: str, insights: Dict[str, Any]):
         """Handle domains with low success rates"""
-        self.logger.warning(f"Low success rate detected in {domain} domain: {insights.get('success_rate')}")
+        self.logger.warning("Low success rate detected in %s domain: %s", domain, insights.get('success_rate'))
 
         # Analyze common failure patterns
         # This would involve more sophisticated analysis of failed interactions
@@ -416,14 +418,14 @@ class LearningPipeline:
         try:
             await self._execute_learning_cycle()
             return True
-        except Exception as e:
-            self.logger.error(f"Error in manual learning cycle: {e}")
+        except Exception as error:
+            self.logger.error("Error in manual learning cycle: %s", str(error))
             return False
 
     async def add_domain_expert(self, domain: str, config: Dict[str, Any] = None):
         """Add a new domain expert to the pipeline"""
         if domain in self.domain_experts:
-            self.logger.warning(f"Domain expert for {domain} already exists")
+            self.logger.warning("Domain expert for %s already exists", domain)
             return
 
         try:
@@ -436,10 +438,10 @@ class LearningPipeline:
             await expert.initialize()
             self.domain_experts[domain] = expert
 
-            self.logger.info(f"Added domain expert for: {domain}")
+            self.logger.info("Added domain expert for: %s", domain)
 
-        except Exception as e:
-            self.logger.error(f"Failed to add domain expert for {domain}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to add domain expert for %s: %s", domain, str(error))
 
     async def get_pipeline_status(self) -> Dict[str, Any]:
         """Get learning pipeline status"""

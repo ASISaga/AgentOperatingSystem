@@ -5,11 +5,9 @@ Provides multi-agent orchestration capabilities using Microsoft Agent Framework.
 Supports agent collaboration, workflow execution, and advanced orchestration patterns.
 """
 
-import os
-import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 try:
     from agent_framework import ChatAgent, WorkflowBuilder
@@ -24,7 +22,6 @@ try:
         def setup_logging(*args, **kwargs):
             """Fallback logging setup"""
             logging.info("Logging setup called (fallback implementation)")
-            pass
 except ImportError:
     AGENT_FRAMEWORK_AVAILABLE = False
     TELEMETRY_AVAILABLE = False
@@ -41,9 +38,7 @@ except ImportError:
 
     def setup_logging(*args, **kwargs):
         """Fallback logging setup"""
-        pass
 
-from ..agents.purpose_driven import BaseAgent
 
 
 class AgentFrameworkSystem:
@@ -81,8 +76,8 @@ class AgentFrameworkSystem:
             self.is_initialized = True
             self.logger.info("Agent Framework System initialized successfully")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Agent Framework System: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Agent Framework System: %s", str(error))
             raise
 
     async def _setup_telemetry(self):
@@ -109,8 +104,8 @@ class AgentFrameworkSystem:
                 enable_sensitive_data=True  # Enable capturing prompts and completions
             )
             self.logger.info("Logging setup completed")
-        except Exception as e:
-            self.logger.warning(f"Could not setup logging: {e}")
+        except Exception as error:
+            self.logger.warning("Could not setup logging: %s", str(error))
 
     async def _initialize_default_agents(self):
         """Initialize default agent roles using Agent Framework"""
@@ -139,10 +134,10 @@ class AgentFrameworkSystem:
             )
             self.agents["ProductOwner"] = po_agent
 
-            self.logger.info(f"Initialized {len(self.agents)} Agent Framework agents")
+            self.logger.info("Initialized %s Agent Framework agents", len(self.agents))
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize default agents: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize default agents: %s", str(error))
 
     async def _create_chat_agent(self, name: str, instructions: str, metadata: Dict[str, Any]) -> ChatAgent:
         """Create a ChatAgent with the specified configuration"""
@@ -159,8 +154,8 @@ class AgentFrameworkSystem:
                 **metadata
             )
             return agent
-        except Exception as e:
-            self.logger.error(f"Failed to create chat agent {name}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to create chat agent %s: %s", name, str(error))
             raise
 
     async def run_multi_agent_conversation(self, input_message: str, agent_roles: List[str] = None) -> Dict[str, Any]:
@@ -178,7 +173,7 @@ class AgentFrameworkSystem:
                     if role in self.agents:
                         selected_agents.append(self.agents[role])
                     else:
-                        self.logger.warning(f"Agent role '{role}' not found")
+                        self.logger.warning("Agent role '%s' not found", role)
             else:
                 # Use all available agents if none specified
                 selected_agents = list(self.agents.values())
@@ -201,12 +196,12 @@ class AgentFrameworkSystem:
 
             return result
 
-        except Exception as e:
-            self.logger.error(f"Multi-agent conversation failed: {e}")
+        except Exception as error:
+            self.logger.error("Multi-agent conversation failed: %s", str(error))
             self.stats["failed_completions"] += 1
             return {
                 "success": False,
-                "error": str(e),
+                "error": str(error),
                 "timestamp": datetime.utcnow().isoformat(),
                 "input_message": input_message,
                 "selected_agents": [agent.name for agent in selected_agents]
@@ -229,8 +224,8 @@ class AgentFrameworkSystem:
 
             return workflow
 
-        except Exception as e:
-            self.logger.error(f"Failed to create conversation workflow: {e}")
+        except Exception as error:
+            self.logger.error("Failed to create conversation workflow: %s", str(error))
             raise
 
     async def _execute_workflow(self, workflow: Any) -> Dict[str, Any]:
@@ -246,11 +241,11 @@ class AgentFrameworkSystem:
                 "workflow_id": getattr(workflow, 'id', 'unknown')
             }
 
-        except Exception as e:
-            self.logger.error(f"Workflow execution failed: {e}")
+        except Exception as error:
+            self.logger.error("Workflow execution failed: %s", str(error))
             return {
                 "success": False,
-                "error": str(e),
+                "error": str(error),
                 "timestamp": datetime.utcnow().isoformat()
             }
 
@@ -264,17 +259,17 @@ class AgentFrameworkSystem:
         agent = await self._create_chat_agent(name, instructions, metadata)
         self.agents[name] = agent
 
-        self.logger.info(f"Created new agent: {name}")
+        self.logger.info("Created new agent: %s", name)
         return agent
 
     async def remove_agent(self, name: str) -> bool:
         """Remove an agent from the system"""
         if name in self.agents:
             del self.agents[name]
-            self.logger.info(f"Removed agent: {name}")
+            self.logger.info("Removed agent: %s", name)
             return True
         else:
-            self.logger.warning(f"Agent {name} not found for removal")
+            self.logger.warning("Agent %s not found for removal", name)
             return False
 
     def get_agent(self, name: str) -> Optional[ChatAgent]:
@@ -304,5 +299,5 @@ class AgentFrameworkSystem:
 
             self.logger.info("Agent Framework System shutdown completed")
 
-        except Exception as e:
-            self.logger.error(f"Error during shutdown: {e}")
+        except Exception as error:
+            self.logger.error("Error during shutdown: %s", str(error))

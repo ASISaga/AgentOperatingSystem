@@ -16,37 +16,39 @@ into the AOS orchestration system. Provides advanced multi-agent coordination,
 unified orchestration, Azure integration, and comprehensive agent registry.
 """
 
-from .state import State
-from .role import Role
-from .member import Member
-from .decision import Decision
-from .orchestration import Orchestration, create_autonomous_boardroom
-from .engine import DecisionEngine
-from .orchestrator import OrchestrationEngine
-from .agent_registry import AgentRegistry
-from .multi_agent_coordinator import MultiAgentCoordinator, CoordinationMode
-from .unified_orchestrator import UnifiedOrchestrator, ExecutionMode, RequestType
-# from .azure_integration import AzureIntegration, AzureServiceType  # Temporarily disabled
-from .mcp_integration import MCPClientManager
-from .model_orchestration import ModelOrchestrator, ModelType
-from .workflow_step import WorkflowStep
-from .workflow_orchestrator import WorkflowOrchestrator, WorkflowOrchestratorFactory
-# Advanced orchestration features
-from .dynamic import DynamicWorkflowComposer
-from .scheduler import IntelligentScheduler, WorkflowPriority, ResourcePredictor
-from .events import EventDrivenOrchestrator, EventPattern
-from .optimization import WorkflowOptimizer, LearningEngine
+from .agent_framework_system import AgentFrameworkSystem
 
 # Agent orchestration and management (moved from agents module)
 from .agent_manager import UnifiedAgentManager
+from .agent_registry import AgentRegistry
+from .decision import Decision
+
+# Advanced orchestration features
+from .dynamic import DynamicWorkflowComposer
+from .engine import DecisionEngine
+from .events import EventDrivenOrchestrator, EventPattern
+
+# from .azure_integration import AzureIntegration, AzureServiceType  # Temporarily disabled
+from .mcp_integration import MCPClientManager
+from .member import Member
+from .model_orchestration import ModelOrchestrator, ModelType
 from .multi_agent import (
-    MultiAgentSystem,
+    ApprovalTerminationStrategy,
     BusinessAnalystAgent,
-    SoftwareEngineerAgent,
+    MultiAgentSystem,
     ProductOwnerAgent,
-    ApprovalTerminationStrategy
+    SoftwareEngineerAgent,
 )
-from .agent_framework_system import AgentFrameworkSystem
+from .multi_agent_coordinator import CoordinationMode, MultiAgentCoordinator
+from .optimization import LearningEngine, WorkflowOptimizer
+from .orchestration import Orchestration, create_autonomous_boardroom
+from .orchestrator import OrchestrationEngine
+from .role import Role
+from .scheduler import IntelligentScheduler, ResourcePredictor, WorkflowPriority
+from .state import State
+from .unified_orchestrator import ExecutionMode, RequestType, UnifiedOrchestrator
+from .workflow_orchestrator import WorkflowOrchestrator, WorkflowOrchestratorFactory
+from .workflow_step import WorkflowStep
 
 __all__ = [
     "State",

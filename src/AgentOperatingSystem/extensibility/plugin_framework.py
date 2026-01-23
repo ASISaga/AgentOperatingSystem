@@ -5,13 +5,10 @@ Enables registration and management of plugins including new policies,
 connectors, message types, and hot-swappable adapters.
 """
 
-from typing import Dict, Any, List, Optional, Callable, Type
-from datetime import datetime
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 from enum import Enum
-import importlib
-import inspect
+from typing import Any, Dict, List, Optional
 
 
 class PluginType(str, Enum):
@@ -55,7 +52,6 @@ class Plugin(ABC):
         Returns:
             True if initialization successful
         """
-        pass
 
     @abstractmethod
     async def shutdown(self) -> bool:
@@ -65,7 +61,6 @@ class Plugin(ABC):
         Returns:
             True if shutdown successful
         """
-        pass
 
     @abstractmethod
     def get_capabilities(self) -> List[str]:
@@ -75,7 +70,6 @@ class Plugin(ABC):
         Returns:
             List of capability names
         """
-        pass
 
     def get_info(self) -> Dict[str, Any]:
         """
@@ -112,7 +106,6 @@ class PolicyPlugin(Plugin):
         Returns:
             Evaluation result with decision and rationale
         """
-        pass
 
 
 class ConnectorPlugin(Plugin):
@@ -133,7 +126,6 @@ class ConnectorPlugin(Plugin):
         Returns:
             True if connection successful
         """
-        pass
 
     @abstractmethod
     async def disconnect(self) -> bool:
@@ -143,7 +135,6 @@ class ConnectorPlugin(Plugin):
         Returns:
             True if disconnection successful
         """
-        pass
 
     @abstractmethod
     async def send(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -156,7 +147,6 @@ class ConnectorPlugin(Plugin):
         Returns:
             Response from external system
         """
-        pass
 
     @abstractmethod
     async def receive(self) -> Optional[Dict[str, Any]]:
@@ -166,7 +156,6 @@ class ConnectorPlugin(Plugin):
         Returns:
             Received data or None
         """
-        pass
 
 
 class MessageTypePlugin(Plugin):
@@ -184,7 +173,6 @@ class MessageTypePlugin(Plugin):
         Returns:
             JSON schema definition
         """
-        pass
 
     @abstractmethod
     def validate_message(self, message: Dict[str, Any]) -> bool:
@@ -197,7 +185,6 @@ class MessageTypePlugin(Plugin):
         Returns:
             True if valid
         """
-        pass
 
 
 class PluginRegistry:
@@ -235,7 +222,7 @@ class PluginRegistry:
         """
         try:
             if plugin.plugin_id in self.plugins:
-                self.logger.warning(f"Plugin already registered: {plugin.plugin_id}")
+                self.logger.warning("Plugin already registered: %s", plugin.plugin_id)
                 return False
 
             self.plugins[plugin.plugin_id] = plugin
@@ -254,8 +241,8 @@ class PluginRegistry:
 
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to register plugin {plugin.plugin_id}: {e}")
+        except Exception as error:
+            self.logger.error("Failed to register plugin %s: %s", plugin.plugin_id, str(error))
             return False
 
     async def load_plugin(self, plugin_id: str) -> bool:
@@ -269,7 +256,7 @@ class PluginRegistry:
             True if loading successful
         """
         if plugin_id not in self.plugins:
-            self.logger.error(f"Plugin not found: {plugin_id}")
+            self.logger.error("Plugin not found: %s", plugin_id)
             return False
 
         plugin = self.plugins[plugin_id]
@@ -277,16 +264,16 @@ class PluginRegistry:
         try:
             if await plugin.initialize():
                 plugin.status = PluginStatus.LOADED
-                self.logger.info(f"Loaded plugin: {plugin.name} ({plugin_id})")
+                self.logger.info("Loaded plugin: %s (%s)", plugin.name, plugin_id)
                 return True
             else:
                 plugin.status = PluginStatus.FAILED
-                self.logger.error(f"Failed to initialize plugin: {plugin_id}")
+                self.logger.error("Failed to initialize plugin: %s", plugin_id)
                 return False
 
-        except Exception as e:
+        except Exception as error:
             plugin.status = PluginStatus.FAILED
-            self.logger.error(f"Error loading plugin {plugin_id}: {e}")
+            self.logger.error("Error loading plugin %s: %s", plugin_id, str(error))
             return False
 
     async def activate_plugin(self, plugin_id: str) -> bool:
@@ -300,7 +287,7 @@ class PluginRegistry:
             True if activation successful
         """
         if plugin_id not in self.plugins:
-            self.logger.error(f"Plugin not found: {plugin_id}")
+            self.logger.error("Plugin not found: %s", plugin_id)
             return False
 
         plugin = self.plugins[plugin_id]
@@ -314,11 +301,11 @@ class PluginRegistry:
 
         try:
             plugin.status = PluginStatus.ACTIVE
-            self.logger.info(f"Activated plugin: {plugin.name} ({plugin_id})")
+            self.logger.info("Activated plugin: %s (%s)", plugin.name, plugin_id)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error activating plugin {plugin_id}: {e}")
+        except Exception as error:
+            self.logger.error("Error activating plugin %s: %s", plugin_id, str(error))
             return False
 
     async def deactivate_plugin(self, plugin_id: str) -> bool:
@@ -332,22 +319,22 @@ class PluginRegistry:
             True if deactivation successful
         """
         if plugin_id not in self.plugins:
-            self.logger.error(f"Plugin not found: {plugin_id}")
+            self.logger.error("Plugin not found: %s", plugin_id)
             return False
 
         plugin = self.plugins[plugin_id]
 
         if plugin.status != PluginStatus.ACTIVE:
-            self.logger.warning(f"Plugin not active: {plugin_id}")
+            self.logger.warning("Plugin not active: %s", plugin_id)
             return True
 
         try:
             plugin.status = PluginStatus.DISABLED
-            self.logger.info(f"Deactivated plugin: {plugin.name} ({plugin_id})")
+            self.logger.info("Deactivated plugin: %s (%s)", plugin.name, plugin_id)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error deactivating plugin {plugin_id}: {e}")
+        except Exception as error:
+            self.logger.error("Error deactivating plugin %s: %s", plugin_id, str(error))
             return False
 
     async def unload_plugin(self, plugin_id: str) -> bool:
@@ -361,7 +348,7 @@ class PluginRegistry:
             True if unloading successful
         """
         if plugin_id not in self.plugins:
-            self.logger.error(f"Plugin not found: {plugin_id}")
+            self.logger.error("Plugin not found: %s", plugin_id)
             return False
 
         plugin = self.plugins[plugin_id]
@@ -385,11 +372,11 @@ class PluginRegistry:
             if plugin_id in self.plugin_metadata:
                 del self.plugin_metadata[plugin_id]
 
-            self.logger.info(f"Unloaded plugin: {plugin.name} ({plugin_id})")
+            self.logger.info("Unloaded plugin: %s (%s)", plugin.name, plugin_id)
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error unloading plugin {plugin_id}: {e}")
+        except Exception as error:
+            self.logger.error("Error unloading plugin %s: %s", plugin_id, str(error))
             return False
 
     def get_plugin(self, plugin_id: str) -> Optional[Plugin]:
@@ -449,7 +436,7 @@ class PluginRegistry:
             True if reload successful
         """
         if plugin_id not in self.plugins:
-            self.logger.error(f"Plugin not found: {plugin_id}")
+            self.logger.error("Plugin not found: %s", plugin_id)
             return False
 
         plugin = self.plugins[plugin_id]

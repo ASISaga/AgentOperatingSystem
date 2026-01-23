@@ -1,8 +1,10 @@
 """
 UI Action data model - represents user interface actions in the system
 """
+from typing import Any, Dict, Literal, Optional
+
 from pydantic import BaseModel
-from typing import Any, Dict, Optional, Literal
+
 
 class UiAction(BaseModel):
     """

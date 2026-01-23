@@ -5,12 +5,9 @@ Manages domain-specific knowledge, contexts, and directives for self-learning ag
 Integrates with the AOS storage system for persistence and provides knowledge retrieval.
 """
 
-import os
-import json
 import logging
-import asyncio
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List
 
 from ..storage.manager import StorageManager
 
@@ -45,8 +42,8 @@ class KnowledgeManager:
 
             self.logger.info("Knowledge Manager initialized successfully")
 
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Knowledge Manager: {e}")
+        except Exception as error:
+            self.logger.error("Failed to initialize Knowledge Manager: %s", str(error))
             raise
 
     async def _load_domain_contexts(self):
@@ -56,14 +53,14 @@ class KnowledgeManager:
             if await self.storage.exists(contexts_path):
                 data = await self.storage.read_json(contexts_path)
                 self.domain_contexts = data
-                self.logger.info(f"Loaded contexts for {len(self.domain_contexts)} domains")
+                self.logger.info("Loaded contexts for %s domains", len(self.domain_contexts))
             else:
                 # Initialize with default contexts
                 self.domain_contexts = self._get_default_contexts()
                 await self.storage.write_json(contexts_path, self.domain_contexts)
 
-        except Exception as e:
-            self.logger.error(f"Failed to load domain contexts: {e}")
+        except Exception as error:
+            self.logger.error("Failed to load domain contexts: %s", str(error))
 
     async def _load_domain_knowledge(self):
         """Load domain knowledge from storage"""
@@ -72,14 +69,14 @@ class KnowledgeManager:
             if await self.storage.exists(knowledge_path):
                 data = await self.storage.read_json(knowledge_path)
                 self.domain_knowledge = data
-                self.logger.info(f"Loaded knowledge for {len(self.domain_knowledge)} domains")
+                self.logger.info("Loaded knowledge for %s domains", len(self.domain_knowledge))
             else:
                 # Initialize with empty knowledge base
                 self.domain_knowledge = {}
                 await self.storage.write_json(knowledge_path, self.domain_knowledge)
 
-        except Exception as e:
-            self.logger.error(f"Failed to load domain knowledge: {e}")
+        except Exception as error:
+            self.logger.error("Failed to load domain knowledge: %s", str(error))
 
     async def _load_agent_directives(self):
         """Load agent directives from storage"""
@@ -88,14 +85,14 @@ class KnowledgeManager:
             if await self.storage.exists(directives_path):
                 data = await self.storage.read_json(directives_path)
                 self.agent_directives = data
-                self.logger.info(f"Loaded directives for {len(self.agent_directives)} domains")
+                self.logger.info("Loaded directives for %s domains", len(self.agent_directives))
             else:
                 # Initialize with default directives
                 self.agent_directives = self._get_default_directives()
                 await self.storage.write_json(directives_path, self.agent_directives)
 
-        except Exception as e:
-            self.logger.error(f"Failed to load agent directives: {e}")
+        except Exception as error:
+            self.logger.error("Failed to load agent directives: %s", str(error))
 
     async def _load_interaction_patterns(self):
         """Load learned interaction patterns from storage"""
@@ -104,13 +101,13 @@ class KnowledgeManager:
             if await self.storage.exists(patterns_path):
                 data = await self.storage.read_json(patterns_path)
                 self.interaction_patterns = data
-                self.logger.info(f"Loaded {len(self.interaction_patterns)} interaction patterns")
+                self.logger.info("Loaded %s interaction patterns", len(self.interaction_patterns))
             else:
                 self.interaction_patterns = {}
                 await self.storage.write_json(patterns_path, self.interaction_patterns)
 
-        except Exception as e:
-            self.logger.error(f"Failed to load interaction patterns: {e}")
+        except Exception as error:
+            self.logger.error("Failed to load interaction patterns: %s", str(error))
 
     def _get_default_contexts(self) -> Dict[str, Any]:
         """Get default domain contexts"""
@@ -178,7 +175,7 @@ class KnowledgeManager:
         knowledge_path = f"{self.knowledge_base_path}/domain_knowledge.json"
         await self.storage.write_json(knowledge_path, self.domain_knowledge)
 
-        self.logger.info(f"Added knowledge entry to domain: {domain}")
+        self.logger.info("Added knowledge entry to domain: %s", domain)
 
     async def update_interaction_pattern(self, pattern_id: str, pattern: Dict[str, Any]):
         """Update or add an interaction pattern"""
@@ -189,7 +186,7 @@ class KnowledgeManager:
         patterns_path = f"{self.knowledge_base_path}/interaction_patterns.json"
         await self.storage.write_json(patterns_path, self.interaction_patterns)
 
-        self.logger.debug(f"Updated interaction pattern: {pattern_id}")
+        self.logger.debug("Updated interaction pattern: %s", pattern_id)
 
     async def get_interaction_patterns(self, filter_criteria: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """Get interaction patterns with optional filtering"""

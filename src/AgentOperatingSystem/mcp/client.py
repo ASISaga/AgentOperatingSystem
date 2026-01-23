@@ -4,10 +4,10 @@ AOS MCP (Model Context Protocol) Client
 Provides MCP client functionality for connecting to external MCP servers.
 """
 
-import logging
 import asyncio
-from typing import Dict, Any, Optional, List
+import logging
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class MCPConnectionStatus(Enum):
@@ -43,23 +43,23 @@ class MCPClient:
         """Connect to the MCP server"""
         try:
             self.status = MCPConnectionStatus.CONNECTING
-            self.logger.info(f"Connecting to MCP server: {self.server_name}")
+            self.logger.info("Connecting to MCP server: %s", self.server_name)
 
             # Placeholder for actual MCP connection logic
             # This would integrate with the actual MCP protocol implementation
             await asyncio.sleep(0.1)  # Simulate connection time
 
             self.status = MCPConnectionStatus.CONNECTED
-            self.logger.info(f"Connected to MCP server: {self.server_name}")
+            self.logger.info("Connected to MCP server: %s", self.server_name)
 
             # Discover server capabilities
             await self._discover_capabilities()
 
             return True
 
-        except Exception as e:
+        except Exception as error:
             self.status = MCPConnectionStatus.ERROR
-            self.logger.error(f"Failed to connect to MCP server {self.server_name}: {e}")
+            self.logger.error("Failed to connect to MCP server %s: %s", self.server_name, str(error))
             return False
 
     async def disconnect(self):
@@ -71,10 +71,10 @@ class MCPClient:
 
                 self.status = MCPConnectionStatus.DISCONNECTED
                 self.connection = None
-                self.logger.info(f"Disconnected from MCP server: {self.server_name}")
+                self.logger.info("Disconnected from MCP server: %s", self.server_name)
 
-            except Exception as e:
-                self.logger.error(f"Error disconnecting from MCP server {self.server_name}: {e}")
+            except Exception as error:
+                self.logger.error("Error disconnecting from MCP server %s: %s", self.server_name, str(error))
 
     async def send_request(self, method: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """Send a request to the MCP server"""
@@ -85,7 +85,7 @@ class MCPClient:
             request_id = self._generate_request_id()
 
             # Placeholder for actual MCP request
-            self.logger.debug(f"Sending MCP request: {method} with params: {params}")
+            self.logger.debug("Sending MCP request: %s with params: %s", method, params)
 
             # Simulate request processing
             await asyncio.sleep(0.1)
@@ -100,9 +100,9 @@ class MCPClient:
 
             return response
 
-        except Exception as e:
-            self.logger.error(f"Error sending MCP request: {e}")
-            return {"error": str(e)}
+        except Exception as error:
+            self.logger.error("Error sending MCP request: %s", str(error))
+            return {"error": str(error)}
 
     async def call_tool(self, tool_name: str, arguments: Dict[str, Any] = None) -> Dict[str, Any]:
         """Call a tool on the MCP server"""
@@ -144,10 +144,10 @@ class MCPClient:
                 "prompts": []
             }
 
-            self.logger.debug(f"Discovered capabilities for {self.server_name}: {self.capabilities}")
+            self.logger.debug("Discovered capabilities for %s: %s", self.server_name, self.capabilities)
 
-        except Exception as e:
-            self.logger.error(f"Error discovering capabilities: {e}")
+        except Exception as error:
+            self.logger.error("Error discovering capabilities: %s", str(error))
 
     def _generate_request_id(self) -> str:
         """Generate unique request ID"""
@@ -169,7 +169,7 @@ class MCPClientManager:
     async def add_client(self, server_name: str, config: Dict[str, Any] = None) -> bool:
         """Add a new MCP client"""
         if server_name in self.clients:
-            self.logger.warning(f"MCP client {server_name} already exists")
+            self.logger.warning("MCP client %s already exists", server_name)
             return False
 
         client = MCPClient(server_name, config)
@@ -177,10 +177,10 @@ class MCPClientManager:
 
         if success:
             self.clients[server_name] = client
-            self.logger.info(f"Added MCP client: {server_name}")
+            self.logger.info("Added MCP client: %s", server_name)
             return True
         else:
-            self.logger.error(f"Failed to add MCP client: {server_name}")
+            self.logger.error("Failed to add MCP client: %s", server_name)
             return False
 
     async def remove_client(self, server_name: str) -> bool:
@@ -192,7 +192,7 @@ class MCPClientManager:
         await client.disconnect()
         del self.clients[server_name]
 
-        self.logger.info(f"Removed MCP client: {server_name}")
+        self.logger.info("Removed MCP client: %s", server_name)
         return True
 
     async def get_client(self, server_name: str) -> Optional[MCPClient]:
@@ -215,8 +215,8 @@ class MCPClientManager:
             try:
                 tools = await client.list_tools()
                 all_tools[server_name] = tools
-            except Exception as e:
-                self.logger.error(f"Error listing tools for {server_name}: {e}")
+            except Exception as error:
+                self.logger.error("Error listing tools for %s: %s", server_name, str(error))
                 all_tools[server_name] = []
 
         return all_tools
@@ -229,8 +229,8 @@ class MCPClientManager:
             try:
                 resources = await client.get_resources()
                 all_resources[server_name] = resources
-            except Exception as e:
-                self.logger.error(f"Error getting resources for {server_name}: {e}")
+            except Exception as error:
+                self.logger.error("Error getting resources for %s: %s", server_name, str(error))
                 all_resources[server_name] = []
 
         return all_resources

@@ -10,35 +10,21 @@ Includes Azure Foundry Agent Service integration with Llama 3.3 70B and LoRA ada
 from .pipeline import MLPipelineManager
 
 try:
-    from .self_learning_system import (
-        SelfLearningSystem, LearningEpisode, LearningPattern, AdaptationPlan,
-        LearningPhase, LearningFocus, FeedbackType
-    )
     SELF_LEARNING_AVAILABLE = True
 except ImportError:
     SELF_LEARNING_AVAILABLE = False
 
 try:
-    from .dpo_trainer import (
-        DPOTrainer, DPOConfig, PreferenceData, PreferenceDataCollector
-    )
     DPO_AVAILABLE = True
 except ImportError:
     DPO_AVAILABLE = False
 
 try:
-    from .lorax_server import (
-        LoRAxServer, LoRAxConfig, LoRAxAdapterRegistry, AdapterInfo
-    )
     LORAX_AVAILABLE = True
 except ImportError:
     LORAX_AVAILABLE = False
 
 try:
-    from .foundry_agent_service import (
-        FoundryAgentServiceClient, FoundryAgentServiceConfig,
-        FoundryResponse, ThreadInfo
-    )
     FOUNDRY_AGENT_SERVICE_AVAILABLE = True
 except ImportError:
     FOUNDRY_AGENT_SERVICE_AVAILABLE = False

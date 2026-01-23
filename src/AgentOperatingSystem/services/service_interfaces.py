@@ -24,8 +24,7 @@ Usage:
     storage = AOSStorageService(storage_manager)
 """
 
-from typing import Dict, Any, List, Optional, Protocol
-from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Protocol
 
 
 class IStorageService(Protocol):

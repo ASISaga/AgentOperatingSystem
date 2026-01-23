@@ -38,13 +38,11 @@ Cost Benefits:
 - Efficient batching improves throughput
 """
 
-import logging
-from typing import Dict, Any, List, Optional, Set
-from datetime import datetime
-from dataclasses import dataclass, field
 import asyncio
-from pathlib import Path
-
+import logging
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("AOS.LoRAxServer")
 
@@ -133,7 +131,7 @@ class LoRAxAdapterRegistry:
             AdapterInfo object
         """
         if adapter_id in self.adapters:
-            self.logger.warning(f"Adapter {adapter_id} already registered, updating...")
+            self.logger.warning("Adapter %s already registered, updating...", adapter_id)
 
         adapter_info = AdapterInfo(
             adapter_id=adapter_id,
@@ -146,7 +144,7 @@ class LoRAxAdapterRegistry:
         self.adapters[adapter_id] = adapter_info
         self.agent_to_adapter[agent_role] = adapter_id
 
-        self.logger.info(f"Registered adapter {adapter_id} for agent {agent_role}")
+        self.logger.info("Registered adapter %s for agent %s", adapter_id, agent_role)
         return adapter_info
 
     def get_adapter(self, adapter_id: str) -> Optional[AdapterInfo]:
@@ -249,7 +247,7 @@ class LoRAxServer:
             self.logger.warning("LoRAx server is already running")
             return True
 
-        self.logger.info(f"Starting LoRAx server with base model: {self.config.base_model}")
+        self.logger.info("Starting LoRAx server with base model: %s", self.config.base_model)
 
         try:
             # TODO: Production implementation should:
@@ -270,17 +268,17 @@ class LoRAxServer:
             self.logger.info("Starting HTTP server...")
             await asyncio.sleep(0.5)  # Simulate server startup
 
-            self.logger.info(f"Preloading adapters (cache size: {self.config.adapter_cache_size})...")
+            self.logger.info("Preloading adapters (cache size: %s)...", self.config.adapter_cache_size)
             await self._preload_adapters()
 
             self.running = True
             self.logger.info(
-                f"LoRAx server started successfully on {self.config.host}:{self.config.port}"
-            )
+            "LoRAx server started successfully on %s:%s", self.config.host, self.config.port
+        )
             return True
 
-        except Exception as e:
-            self.logger.error(f"Failed to start LoRAx server: {e}")
+        except Exception as error:
+            self.logger.error("Failed to start LoRAx server: %s", str(error))
             self.running = False
             return False
 
@@ -314,8 +312,8 @@ class LoRAxServer:
             self.logger.info("LoRAx server stopped successfully")
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error stopping LoRAx server: {e}")
+        except Exception as error:
+            self.logger.error("Error stopping LoRAx server: %s", str(error))
             return False
 
     async def inference(
@@ -379,11 +377,11 @@ class LoRAxServer:
             # - result = await self._process_batch([batch_request])
             # - generated_text = result['sequences'][0]['text']
 
-            self.logger.debug(f"Processing inference request {request_id} with adapter {adapter_id}")
+            self.logger.debug("Processing inference request %s with adapter %s", request_id, adapter_id)
 
             # Simulate adapter loading if needed
             if not adapter_info.loaded:
-                self.logger.debug(f"Loading adapter {adapter_id}...")
+                self.logger.debug("Loading adapter %s...", adapter_id)
                 await asyncio.sleep(0.1)
                 adapter_info.loaded = True
                 self.metrics["cache_misses"] += 1
@@ -422,8 +420,8 @@ class LoRAxServer:
 
             return result
 
-        except Exception as e:
-            self.logger.error(f"Inference failed for request {request_id}: {e}")
+        except Exception as error:
+            self.logger.error("Inference failed for request %s: %s", request_id, str(error))
             self.metrics["failed_requests"] += 1
             raise
 
@@ -474,7 +472,7 @@ class LoRAxServer:
         if not self.running:
             raise RuntimeError("LoRAx server is not running")
 
-        self.logger.info(f"Processing batch of {len(requests)} inference requests")
+        self.logger.info("Processing batch of %s inference requests", len(requests))
 
         # In a real implementation, LoRAx would:
         # 1. Group requests by compatible adapters
@@ -507,12 +505,12 @@ class LoRAxServer:
 
         for adapter in top_adapters:
             if not adapter.loaded:
-                self.logger.debug(f"Preloading adapter {adapter.adapter_id}")
+                self.logger.debug("Preloading adapter %s", adapter.adapter_id)
                 adapter.loaded = True
                 adapter.load_count += 1
 
         self.metrics["adapters_loaded"] = len([a for a in top_adapters if a.loaded])
-        self.logger.info(f"Preloaded {self.metrics['adapters_loaded']} adapters")
+        self.logger.info("Preloaded %s adapters", self.metrics['adapters_loaded'])
 
     async def _unload_all_adapters(self):
         """Unload all adapters from memory."""

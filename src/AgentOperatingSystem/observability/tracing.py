@@ -4,11 +4,12 @@ Distributed tracing for AgentOperatingSystem
 Correlation and causation propagation across agents with detailed spans.
 """
 
-from typing import Dict, Any, Optional, List
+import uuid
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-import uuid
 
 
 class TraceLevel(str, Enum):

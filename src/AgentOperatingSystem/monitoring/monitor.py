@@ -4,12 +4,14 @@ AOS System Monitor
 Provides system monitoring, metrics collection, and telemetry for AOS.
 """
 
-import logging
 import asyncio
+import logging
 import time
-import psutil
-from typing import Dict, Any, List
 from datetime import datetime, timezone
+from typing import Any, Dict, List
+
+import psutil
+
 from ..config.monitoring import MonitoringConfig
 
 
@@ -119,7 +121,7 @@ class SystemMonitor:
         if len(self.metric_history) > 10000:
             self.metric_history = self.metric_history[-10000:]
 
-        self.logger.debug(f"Recorded metric {name}: {value}")
+        self.logger.debug("Recorded metric %s: %s", name, value)
 
     def increment_counter(self, counter_name: str, increment: int = 1):
         """Increment a performance counter"""
@@ -160,7 +162,7 @@ class SystemMonitor:
 
                 # Log metrics if configured
                 if self.config.enable_logging:
-                    self.logger.debug(f"System metrics: {metrics}")
+                    self.logger.debug("System metrics: %s", metrics)
 
                 # Send telemetry if configured
                 if self.config.enable_telemetry and self.config.telemetry_endpoint:
@@ -171,8 +173,8 @@ class SystemMonitor:
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
-                self.logger.error(f"Error in monitoring loop: {e}")
+            except Exception as error:
+                self.logger.error("Error in monitoring loop: %s", str(error))
                 await asyncio.sleep(5)  # Wait before retrying
 
     async def _collect_system_metrics(self) -> Dict[str, Any]:
@@ -216,19 +218,19 @@ class SystemMonitor:
                 }
             }
 
-        except Exception as e:
-            self.logger.error(f"Error collecting system metrics: {e}")
-            return {"error": str(e)}
+        except Exception as error:
+            self.logger.error("Error collecting system metrics: %s", str(error))
+            return {"error": str(error)}
 
     async def _send_telemetry(self, metrics: Dict[str, Any]):
         """Send telemetry to configured endpoint"""
         try:
             # This would integrate with actual telemetry systems
             # (Application Insights, Prometheus, etc.)
-            self.logger.debug(f"Would send telemetry to {self.config.telemetry_endpoint}")
+            self.logger.debug("Would send telemetry to %s", self.config.telemetry_endpoint)
 
-        except Exception as e:
-            self.logger.error(f"Error sending telemetry: {e}")
+        except Exception as error:
+            self.logger.error("Error sending telemetry: %s", str(error))
 
 
 class MetricsCollector:

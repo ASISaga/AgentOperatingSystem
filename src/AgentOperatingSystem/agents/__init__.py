@@ -11,10 +11,11 @@ Contains only the fundamental agent classes:
 All orchestration-related classes have been moved to the orchestration module.
 """
 
+from .cmo_agent import CMOAgent
+from .leadership_agent import LeadershipAgent
+
 # v3.0.0 - Refactored agent classes
 from .purpose_driven import PurposeDrivenAgent
-from .leadership_agent import LeadershipAgent
-from .cmo_agent import CMOAgent
 
 # Backward compatibility aliases
 # BaseAgent and PerpetualAgent have been merged into PurposeDrivenAgent
