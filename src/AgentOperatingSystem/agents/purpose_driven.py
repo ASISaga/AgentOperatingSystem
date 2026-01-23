@@ -5,6 +5,13 @@ PurposeDrivenAgent inherits from PerpetualAgent and works against a perpetual,
 assigned purpose rather than short-term tasks. This is the fundamental building
 block that makes AOS an operating system of Purpose-Driven, Perpetual Agents.
 
+Architecture Components:
+- LoRA Adapters: Provide domain-specific knowledge (language, vocabulary, concepts,
+  and agent persona) to PurposeDrivenAgents
+- Core Purposes: Added to the primary LLM context to guide agent behavior
+- MCP: Provides context management, domain-specific tools, and access to contemporary
+  software systems
+
 PurposeDrivenAgent will eventually be moved to a dedicated repository.
 """
 
@@ -23,21 +30,30 @@ class PurposeDrivenAgent(PerpetualAgent):
     all perpetual operation capabilities from PerpetualAgent and adds
     purpose-oriented behavior.
     
+    Architecture:
+    - LoRA Adapters: Provide domain-specific knowledge (language, vocabulary, 
+      concepts, and importantly agent persona) to specialize the agent
+    - Core Purposes: Incorporated into the primary LLM context to guide all
+      agent decisions and behaviors
+    - MCP Integration: ContextMCPServer provides context management, domain-specific
+      tools, and access to external software systems
+    
     Key characteristics:
     - Perpetual: Runs indefinitely (inherited from PerpetualAgent)
     - Purpose-driven: Works toward a defined, long-term purpose
     - Context-aware: Uses ContextMCPServer for state preservation
     - Event-responsive: Awakens on events relevant to its purpose
     - Autonomous: Makes decisions aligned with its purpose
+    - Adapter-mapped: Purpose mapped to LoRA adapter for domain expertise
     
     Example:
         >>> agent = PurposeDrivenAgent(
         ...     agent_id="ceo",
         ...     purpose="Strategic oversight and decision-making for company growth",
         ...     purpose_scope="Strategic planning, major decisions, alignment",
-        ...     adapter_name="ceo"
+        ...     adapter_name="ceo"  # Maps to LoRA adapter providing CEO domain knowledge & persona
         ... )
-        >>> await agent.initialize()
+        >>> await agent.initialize()  # Sets up MCP context server
         >>> await agent.start()
         >>> # Agent now runs perpetually, working toward its purpose
     """
@@ -57,22 +73,31 @@ class PurposeDrivenAgent(PerpetualAgent):
         
         Args:
             agent_id: Unique identifier for this agent
-            purpose: The long-term purpose this agent works toward
+            purpose: The long-term purpose this agent works toward (added to LLM context)
             purpose_scope: Scope/boundaries of the purpose (optional)
             success_criteria: List of criteria that define success (optional)
-            tools: Tools available to the agent (optional)
+            tools: Tools available to the agent (optional, via MCP)
             system_message: System message for the agent (optional)
-            adapter_name: Name for adapter (e.g., 'ceo', 'cfo')
+            adapter_name: Name for LoRA adapter providing domain knowledge & persona (e.g., 'ceo', 'cfo')
+        
+        Architecture:
+            - The purpose is added to the primary LLM context to guide behavior
+            - The adapter_name maps to a LoRA adapter that provides domain-specific
+              knowledge, vocabulary, concepts, and agent persona
+            - MCP (via ContextMCPServer) provides context management and domain tools
         """
         # Initialize parent PerpetualAgent
+        # - Sets up adapter_name for LoRA adapter (provides domain knowledge & persona)
+        # - Initializes tools (via MCP for domain-specific access)
         super().__init__(
             agent_id=agent_id,
             tools=tools,
             system_message=system_message,
-            adapter_name=adapter_name
+            adapter_name=adapter_name  # Maps to LoRA adapter for domain expertise
         )
         
         # Purpose-specific attributes
+        # The purpose will be added to primary LLM context during initialization
         self.purpose = purpose
         self.purpose_scope = purpose_scope or "General purpose operation"
         self.success_criteria = success_criteria or []
@@ -91,14 +116,18 @@ class PurposeDrivenAgent(PerpetualAgent):
         
         self.logger = logging.getLogger(f"aos.purpose_driven.{self.agent_id}")
         self.logger.info(
-            f"PurposeDrivenAgent {self.agent_id} created with purpose: {self.purpose}"
+            f"PurposeDrivenAgent {self.agent_id} created with purpose: {self.purpose}, "
+            f"adapter: {self.adapter_name}"
         )
     
     async def initialize(self) -> bool:
         """
         Initialize the Purpose-Driven Agent.
         
-        Extends PerpetualAgent initialization with purpose-specific setup.
+        Extends PerpetualAgent initialization with purpose-specific setup:
+        - Sets up MCP context server for context management and domain tools
+        - Stores purpose in context (added to primary LLM context)
+        - LoRA adapter (specified by adapter_name) provides domain knowledge & persona
         
         Returns:
             True if initialization successful
@@ -111,13 +140,17 @@ class PurposeDrivenAgent(PerpetualAgent):
             # Load purpose-specific context
             await self._load_purpose_context()
             
-            # Store purpose in context
+            # Store purpose in MCP context server
+            # This makes the purpose available to the primary LLM context
             if self.mcp_context_server:
                 await self.mcp_context_server.set_context("purpose", self.purpose)
                 await self.mcp_context_server.set_context("purpose_scope", self.purpose_scope)
                 await self.mcp_context_server.set_context("success_criteria", self.success_criteria)
             
-            self.logger.info(f"PurposeDrivenAgent {self.agent_id} initialized with purpose")
+            self.logger.info(
+                f"PurposeDrivenAgent {self.agent_id} initialized - "
+                f"purpose added to LLM context, adapter '{self.adapter_name}' provides domain expertise"
+            )
             return True
             
         except Exception as e:

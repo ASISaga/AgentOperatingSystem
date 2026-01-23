@@ -112,16 +112,31 @@ def main():
     
     # Test 7: Check documentation in .github/instructions
     print("Test 7: Checking documentation...")
+    
+    # Check Readme.md
     readme_file = os.path.join(os.path.dirname(__file__), '../.github/instructions/Readme.md')
     with open(readme_file, 'r') as f:
         content = f.read()
     assert 'CMOAgent' in content, "❌ CMOAgent not documented in .github/instructions/Readme.md"
-    assert 'purpose-adapter' in content.lower() or 'purpose adapter' in content.lower(), \
-        "❌ Purpose-adapter mapping not documented"
-    assert 'LeadershipAgent' in content, "❌ LeadershipAgent not documented"
-    print("  ✅ CMOAgent is documented in .github/instructions/Readme.md")
-    print("  ✅ Purpose-adapter mapping is documented")
-    print("  ✅ LeadershipAgent is documented")
+    assert 'LeadershipAgent' in content, "❌ LeadershipAgent not documented in Readme.md"
+    print("  ✅ CMOAgent and LeadershipAgent documented in Readme.md")
+    
+    # Check agents.instructions.md
+    agents_file = os.path.join(os.path.dirname(__file__), '../.github/instructions/agents.instructions.md')
+    with open(agents_file, 'r') as f:
+        content = f.read()
+    assert 'CMOAgent' in content, "❌ CMOAgent not documented in agents.instructions.md"
+    # Check for purpose-adapter or purpose to adapter mapping
+    purpose_adapter_found = ('purpose-adapter' in content.lower() or 
+                            'purpose adapter' in content.lower() or
+                            'purpose to adapter' in content.lower() or
+                            'purposes to lora adapters' in content.lower())
+    assert purpose_adapter_found, \
+        "❌ Purpose-adapter mapping not documented in agents.instructions.md"
+    assert 'LeadershipAgent' in content, "❌ LeadershipAgent not documented in agents.instructions.md"
+    assert 'LoRA' in content, "❌ LoRA adapter information not documented"
+    print("  ✅ Purpose-adapter mapping documented in agents.instructions.md")
+    print("  ✅ LoRA adapter architecture documented")
     print()
     
     print("=" * 80)
