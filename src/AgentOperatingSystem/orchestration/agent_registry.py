@@ -10,7 +10,7 @@ import logging
 from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 
-from ..agents.leadership_agent import LeadershipAgent
+from ..agents import LeadershipAgent
 
 
 class AgentRegistry:

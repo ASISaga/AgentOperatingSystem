@@ -14,8 +14,8 @@ from datetime import datetime
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from AgentOperatingSystem.agents.perpetual import PerpetualAgent
-from AgentOperatingSystem.agents.manager import UnifiedAgentManager
+from AgentOperatingSystem.agents import PerpetualAgent
+from AgentOperatingSystem.orchestration import UnifiedAgentManager
 
 
 class TestPerpetualAgent:

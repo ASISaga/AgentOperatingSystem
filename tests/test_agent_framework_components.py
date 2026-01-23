@@ -9,8 +9,7 @@ import asyncio
 from unittest.mock import Mock, patch, AsyncMock
 
 # Import AOS components
-from AgentOperatingSystem.agents.agent_framework_system import AgentFrameworkSystem
-from AgentOperatingSystem.agents.multi_agent import MultiAgentSystem, ApprovalTerminationStrategy
+from AgentOperatingSystem.orchestration import AgentFrameworkSystem, MultiAgentSystem, ApprovalTerminationStrategy
 from AgentOperatingSystem.orchestration.workflow_orchestrator import WorkflowOrchestrator
 from AgentOperatingSystem.orchestration.model_orchestration import ModelOrchestrator, ModelType
 
