@@ -45,25 +45,33 @@ python3 deploy.py \
 
 ```
 deployment/
-├── orchestrator/                   # ⭐ NEW: Python orchestration layer
+├── orchestrator/                   # ⭐ Python orchestration layer
 │   ├── core/                       # State machine, failure classification
 │   ├── validators/                 # Linting, what-if planning
 │   ├── health/                     # Health verification
 │   ├── audit/                      # Audit logging
 │   └── cli/                        # CLI interface
-├── deploy.py                       # ⭐ NEW: Main deployment entry point
-├── ORCHESTRATOR_USER_GUIDE.md      # ⭐ NEW: Complete user guide
-├── main-modular.bicep              # Main Bicep infrastructure template (modular)
-├── main.bicep                      # Legacy monolithic template
+├── modules/                        # Bicep modules (storage, compute, etc.)
 ├── parameters/                     # Environment-specific parameters
 │   ├── dev.bicepparam             # Development parameters
 │   └── prod.bicepparam            # Production parameters
-├── modules/                        # Bicep modules (storage, compute, etc.)
-├── Deploy-AOS.ps1                 # Legacy PowerShell deployment script
-├── deploy-aos.sh                  # Legacy Bash deployment script
+├── tests/                          # Orchestrator tests
+├── docs/                           # Supporting documentation
+│   ├── REGIONAL_VALIDATION_FLOW.md
+│   ├── REGIONAL_UPDATES_README.md
+│   └── archive/                    # Historical documentation
+├── legacy/                         # ⛔ Deprecated deployment scripts
+│   ├── deploy-aos.sh              # Use deploy.py instead
+│   └── Deploy-AOS.ps1             # Use deploy.py instead
+├── deploy.py                       # ⭐ Main deployment entry point
+├── main-modular.bicep              # ⭐ Main Bicep template (modular architecture)
+├── main.bicep                      # Legacy monolithic template
+├── ORCHESTRATOR_USER_GUIDE.md      # Complete orchestrator usage guide
 ├── REGIONAL_REQUIREMENTS.md        # Azure regional availability guide
 ├── REFACTORING_RECOMMENDATIONS.md  # Infrastructure refactoring guide
-└── README.md                      # This file
+├── MIGRATION_GUIDE.md              # Migration from JSON to bicepparam
+├── QUICKSTART.md                   # Quick start guide
+└── README.md                       # This file
 ```
 
 ## 🌍 Regional Considerations
@@ -105,27 +113,28 @@ Before deploying, ensure you have:
 
 For backward compatibility, we maintain the original deployment scripts:
 
-### Option 1: PowerShell Script (Windows)
+## 🛠️ Legacy Deployment Methods
+
+> ⚠️ **Deprecated**: The bash and PowerShell scripts have been replaced by the Python orchestrator. Use `deploy.py` for all new deployments.
+
+For reference, legacy deployment methods are documented below. These methods lack the production-grade quality gates, health checks, and audit features of the Python orchestrator.
+
+### Legacy Option 1: PowerShell Script (Windows) - DEPRECATED
+
+> **Status**: ⛔ Moved to `legacy/Deploy-AOS.ps1` - Use `python3 deploy.py` instead
 
 ```powershell
-# Basic deployment (infrastructure only)
-.\Deploy-AOS.ps1 -ResourceGroupName "rg-aos-dev" -Location "eastus" -Environment "dev"
-
-# Full deployment (infrastructure + code)
-.\Deploy-AOS.ps1 -ResourceGroupName "rg-aos-dev" -Location "eastus" -Environment "dev" -DeployCode
+# Legacy deployment (deprecated)
+.\legacy\Deploy-AOS.ps1 -ResourceGroupName "rg-aos-dev" -Location "eastus" -Environment "dev"
 ```
 
-### Option 2: Bash Script (Linux/Mac)
+### Legacy Option 2: Bash Script (Linux/Mac) - DEPRECATED
+
+> **Status**: ⛔ Moved to `legacy/deploy-aos.sh` - Use `python3 deploy.py` instead
 
 ```bash
-# Make script executable (first time only)
-chmod +x deploy-aos.sh
-
-# Basic deployment
-./deploy-aos.sh -g "rg-aos-dev" -l "eastus" -e "dev"
-
-# Full deployment with code
-./deploy-aos.sh -g "rg-aos-dev" -l "eastus" -e "dev" -c
+# Legacy deployment (deprecated)
+./legacy/deploy-aos.sh -g "rg-aos-dev" -l "eastus" -e "dev"
 ```
 
 ### Option 3: Direct Azure CLI
@@ -139,53 +148,10 @@ az deployment group create \
   --name "aos-deployment-$(date +%Y%m%d)" \
   --resource-group "rg-aos-dev" \
   --template-file "main-modular.bicep" \
-  --parameters "@parameters/dev.bicepparam"
+  --parameters "parameters/dev.bicepparam"
 ```
 
-**Note**: These methods do not include the quality gates, health checks, and audit features provided by the Python orchestrator.
-
-## 📋 Deployment Script Features
-
-### PowerShell Script (Deploy-AOS.ps1)
-
-**Parameters:**
-- `-ResourceGroupName` (required): Azure Resource Group name
-- `-Location` (required): Azure region (e.g., eastus, westus2)
-- `-Environment` (required): Environment (dev, staging, prod)
-- `-ParametersFile` (optional): Custom parameters file path
-- `-SkipPreCheck`: Skip pre-deployment validation
-- `-SkipPostCheck`: Skip post-deployment verification
-- `-DeployCode`: Deploy Function App code after infrastructure
-- `-UseAzCli`: Use Azure CLI instead of PowerShell modules
-
-**Features:**
-- ✅ Pre-deployment prerequisite checks
-- ✅ Azure authentication verification
-- ✅ Bicep template validation
-- ✅ Infrastructure deployment
-- ✅ **Bi-directional status checking from Azure**
-- ✅ Post-deployment resource verification
-- ✅ Optional Function App code deployment
-- ✅ Comprehensive logging
-- ✅ Detailed deployment summary
-
-### Bash Script (deploy-aos.sh)
-
-**Options:**
-- `-g, --resource-group`: Azure Resource Group name (required)
-- `-l, --location`: Azure region (required)
-- `-e, --environment`: Environment (dev/staging/prod) (required)
-- `-p, --parameters`: Custom parameters file path (optional)
-- `-c, --deploy-code`: Deploy Function App code
-- `--skip-pre-check`: Skip validation
-- `--skip-post-check`: Skip verification
-- `-h, --help`: Show help message
-
-**Features:**
-- Same comprehensive features as PowerShell script
-- Cross-platform compatibility (Linux, Mac, WSL)
-- Colored console output for better readability
-- JSON processing with jq
+**Note**: Direct Azure CLI deployment does not include the quality gates, health checks, failure intelligence, and audit features provided by the Python orchestrator.
 
 ## 🏗️ Infrastructure Components
 
@@ -244,35 +210,37 @@ The deployment creates the following Azure resources:
 
 ### Parameters Files
 
-Edit the parameters files to customize your deployment:
+Parameter files use the modern `.bicepparam` format (not JSON):
 
-**parameters.dev.json** - Development environment
-```json
-{
-  "location": { "value": "eastus" },
-  "environment": { "value": "dev" },
-  "functionAppSku": { "value": "Y1" },        // Consumption plan
-  "serviceBusSku": { "value": "Standard" },
-  "storageSku": { "value": "Standard_LRS" },
-  "enableB2C": { "value": false },
-  "enableAppInsights": { "value": true },
-  "enableAzureML": { "value": true }
-}
+**parameters/dev.bicepparam** - Development environment
+```bicep
+using '../main-modular.bicep'
+
+param location = 'eastus'
+param environment = 'dev'
+param functionAppSku = 'Y1'        // Consumption plan
+param serviceBusSku = 'Standard'
+param storageSku = 'Standard_LRS'
+param enableB2C = false
+param enableAppInsights = true
+param enableAzureML = true
 ```
 
-**parameters.prod.json** - Production environment
-```json
-{
-  "location": { "value": "eastus" },
-  "environment": { "value": "prod" },
-  "functionAppSku": { "value": "EP1" },       // Elastic Premium
-  "serviceBusSku": { "value": "Premium" },
-  "storageSku": { "value": "Standard_GRS" },  // Geo-redundant
-  "enableB2C": { "value": true },
-  "enableAppInsights": { "value": true },
-  "enableAzureML": { "value": true }
-}
+**parameters/prod.bicepparam** - Production environment
+```bicep
+using '../main-modular.bicep'
+
+param location = 'eastus'
+param environment = 'prod'
+param functionAppSku = 'EP1'       // Elastic Premium
+param serviceBusSku = 'Premium'
+param storageSku = 'Standard_GRS'  // Geo-redundant
+param enableB2C = true
+param enableAppInsights = true
+param enableAzureML = true
 ```
+
+> **Note**: Legacy JSON parameter files have been removed. See [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) for details on the bicepparam format.
 
 ### Environment Variables
 

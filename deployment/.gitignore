@@ -15,6 +15,16 @@ __pycache__/
 .coverage
 htmlcov/
 
+# Compiled Bicep artifacts (JSON files generated from .bicep)
+*.json
+!parameters/*.json
+
+# Backup files
+*.original
+*.bak
+*.backup
+*~
+
 # Temporary files
 *.tmp
 *.log
