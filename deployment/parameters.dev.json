@@ -1,0 +1,56 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "eastus"
+    },
+    "environment": {
+      "value": "dev"
+    },
+    "namePrefix": {
+      "value": "aos"
+    },
+    "functionAppSku": {
+      "value": "Y1"
+    },
+    "serviceBusSku": {
+      "value": "Standard"
+    },
+    "storageSku": {
+      "value": "Standard_LRS"
+    },
+    "enableB2C": {
+      "value": false
+    },
+    "b2cTenantName": {
+      "value": ""
+    },
+    "b2cPolicyName": {
+      "value": ""
+    },
+    "b2cClientId": {
+      "value": ""
+    },
+    "b2cClientSecret": {
+      "value": ""
+    },
+    "enableAppInsights": {
+      "value": true
+    },
+    "enableAzureML": {
+      "value": true
+    },
+    "adminEmail": {
+      "value": ""
+    },
+    "tags": {
+      "value": {
+        "Environment": "dev",
+        "Application": "AgentOperatingSystem",
+        "ManagedBy": "Bicep",
+        "CreatedDate": "2026-02-07"
+      }
+    }
+  }
+}
