@@ -1,0 +1,134 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.40.2.10011",
+      "templateHash": "1525142906521395210"
+    }
+  },
+  "parameters": {
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault name"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage account name"
+      }
+    },
+    "serviceBusNamespaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Service Bus namespace name"
+      }
+    },
+    "functionAppPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "Main Function App principal ID (system-assigned identity)"
+      }
+    },
+    "mcpServerFunctionAppPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "MCP Server Function App principal ID (system-assigned identity)"
+      }
+    },
+    "realmFunctionAppPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "Realm Function App principal ID (system-assigned identity)"
+      }
+    }
+  },
+  "variables": {
+    "keyVaultSecretsUserRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+    "storageBlobDataContributorRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+    "serviceBusDataOwnerRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), parameters('functionAppPrincipalId'), variables('keyVaultSecretsUserRole'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('keyVaultSecretsUserRole')]",
+        "principalId": "[parameters('functionAppPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), parameters('mcpServerFunctionAppPrincipalId'), variables('keyVaultSecretsUserRole'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('keyVaultSecretsUserRole')]",
+        "principalId": "[parameters('mcpServerFunctionAppPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), parameters('realmFunctionAppPrincipalId'), variables('keyVaultSecretsUserRole'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('keyVaultSecretsUserRole')]",
+        "principalId": "[parameters('realmFunctionAppPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('functionAppPrincipalId'), variables('storageBlobDataContributorRole'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('storageBlobDataContributorRole')]",
+        "principalId": "[parameters('functionAppPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.ServiceBus/namespaces', parameters('serviceBusNamespaceName'))]",
+      "name": "[guid(resourceId('Microsoft.ServiceBus/namespaces', parameters('serviceBusNamespaceName')), parameters('functionAppPrincipalId'), variables('serviceBusDataOwnerRole'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('serviceBusDataOwnerRole')]",
+        "principalId": "[parameters('functionAppPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      }
+    }
+  ],
+  "outputs": {
+    "functionAppKeyVaultAccessId": {
+      "type": "string",
+      "metadata": {
+        "description": "Function App Key Vault access role assignment ID"
+      },
+      "value": "[extensionResourceId(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), parameters('functionAppPrincipalId'), variables('keyVaultSecretsUserRole')))]"
+    },
+    "functionAppStorageAccessId": {
+      "type": "string",
+      "metadata": {
+        "description": "Function App Storage access role assignment ID"
+      },
+      "value": "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('functionAppPrincipalId'), variables('storageBlobDataContributorRole')))]"
+    },
+    "functionAppServiceBusAccessId": {
+      "type": "string",
+      "metadata": {
+        "description": "Function App Service Bus access role assignment ID"
+      },
+      "value": "[extensionResourceId(resourceId('Microsoft.ServiceBus/namespaces', parameters('serviceBusNamespaceName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.ServiceBus/namespaces', parameters('serviceBusNamespaceName')), parameters('functionAppPrincipalId'), variables('serviceBusDataOwnerRole')))]"
+    }
+  }
+}

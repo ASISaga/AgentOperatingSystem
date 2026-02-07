@@ -1,0 +1,89 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.40.2.10011",
+      "templateHash": "1690538282659462349"
+    }
+  },
+  "parameters": {
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault name (must be globally unique, 3-24 chars)"
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Location for the Key Vault"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags to apply to resources"
+      }
+    },
+    "softDeleteRetentionInDays": {
+      "type": "int",
+      "defaultValue": 7,
+      "minValue": 7,
+      "maxValue": 90,
+      "metadata": {
+        "description": "Soft delete retention period in days"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-02-01",
+      "name": "[parameters('keyVaultName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "tenantId": "[subscription().tenantId]",
+        "enableRbacAuthorization": true,
+        "enabledForDeployment": true,
+        "enabledForTemplateDeployment": true,
+        "enableSoftDelete": true,
+        "softDeleteRetentionInDays": "[parameters('softDeleteRetentionInDays')]",
+        "networkAcls": {
+          "defaultAction": "Allow",
+          "bypass": "AzureServices"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "keyVaultId": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault resource ID"
+      },
+      "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault name"
+      },
+      "value": "[parameters('keyVaultName')]"
+    },
+    "keyVaultUri": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault URI"
+      },
+      "value": "[reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-02-01').vaultUri]"
+    }
+  }
+}
