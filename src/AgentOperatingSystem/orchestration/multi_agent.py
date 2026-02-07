@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from agent_framework import ChatAgent
 
 from .agent_framework_system import AgentFrameworkSystem
-from ..agents.purpose_driven import BaseAgent
+from ..agents.purpose_driven import GenericPurposeDrivenAgent as BaseAgent
 
 # Agent role definitions
 BA_AGENT_NAME = "BusinessAnalyst"

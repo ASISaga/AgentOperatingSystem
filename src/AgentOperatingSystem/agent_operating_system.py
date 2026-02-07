@@ -12,11 +12,11 @@ It provides generic, reusable infrastructure including:
 """
 
 import logging
-from typing import Dict, Any, TYPE_CHECKING
+from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from datetime import datetime
 
 if TYPE_CHECKING:
-    from .agents.base_agent import BaseAgent
+    from .agents.purpose_driven import PurposeDrivenAgent
 
 from .messaging.bus import MessageBus
 from .messaging.router import MessageRouter

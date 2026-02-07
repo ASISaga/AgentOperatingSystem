@@ -10,7 +10,7 @@ fundamental building blocks.
 
 from typing import Dict, Any, List, Optional
 import logging
-from ..agents.purpose_driven import BaseAgent
+from ..agents.purpose_driven import GenericPurposeDrivenAgent as BaseAgent
 
 class UnifiedAgentManager:
     """
