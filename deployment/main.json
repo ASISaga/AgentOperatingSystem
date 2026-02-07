@@ -5,15 +5,48 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "3167141545894246598"
+      "templateHash": "16773173367266386565"
     }
   },
   "parameters": {
     "location": {
       "type": "string",
-      "defaultValue": "[resourceGroup().location]",
+      "allowedValues": [
+        "eastus",
+        "eastus2",
+        "westus",
+        "westus2",
+        "westus3",
+        "centralus",
+        "northcentralus",
+        "southcentralus",
+        "westcentralus",
+        "northeurope",
+        "westeurope",
+        "uksouth",
+        "ukwest",
+        "francecentral",
+        "germanywestcentral",
+        "switzerlandnorth",
+        "norwayeast",
+        "swedencentral",
+        "southeastasia",
+        "eastasia",
+        "japaneast",
+        "japanwest",
+        "koreacentral",
+        "australiaeast",
+        "australiasoutheast",
+        "canadacentral",
+        "canadaeast",
+        "brazilsouth",
+        "southafricanorth",
+        "uaenorth",
+        "centralindia",
+        "southindia"
+      ],
       "metadata": {
-        "description": "Primary location for all resources"
+        "description": "Primary location for all resources. Must be a supported Azure region."
       }
     },
     "environment": {
@@ -169,6 +202,101 @@
       "agent-events",
       "system-events"
     ],
+    "azureMLSupportedRegions": [
+      "eastus",
+      "eastus2",
+      "westus2",
+      "westus3",
+      "northcentralus",
+      "southcentralus",
+      "westeurope",
+      "northeurope",
+      "uksouth",
+      "francecentral",
+      "germanywestcentral",
+      "switzerlandnorth",
+      "swedencentral",
+      "southeastasia",
+      "japaneast",
+      "australiaeast",
+      "canadacentral",
+      "koreacentral",
+      "centralindia"
+    ],
+    "functionsPremiumSupportedRegions": [
+      "eastus",
+      "eastus2",
+      "westus",
+      "westus2",
+      "westus3",
+      "centralus",
+      "northcentralus",
+      "southcentralus",
+      "westcentralus",
+      "canadacentral",
+      "canadaeast",
+      "brazilsouth",
+      "northeurope",
+      "westeurope",
+      "uksouth",
+      "ukwest",
+      "francecentral",
+      "germanywestcentral",
+      "switzerlandnorth",
+      "norwayeast",
+      "swedencentral",
+      "southeastasia",
+      "eastasia",
+      "australiaeast",
+      "australiasoutheast",
+      "japaneast",
+      "japanwest",
+      "koreacentral",
+      "centralindia",
+      "southindia",
+      "southafricanorth",
+      "uaenorth"
+    ],
+    "serviceBusPremiumSupportedRegions": [
+      "eastus",
+      "eastus2",
+      "westus",
+      "westus2",
+      "westus3",
+      "centralus",
+      "northcentralus",
+      "southcentralus",
+      "westcentralus",
+      "canadacentral",
+      "canadaeast",
+      "brazilsouth",
+      "northeurope",
+      "westeurope",
+      "uksouth",
+      "ukwest",
+      "francecentral",
+      "germanywestcentral",
+      "switzerlandnorth",
+      "norwayeast",
+      "swedencentral",
+      "southeastasia",
+      "eastasia",
+      "australiaeast",
+      "australiasoutheast",
+      "japaneast",
+      "japanwest",
+      "koreacentral",
+      "centralindia",
+      "southindia",
+      "southafricanorth",
+      "uaenorth"
+    ],
+    "isAzureMLSupported": "[contains(variables('azureMLSupportedRegions'), parameters('location'))]",
+    "isFunctionsPremiumSupported": "[contains(variables('functionsPremiumSupportedRegions'), parameters('location'))]",
+    "isServiceBusPremiumSupported": "[contains(variables('serviceBusPremiumSupportedRegions'), parameters('location'))]",
+    "azureMLEnabled": "[and(parameters('enableAzureML'), variables('isAzureMLSupported'))]",
+    "effectiveFunctionSku": "[if(and(not(equals(parameters('functionAppSku'), 'Y1')), not(variables('isFunctionsPremiumSupported'))), 'Y1', parameters('functionAppSku'))]",
+    "effectiveServiceBusSku": "[if(and(equals(parameters('serviceBusSku'), 'Premium'), not(variables('isServiceBusPremiumSupported'))), 'Standard', parameters('serviceBusSku'))]",
     "keyVaultSecretsUserRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
     "storageBlobDataContributorRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
     "serviceBusDataOwnerRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')]"
@@ -278,8 +406,8 @@
       "location": "[parameters('location')]",
       "tags": "[parameters('tags')]",
       "sku": {
-        "name": "[parameters('serviceBusSku')]",
-        "tier": "[parameters('serviceBusSku')]"
+        "name": "[variables('effectiveServiceBusSku')]",
+        "tier": "[variables('effectiveServiceBusSku')]"
       },
       "properties": {
         "minimumTlsVersion": "1.2"
@@ -367,7 +495,7 @@
       }
     },
     {
-      "condition": "[parameters('enableAzureML')]",
+      "condition": "[variables('azureMLEnabled')]",
       "type": "Microsoft.ContainerRegistry/registries",
       "apiVersion": "2023-01-01-preview",
       "name": "[variables('containerRegistryName')]",
@@ -381,7 +509,7 @@
       }
     },
     {
-      "condition": "[parameters('enableAzureML')]",
+      "condition": "[variables('azureMLEnabled')]",
       "type": "Microsoft.MachineLearningServices/workspaces",
       "apiVersion": "2023-04-01",
       "name": "[variables('azureMLWorkspaceName')]",
@@ -395,7 +523,7 @@
         "storageAccount": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
         "keyVault": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
         "applicationInsights": "[if(parameters('enableAppInsights'), resourceId('Microsoft.Insights/components', variables('appInsightsName')), null())]",
-        "containerRegistry": "[if(parameters('enableAzureML'), resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName')), null())]",
+        "containerRegistry": "[if(variables('azureMLEnabled'), resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName')), null())]",
         "publicNetworkAccess": "Enabled"
       },
       "dependsOn": [
@@ -419,8 +547,8 @@
       "location": "[parameters('location')]",
       "tags": "[parameters('tags')]",
       "sku": {
-        "name": "[parameters('functionAppSku')]",
-        "tier": "[if(equals(parameters('functionAppSku'), 'Y1'), 'Dynamic', 'ElasticPremium')]"
+        "name": "[variables('effectiveFunctionSku')]",
+        "tier": "[if(equals(variables('effectiveFunctionSku'), 'Y1'), 'Dynamic', 'ElasticPremium')]"
       },
       "properties": {
         "reserved": true
@@ -831,11 +959,11 @@
     },
     "azureMLWorkspaceName": {
       "type": "string",
-      "value": "[if(parameters('enableAzureML'), variables('azureMLWorkspaceName'), '')]"
+      "value": "[if(variables('azureMLEnabled'), variables('azureMLWorkspaceName'), '')]"
     },
     "azureMLWorkspaceId": {
       "type": "string",
-      "value": "[if(parameters('enableAzureML'), resourceId('Microsoft.MachineLearningServices/workspaces', variables('azureMLWorkspaceName')), '')]"
+      "value": "[if(variables('azureMLEnabled'), resourceId('Microsoft.MachineLearningServices/workspaces', variables('azureMLWorkspaceName')), '')]"
     },
     "userAssignedIdentityId": {
       "type": "string",
@@ -848,6 +976,27 @@
     "userAssignedIdentityClientId": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', variables('baseName'))), '2023-01-31').clientId]"
+    },
+    "deploymentWarnings": {
+      "type": "object",
+      "value": {
+        "azureMLDisabledDueToRegion": "[and(parameters('enableAzureML'), not(variables('isAzureMLSupported')))]",
+        "functionSkuDowngradedDueToRegion": "[not(equals(parameters('functionAppSku'), variables('effectiveFunctionSku')))]",
+        "serviceBusSkuDowngradedDueToRegion": "[not(equals(parameters('serviceBusSku'), variables('effectiveServiceBusSku')))]",
+        "effectiveFunctionSku": "[variables('effectiveFunctionSku')]",
+        "effectiveServiceBusSku": "[variables('effectiveServiceBusSku')]",
+        "azureMLSupported": "[variables('isAzureMLSupported')]",
+        "functionsPremiumSupported": "[variables('isFunctionsPremiumSupported')]",
+        "serviceBusPremiumSupported": "[variables('isServiceBusPremiumSupported')]",
+        "recommendedRegionsForFullCapability": [
+          "eastus",
+          "eastus2",
+          "westus2",
+          "westeurope",
+          "northeurope",
+          "southeastasia"
+        ]
+      }
     }
   }
 }

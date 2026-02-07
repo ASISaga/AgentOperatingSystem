@@ -1,0 +1,464 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.40.2.10011",
+      "templateHash": "11714676812828561704"
+    }
+  },
+  "parameters": {
+    "appServicePlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service Plan name"
+      }
+    },
+    "functionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Main Function App name"
+      }
+    },
+    "mcpServerFunctionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "MCP Server Function App name"
+      }
+    },
+    "realmFunctionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Realm Function App name"
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Location for resources"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags to apply to resources"
+      }
+    },
+    "functionAppSku": {
+      "type": "string",
+      "metadata": {
+        "description": "Function App SKU (Y1, EP1, EP2, EP3)"
+      }
+    },
+    "userAssignedIdentityId": {
+      "type": "string",
+      "metadata": {
+        "description": "User-assigned managed identity resource ID"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage account name for Function Apps"
+      }
+    },
+    "storageConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Storage connection string"
+      }
+    },
+    "serviceBusConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Service Bus connection string"
+      }
+    },
+    "keyVaultUri": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault URI"
+      }
+    },
+    "appInsightsConnectionString": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Application Insights connection string"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "metadata": {
+        "description": "Environment name (dev, staging, prod)"
+      }
+    },
+    "enableB2C": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable Azure B2C Authentication"
+      }
+    },
+    "b2cTenantName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure B2C Tenant Name"
+      }
+    },
+    "b2cPolicyName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure B2C Policy Name"
+      }
+    },
+    "b2cClientId": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure B2C Client ID"
+      }
+    },
+    "b2cClientSecret": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure B2C Client Secret"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "[parameters('functionAppSku')]",
+        "tier": "[if(equals(parameters('functionAppSku'), 'Y1'), 'Dynamic', 'ElasticPremium')]"
+      },
+      "properties": {
+        "reserved": true
+      },
+      "kind": "linux"
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('functionAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "functionapp,linux",
+      "identity": {
+        "type": "SystemAssigned, UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', parameters('userAssignedIdentityId'))]": {}
+        }
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "reserved": true,
+        "siteConfig": {
+          "linuxFxVersion": "PYTHON|3.11",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[parameters('storageConnectionString')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[parameters('storageConnectionString')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[toLower(parameters('functionAppName'))]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "python"
+            },
+            {
+              "name": "AZURE_SERVICEBUS_CONNECTION_STRING",
+              "value": "[parameters('serviceBusConnectionString')]"
+            },
+            {
+              "name": "AZURE_STORAGE_CONNECTION_STRING",
+              "value": "[parameters('storageConnectionString')]"
+            },
+            {
+              "name": "AZURE_STORAGE_ACCOUNT",
+              "value": "[parameters('storageAccountName')]"
+            },
+            {
+              "name": "KEY_VAULT_URL",
+              "value": "[parameters('keyVaultUri')]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[parameters('appInsightsConnectionString')]"
+            },
+            {
+              "name": "APP_ENVIRONMENT",
+              "value": "[parameters('environment')]"
+            },
+            {
+              "name": "B2C_TENANT",
+              "value": "[if(parameters('enableB2C'), parameters('b2cTenantName'), '')]"
+            },
+            {
+              "name": "B2C_POLICY",
+              "value": "[if(parameters('enableB2C'), parameters('b2cPolicyName'), '')]"
+            },
+            {
+              "name": "B2C_CLIENT_ID",
+              "value": "[if(parameters('enableB2C'), parameters('b2cClientId'), '')]"
+            },
+            {
+              "name": "B2C_CLIENT_SECRET",
+              "value": "[if(parameters('enableB2C'), parameters('b2cClientSecret'), '')]"
+            }
+          ],
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2",
+          "pythonVersion": "3.11"
+        },
+        "httpsOnly": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('mcpServerFunctionAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "functionapp,linux",
+      "identity": {
+        "type": "SystemAssigned, UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', parameters('userAssignedIdentityId'))]": {}
+        }
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "reserved": true,
+        "siteConfig": {
+          "linuxFxVersion": "PYTHON|3.11",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[parameters('storageConnectionString')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[parameters('storageConnectionString')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[toLower(parameters('mcpServerFunctionAppName'))]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "python"
+            },
+            {
+              "name": "AZURE_STORAGE_CONNECTION_STRING",
+              "value": "[parameters('storageConnectionString')]"
+            },
+            {
+              "name": "KEY_VAULT_URL",
+              "value": "[parameters('keyVaultUri')]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[parameters('appInsightsConnectionString')]"
+            },
+            {
+              "name": "APP_ENVIRONMENT",
+              "value": "[parameters('environment')]"
+            }
+          ],
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2"
+        },
+        "httpsOnly": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('realmFunctionAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "functionapp,linux",
+      "identity": {
+        "type": "SystemAssigned, UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', parameters('userAssignedIdentityId'))]": {}
+        }
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "reserved": true,
+        "siteConfig": {
+          "linuxFxVersion": "PYTHON|3.11",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[parameters('storageConnectionString')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[parameters('storageConnectionString')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[toLower(parameters('realmFunctionAppName'))]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "python"
+            },
+            {
+              "name": "AZURE_SERVICEBUS_CONNECTION_STRING",
+              "value": "[parameters('serviceBusConnectionString')]"
+            },
+            {
+              "name": "AZURE_STORAGE_CONNECTION_STRING",
+              "value": "[parameters('storageConnectionString')]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[parameters('appInsightsConnectionString')]"
+            },
+            {
+              "name": "APP_ENVIRONMENT",
+              "value": "[parameters('environment')]"
+            }
+          ],
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2"
+        },
+        "httpsOnly": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "appServicePlanId": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service Plan resource ID"
+      },
+      "value": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+    },
+    "functionAppId": {
+      "type": "string",
+      "metadata": {
+        "description": "Main Function App resource ID"
+      },
+      "value": "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+    },
+    "functionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Main Function App name"
+      },
+      "value": "[parameters('functionAppName')]"
+    },
+    "functionAppUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "Main Function App default hostname"
+      },
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-09-01').defaultHostName)]"
+    },
+    "functionAppPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "Main Function App principal ID (system-assigned identity)"
+      },
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-09-01', 'full').identity.principalId]"
+    },
+    "mcpServerFunctionAppId": {
+      "type": "string",
+      "metadata": {
+        "description": "MCP Server Function App resource ID"
+      },
+      "value": "[resourceId('Microsoft.Web/sites', parameters('mcpServerFunctionAppName'))]"
+    },
+    "mcpServerFunctionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "MCP Server Function App name"
+      },
+      "value": "[parameters('mcpServerFunctionAppName')]"
+    },
+    "mcpServerFunctionAppUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "MCP Server Function App default hostname"
+      },
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', parameters('mcpServerFunctionAppName')), '2022-09-01').defaultHostName)]"
+    },
+    "mcpServerFunctionAppPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "MCP Server Function App principal ID (system-assigned identity)"
+      },
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('mcpServerFunctionAppName')), '2022-09-01', 'full').identity.principalId]"
+    },
+    "realmFunctionAppId": {
+      "type": "string",
+      "metadata": {
+        "description": "Realm Function App resource ID"
+      },
+      "value": "[resourceId('Microsoft.Web/sites', parameters('realmFunctionAppName'))]"
+    },
+    "realmFunctionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Realm Function App name"
+      },
+      "value": "[parameters('realmFunctionAppName')]"
+    },
+    "realmFunctionAppUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "Realm Function App default hostname"
+      },
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', parameters('realmFunctionAppName')), '2022-09-01').defaultHostName)]"
+    },
+    "realmFunctionAppPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "Realm Function App principal ID (system-assigned identity)"
+      },
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('realmFunctionAppName')), '2022-09-01', 'full').identity.principalId]"
+    }
+  }
+}
