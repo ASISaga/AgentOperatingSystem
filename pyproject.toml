@@ -1,72 +1,68 @@
 [project]
 name = "AgentOperatingSystem"
-version = "1.1.0"
-description = "Agent Operating System (AOS) - Foundational infrastructure for agent-based applications"
+version = "2.0.0"
+description = "Agent Operating System (AOS) - Production-grade operating system for perpetual, purpose-driven AI agents"
 authors = [
     { name = "ASISaga" }
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
-    "asyncio",
-    "python-dotenv>=1.0.0",
-    "pydantic>=2.0.0",
-    "fastapi>=0.100.0",
-    "uvicorn>=0.20.0",
-    "psutil>=5.9.0",
-    "PyJWT>=2.8.0",
-    "cryptography>=41.0.0",
-    "httpx>=0.24.1",
-    "jsonschema>=4.0.0",
-    "opentelemetry-api",
-    "opentelemetry-sdk",
-    "opentelemetry-exporter-otlp-proto-grpc",
-    "opentelemetry-instrumentation-fastapi",
-    "agent-framework>=1.0.0b251218",
-    "azure-ai-agents>=1.1.0",
-    "azure-ai-projects>=1.0.0",
-    "LeadershipAgent @ git+https://github.com/ASISaga/LeadershipAgent",
-    "PurposeDrivenAgent @ git+https://github.com/ASISaga/PurposeDrivenAgent.git",
-
+    "python-dotenv>=1.1.0",
+    "pydantic>=2.12.0",
+    "fastapi>=0.128.0",
+    "uvicorn>=0.40.0",
+    "psutil>=7.0.0",
+    "PyJWT>=2.10.0",
+    "cryptography>=45.0.0",
+    "httpx>=0.28.0",
+    "jsonschema>=4.23.0",
+    "opentelemetry-api>=1.30.0",
+    "opentelemetry-sdk>=1.30.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.30.0",
+    "opentelemetry-instrumentation-fastapi>=0.51b0",
 ]
 
 [project.optional-dependencies]
 azure = [
-    "azure-functions",
-    "azure-identity>=1.15.0",
-    "azure-storage-blob>=12.17.0",
-    "azure-storage-queue>=12.7.0",
-    "azure-data-tables>=12.4.0",
-    "azure-servicebus>=7.11.0",
-    "azure-keyvault-secrets>=4.7.0"
+    "azure-functions>=1.21.0",
+    "azure-identity>=1.25.0",
+    "azure-storage-blob>=12.25.0",
+    "azure-storage-queue>=12.13.0",
+    "azure-data-tables>=12.7.0",
+    "azure-servicebus>=7.14.0",
+    "azure-keyvault-secrets>=4.10.0",
+    "azure-ai-agents>=1.1.0",
+    "azure-ai-projects>=1.0.0",
 ]
 ml = [
-    "transformers>=4.30.0",
-    "torch>=2.0.0",
-    "scikit-learn>=1.3.0",
-    "numpy>=1.24.0",
-    "pandas>=2.0.0",
-    "trl>=0.7.0",
-    "peft>=0.6.0",
-    "accelerate>=0.24.0",
-    "datasets>=2.14.0",
-    "mlflow>=2.8.0"
+    "transformers>=4.50.0",
+    "torch>=2.6.0",
+    "scikit-learn>=1.6.0",
+    "numpy>=2.0.0",
+    "pandas>=2.2.0",
+    "trl>=0.16.0",
+    "peft>=0.15.0",
+    "accelerate>=1.5.0",
+    "datasets>=3.5.0",
+    "mlflow>=3.5.0",
 ]
 mcp = [
-    "mcp",
-    "websockets>=11.0.0"
+    "mcp>=1.23.0",
+    "websockets>=15.0",
 ]
 dev = [
-    "pylint>=3.0.0",
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.0.0"
+    "pylint>=3.3.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.11.0",
 ]
 full = [
-    "AgentOperatingSystem[azure,ml,mcp]"
+    "AgentOperatingSystem[azure,ml,mcp]",
 ]
 
 [build-system]
-requires = ["setuptools>=65.0", "wheel"]
+requires = ["setuptools>=75.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -87,7 +83,7 @@ jobs = 0
 persistent = true
 
 # Minimum Python version to use for version dependent checks
-py-version = "3.8"
+py-version = "3.10"
 
 # Discover python modules and packages in the file system subtree
 recursive = true
@@ -238,3 +234,23 @@ ignore-none = true
 
 # This flag controls whether pylint should warn about no-member and similar checks whenever an opaque object is returned when inferring
 ignore-on-opaque-inference = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "asyncio: mark a test as an asyncio test",
+    "integration: mark a test as an integration test",
+    "slow: mark a test as slow",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
