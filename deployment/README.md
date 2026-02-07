@@ -4,18 +4,66 @@ This directory contains all necessary scripts, templates, and documentation for 
 
 ⚠️ **IMPORTANT**: Before deploying, review [REGIONAL_REQUIREMENTS.md](./REGIONAL_REQUIREMENTS.md) to ensure your chosen Azure region supports all required services.
 
+## 🚀 **NEW: Python Orchestration Layer**
+
+**We now provide a production-grade Python orchestrator** that governs Bicep deployments with strict quality and safety standards:
+
+- ✅ **Static Integrity**: Mandatory linting with error gates
+- ✅ **Verified Convergence**: Post-deployment health checks
+- ✅ **Risk Assessment**: What-if analysis with destructive change detection
+- ✅ **Failure Intelligence**: Smart retry strategies
+- ✅ **Audit & Traceability**: Complete deployment records
+
+### Quick Start with Orchestrator (Recommended)
+
+```bash
+cd deployment
+
+# Development deployment
+python3 deploy.py \
+  -g "rg-aos-dev" \
+  -l "eastus" \
+  -t "main-modular.bicep" \
+  -p "parameters/dev.bicepparam"
+
+# Production deployment
+python3 deploy.py \
+  -g "rg-aos-prod" \
+  -l "eastus2" \
+  -t "main-modular.bicep" \
+  -p "parameters/prod.bicepparam"
+```
+
+**📚 Documentation:**
+- [Orchestrator README](./orchestrator/README.md) - Architecture and features
+- [User Guide](./ORCHESTRATOR_USER_GUIDE.md) - Complete usage guide
+- [Legacy Methods](#legacy-deployment-methods) - Traditional deployment approaches
+
+---
+
 ## 📁 Directory Contents
 
 ```
 deployment/
-├── main.bicep                          # Main Bicep infrastructure template (v2.0 with regional validation)
-├── parameters.dev.json                 # Development environment parameters
-├── parameters.prod.json                # Production environment parameters
-├── Deploy-AOS.ps1                      # PowerShell deployment script (Windows)
-├── deploy-aos.sh                       # Bash deployment script (Linux/Mac)
-├── REGIONAL_REQUIREMENTS.md            # ⭐ Azure regional availability guide (NEW)
-├── REFACTORING_RECOMMENDATIONS.md      # Infrastructure refactoring guide
-└── README.md                           # This file
+├── orchestrator/                   # ⭐ NEW: Python orchestration layer
+│   ├── core/                       # State machine, failure classification
+│   ├── validators/                 # Linting, what-if planning
+│   ├── health/                     # Health verification
+│   ├── audit/                      # Audit logging
+│   └── cli/                        # CLI interface
+├── deploy.py                       # ⭐ NEW: Main deployment entry point
+├── ORCHESTRATOR_USER_GUIDE.md      # ⭐ NEW: Complete user guide
+├── main-modular.bicep              # Main Bicep infrastructure template (modular)
+├── main.bicep                      # Legacy monolithic template
+├── parameters/                     # Environment-specific parameters
+│   ├── dev.bicepparam             # Development parameters
+│   └── prod.bicepparam            # Production parameters
+├── modules/                        # Bicep modules (storage, compute, etc.)
+├── Deploy-AOS.ps1                 # Legacy PowerShell deployment script
+├── deploy-aos.sh                  # Legacy Bash deployment script
+├── REGIONAL_REQUIREMENTS.md        # Azure regional availability guide
+├── REFACTORING_RECOMMENDATIONS.md  # Infrastructure refactoring guide
+└── README.md                      # This file
 ```
 
 ## 🌍 Regional Considerations
@@ -28,9 +76,7 @@ deployment/
 
 **Recommended regions for production:** `eastus`, `eastus2`, `westus2`, `westeurope`, `northeurope`, `southeastasia`
 
-## 🚀 Quick Start
-
-### Prerequisites
+## 🚀 Prerequisites
 
 Before deploying, ensure you have:
 
@@ -42,35 +88,34 @@ Before deploying, ensure you have:
    - Install: `az bicep install`
    - Verify: `az bicep version`
 
-3. **Azure Subscription** with appropriate permissions
+3. **Python 3.8+** (for orchestrator - recommended)
+   - Verify: `python3 --version`
+
+4. **Azure Subscription** with appropriate permissions
    - Owner or Contributor role on subscription
    - Ability to create resource groups and resources
 
-4. **Region Selection** (Important!)
+5. **Region Selection** (Important!)
    - Review [REGIONAL_REQUIREMENTS.md](./REGIONAL_REQUIREMENTS.md)
    - Choose a supported region from the allowed list
 
-5. **(Optional) For code deployment**: 
-   - PowerShell 7+ (for Deploy-AOS.ps1)
-   - Bash shell (for deploy-aos.sh)
+---
 
-### Deployment Options
+## Legacy Deployment Methods
 
-#### Option 1: PowerShell Script (Recommended for Windows)
+For backward compatibility, we maintain the original deployment scripts:
+
+### Option 1: PowerShell Script (Windows)
 
 ```powershell
 # Basic deployment (infrastructure only)
-# Use a recommended region: eastus, eastus2, westus2, westeurope, northeurope, or southeastasia
 .\Deploy-AOS.ps1 -ResourceGroupName "rg-aos-dev" -Location "eastus" -Environment "dev"
 
 # Full deployment (infrastructure + code)
 .\Deploy-AOS.ps1 -ResourceGroupName "rg-aos-dev" -Location "eastus" -Environment "dev" -DeployCode
-
-# Using Azure CLI instead of PowerShell modules
-.\Deploy-AOS.ps1 -ResourceGroupName "rg-aos-dev" -Location "eastus" -Environment "dev" -UseAzCli
 ```
 
-#### Option 2: Bash Script (Recommended for Linux/Mac)
+### Option 2: Bash Script (Linux/Mac)
 
 ```bash
 # Make script executable (first time only)
@@ -81,12 +126,9 @@ chmod +x deploy-aos.sh
 
 # Full deployment with code
 ./deploy-aos.sh -g "rg-aos-dev" -l "eastus" -e "dev" -c
-
-# Skip validation checks (use with caution)
-./deploy-aos.sh -g "rg-aos-dev" -l "eastus" -e "dev" --skip-pre-check
 ```
 
-#### Option 3: Direct Azure CLI
+### Option 3: Direct Azure CLI
 
 ```bash
 # Create resource group
@@ -96,9 +138,11 @@ az group create --name "rg-aos-dev" --location "eastus"
 az deployment group create \
   --name "aos-deployment-$(date +%Y%m%d)" \
   --resource-group "rg-aos-dev" \
-  --template-file "main.bicep" \
-  --parameters "@parameters.dev.json"
+  --template-file "main-modular.bicep" \
+  --parameters "@parameters/dev.bicepparam"
 ```
+
+**Note**: These methods do not include the quality gates, health checks, and audit features provided by the Python orchestrator.
 
 ## 📋 Deployment Script Features
 
