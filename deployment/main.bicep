@@ -17,8 +17,42 @@
 // PARAMETERS
 // ============================================================================
 
-@description('Primary location for all resources')
-param location string = resourceGroup().location
+@description('Primary location for all resources. Must be a supported Azure region.')
+@allowed([
+  'eastus'
+  'eastus2'
+  'westus'
+  'westus2'
+  'westus3'
+  'centralus'
+  'northcentralus'
+  'southcentralus'
+  'westcentralus'
+  'northeurope'
+  'westeurope'
+  'uksouth'
+  'ukwest'
+  'francecentral'
+  'germanywestcentral'
+  'switzerlandnorth'
+  'norwayeast'
+  'swedencentral'
+  'southeastasia'
+  'eastasia'
+  'japaneast'
+  'japanwest'
+  'koreacentral'
+  'australiaeast'
+  'australiasoutheast'
+  'canadacentral'
+  'canadaeast'
+  'brazilsouth'
+  'southafricanorth'
+  'uaenorth'
+  'centralindia'
+  'southindia'
+])
+param location string
 
 @description('Environment name (dev, staging, prod)')
 @allowed([
@@ -122,6 +156,114 @@ var serviceBusTopics = [
 ]
 
 // ============================================================================
+// REGIONAL CAPABILITY VALIDATION
+// ============================================================================
+// Define regions with full Azure ML and AI Services support
+var azureMLSupportedRegions = [
+  'eastus'
+  'eastus2'
+  'westus2'
+  'westus3'
+  'northcentralus'
+  'southcentralus'
+  'westeurope'
+  'northeurope'
+  'uksouth'
+  'francecentral'
+  'germanywestcentral'
+  'switzerlandnorth'
+  'swedencentral'
+  'southeastasia'
+  'japaneast'
+  'australiaeast'
+  'canadacentral'
+  'koreacentral'
+  'centralindia'
+]
+
+// Define regions with Azure Functions Premium (EP) support
+var functionsPremiumSupportedRegions = [
+  'eastus'
+  'eastus2'
+  'westus'
+  'westus2'
+  'westus3'
+  'centralus'
+  'northcentralus'
+  'southcentralus'
+  'westcentralus'
+  'canadacentral'
+  'canadaeast'
+  'brazilsouth'
+  'northeurope'
+  'westeurope'
+  'uksouth'
+  'ukwest'
+  'francecentral'
+  'germanywestcentral'
+  'switzerlandnorth'
+  'norwayeast'
+  'swedencentral'
+  'southeastasia'
+  'eastasia'
+  'australiaeast'
+  'australiasoutheast'
+  'japaneast'
+  'japanwest'
+  'koreacentral'
+  'centralindia'
+  'southindia'
+  'southafricanorth'
+  'uaenorth'
+]
+
+// Define regions with Service Bus Premium support
+var serviceBusPremiumSupportedRegions = [
+  'eastus'
+  'eastus2'
+  'westus'
+  'westus2'
+  'westus3'
+  'centralus'
+  'northcentralus'
+  'southcentralus'
+  'westcentralus'
+  'canadacentral'
+  'canadaeast'
+  'brazilsouth'
+  'northeurope'
+  'westeurope'
+  'uksouth'
+  'ukwest'
+  'francecentral'
+  'germanywestcentral'
+  'switzerlandnorth'
+  'norwayeast'
+  'swedencentral'
+  'southeastasia'
+  'eastasia'
+  'australiaeast'
+  'australiasoutheast'
+  'japaneast'
+  'japanwest'
+  'koreacentral'
+  'centralindia'
+  'southindia'
+  'southafricanorth'
+  'uaenorth'
+]
+
+// Check if selected location supports required services
+var isAzureMLSupported = contains(azureMLSupportedRegions, location)
+var isFunctionsPremiumSupported = contains(functionsPremiumSupportedRegions, location)
+var isServiceBusPremiumSupported = contains(serviceBusPremiumSupportedRegions, location)
+
+// Validate regional capabilities
+var azureMLEnabled = enableAzureML && isAzureMLSupported
+var effectiveFunctionSku = (functionAppSku != 'Y1' && !isFunctionsPremiumSupported) ? 'Y1' : functionAppSku
+var effectiveServiceBusSku = (serviceBusSku == 'Premium' && !isServiceBusPremiumSupported) ? 'Standard' : serviceBusSku
+
+// ============================================================================
 // STORAGE ACCOUNT
 // ============================================================================
 
@@ -223,8 +365,8 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
   location: location
   tags: tags
   sku: {
-    name: serviceBusSku
-    tier: serviceBusSku
+    name: effectiveServiceBusSku
+    tier: effectiveServiceBusSku
   }
   properties: {
     minimumTlsVersion: '1.2'
@@ -302,7 +444,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
 // ============================================================================
 
 // Container Registry for ML
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = if (enableAzureML) {
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = if (azureMLEnabled) {
   name: containerRegistryName
   location: location
   tags: tags
@@ -315,7 +457,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-pr
 }
 
 // Azure ML Workspace
-resource azureMLWorkspace 'Microsoft.MachineLearningServices/workspaces@2023-04-01' = if (enableAzureML) {
+resource azureMLWorkspace 'Microsoft.MachineLearningServices/workspaces@2023-04-01' = if (azureMLEnabled) {
   name: azureMLWorkspaceName
   location: location
   tags: tags
@@ -327,7 +469,7 @@ resource azureMLWorkspace 'Microsoft.MachineLearningServices/workspaces@2023-04-
     storageAccount: storageAccount.id
     keyVault: keyVault.id
     applicationInsights: enableAppInsights ? appInsights.id : null
-    containerRegistry: enableAzureML ? containerRegistry.id : null
+    containerRegistry: azureMLEnabled ? containerRegistry.id : null
     publicNetworkAccess: 'Enabled'
   }
 }
@@ -353,8 +495,8 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   location: location
   tags: tags
   sku: {
-    name: functionAppSku
-    tier: functionAppSku == 'Y1' ? 'Dynamic' : 'ElasticPremium'
+    name: effectiveFunctionSku
+    tier: effectiveFunctionSku == 'Y1' ? 'Dynamic' : 'ElasticPremium'
   }
   properties: {
     reserved: true // Linux
@@ -684,10 +826,33 @@ output realmFunctionAppName string = realmFunctionApp.name
 output realmFunctionAppUrl string = 'https://${realmFunctionApp.properties.defaultHostName}'
 
 // Azure ML
-output azureMLWorkspaceName string = enableAzureML ? azureMLWorkspace.name : ''
-output azureMLWorkspaceId string = enableAzureML ? azureMLWorkspace.id : ''
+output azureMLWorkspaceName string = azureMLEnabled ? azureMLWorkspace.name : ''
+output azureMLWorkspaceId string = azureMLEnabled ? azureMLWorkspace.id : ''
 
 // Managed Identity
 output userAssignedIdentityId string = userAssignedIdentity.id
 output userAssignedIdentityPrincipalId string = userAssignedIdentity.properties.principalId
 output userAssignedIdentityClientId string = userAssignedIdentity.properties.clientId
+
+// ============================================================================
+// DEPLOYMENT WARNINGS AND REGIONAL INFORMATION
+// ============================================================================
+
+output deploymentWarnings object = {
+  azureMLDisabledDueToRegion: enableAzureML && !isAzureMLSupported
+  functionSkuDowngradedDueToRegion: functionAppSku != effectiveFunctionSku
+  serviceBusSkuDowngradedDueToRegion: serviceBusSku != effectiveServiceBusSku
+  effectiveFunctionSku: effectiveFunctionSku
+  effectiveServiceBusSku: effectiveServiceBusSku
+  azureMLSupported: isAzureMLSupported
+  functionsPremiumSupported: isFunctionsPremiumSupported
+  serviceBusPremiumSupported: isServiceBusPremiumSupported
+  recommendedRegionsForFullCapability: [
+    'eastus'
+    'eastus2'
+    'westus2'
+    'westeurope'
+    'northeurope'
+    'southeastasia'
+  ]
+}

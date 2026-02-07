@@ -2,18 +2,31 @@
 
 This directory contains all necessary scripts, templates, and documentation for deploying the Agent Operating System (AOS) to Microsoft Azure.
 
+⚠️ **IMPORTANT**: Before deploying, review [REGIONAL_REQUIREMENTS.md](./REGIONAL_REQUIREMENTS.md) to ensure your chosen Azure region supports all required services.
+
 ## 📁 Directory Contents
 
 ```
 deployment/
-├── main.bicep                          # Main Bicep infrastructure template
+├── main.bicep                          # Main Bicep infrastructure template (v2.0 with regional validation)
 ├── parameters.dev.json                 # Development environment parameters
 ├── parameters.prod.json                # Production environment parameters
 ├── Deploy-AOS.ps1                      # PowerShell deployment script (Windows)
 ├── deploy-aos.sh                       # Bash deployment script (Linux/Mac)
+├── REGIONAL_REQUIREMENTS.md            # ⭐ Azure regional availability guide (NEW)
 ├── REFACTORING_RECOMMENDATIONS.md      # Infrastructure refactoring guide
 └── README.md                           # This file
 ```
+
+## 🌍 Regional Considerations
+
+**Before you deploy**, please read [REGIONAL_REQUIREMENTS.md](./REGIONAL_REQUIREMENTS.md) for critical information about:
+- Azure service availability by region
+- Recommended regions for full AOS capability
+- Automatic fallback behavior for unsupported services
+- How to interpret deployment warnings
+
+**Recommended regions for production:** `eastus`, `eastus2`, `westus2`, `westeurope`, `northeurope`, `southeastasia`
 
 ## 🚀 Quick Start
 
@@ -33,7 +46,11 @@ Before deploying, ensure you have:
    - Owner or Contributor role on subscription
    - Ability to create resource groups and resources
 
-4. **(Optional) For code deployment**: 
+4. **Region Selection** (Important!)
+   - Review [REGIONAL_REQUIREMENTS.md](./REGIONAL_REQUIREMENTS.md)
+   - Choose a supported region from the allowed list
+
+5. **(Optional) For code deployment**: 
    - PowerShell 7+ (for Deploy-AOS.ps1)
    - Bash shell (for deploy-aos.sh)
 
@@ -43,6 +60,7 @@ Before deploying, ensure you have:
 
 ```powershell
 # Basic deployment (infrastructure only)
+# Use a recommended region: eastus, eastus2, westus2, westeurope, northeurope, or southeastasia
 .\Deploy-AOS.ps1 -ResourceGroupName "rg-aos-dev" -Location "eastus" -Environment "dev"
 
 # Full deployment (infrastructure + code)
@@ -251,6 +269,32 @@ Both deployment scripts perform these verification steps:
    - Key Vault access verification
    - Function Apps status check
    - Application Insights validation
+   - **Regional capability warnings** (check deployment output)
+
+### Checking Deployment Warnings (Important!)
+
+After deployment, check for regional capability warnings:
+
+```bash
+# View deployment output including warnings
+az deployment group show \
+  --resource-group "rg-aos-dev" \
+  --name "<deployment-name>" \
+  --query properties.outputs.deploymentWarnings
+
+# Example: Check if any services were downgraded due to region
+az deployment group show \
+  --resource-group "rg-aos-dev" \
+  --name "<deployment-name>" \
+  --query "properties.outputs.deploymentWarnings.value.{azureMLDisabled:azureMLDisabledDueToRegion,functionSkuDowngraded:functionSkuDowngradedDueToRegion,serviceBusDowngraded:serviceBusSkuDowngradedDueToRegion}"
+```
+
+**Understanding warnings:**
+- `azureMLDisabledDueToRegion = true` → Azure ML was not deployed (region doesn't support it)
+- `functionSkuDowngradedDueToRegion = true` → Elastic Premium downgraded to Consumption
+- `serviceBusSkuDowngradedDueToRegion = true` → Premium Service Bus downgraded to Standard
+
+See [REGIONAL_REQUIREMENTS.md](./REGIONAL_REQUIREMENTS.md) for details on how to resolve these warnings.
 
 ### Manual Verification
 
@@ -434,11 +478,13 @@ Use Azure Pricing Calculator for detailed estimates: https://azure.microsoft.com
 
 ## 📚 Additional Resources
 
+- **⭐ Regional Requirements**: [REGIONAL_REQUIREMENTS.md](./REGIONAL_REQUIREMENTS.md) - Azure service availability by region
 - **Architecture Documentation**: [../docs/architecture/ARCHITECTURE.md](../docs/architecture/ARCHITECTURE.md)
 - **Refactoring Guide**: [REFACTORING_RECOMMENDATIONS.md](./REFACTORING_RECOMMENDATIONS.md)
 - **Azure Functions Documentation**: https://docs.microsoft.com/azure/azure-functions/
 - **Bicep Documentation**: https://docs.microsoft.com/azure/azure-resource-manager/bicep/
 - **Azure Well-Architected Framework**: https://docs.microsoft.com/azure/architecture/framework/
+- **Azure Products by Region**: https://azure.microsoft.com/global-infrastructure/services/
 
 ## 🤝 Contributing
 
@@ -447,11 +493,17 @@ To improve deployment scripts:
 1. Test changes in development environment
 2. Update both PowerShell and Bash scripts
 3. Update parameters files if needed
-4. Update this README
+4. Update this README and REGIONAL_REQUIREMENTS.md if adding new services
 5. Submit pull request
 
 ## 📝 Version History
 
+- **2.0.0** (2026-02-07): Regional validation and automatic fallback
+  - Added regional capability validation
+  - Automatic SKU downgrade for unsupported regions
+  - Comprehensive regional requirements documentation
+  - Deployment warnings output
+  
 - **1.0.0** (2026-02-07): Initial deployment scripts and documentation
   - Bicep template for all infrastructure
   - PowerShell deployment script
