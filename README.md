@@ -1,14 +1,14 @@
 # Agent Operating System (AOS)
 ## A Complete Operating System for AI Agents
 
-**Version:** 2025.1.2  
+**Version:** 2.0.0  
 **Status:** Production Ready  
-**Platform:** Microsoft Azure + Microsoft Agent Framework
+**Platform:** Microsoft Azure
+**Python:** 3.10+
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Azure](https://img.shields.io/badge/platform-Azure-blue.svg)](https://azure.microsoft.com/)
-[![Code Quality](https://img.shields.io/badge/pylint-8.52%2F10-brightgreen.svg)](.github/workflows/pylint.yml)
 
 ---
 

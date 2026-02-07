@@ -37,7 +37,6 @@ python3 deploy.py \
 **📚 Documentation:**
 - [Orchestrator README](./orchestrator/README.md) - Architecture and features
 - [User Guide](./ORCHESTRATOR_USER_GUIDE.md) - Complete usage guide
-- [Legacy Methods](#legacy-deployment-methods) - Traditional deployment approaches
 
 ---
 
@@ -57,19 +56,10 @@ deployment/
 │   └── prod.bicepparam            # Production parameters
 ├── tests/                          # Orchestrator tests
 ├── docs/                           # Supporting documentation
-│   ├── REGIONAL_VALIDATION_FLOW.md
-│   ├── REGIONAL_UPDATES_README.md
-│   └── archive/                    # Historical documentation
-├── legacy/                         # ⛔ Deprecated deployment scripts
-│   ├── deploy-aos.sh              # Use deploy.py instead
-│   └── Deploy-AOS.ps1             # Use deploy.py instead
 ├── deploy.py                       # ⭐ Main deployment entry point
 ├── main-modular.bicep              # ⭐ Main Bicep template (modular architecture)
-├── main.bicep                      # Legacy monolithic template
 ├── ORCHESTRATOR_USER_GUIDE.md      # Complete orchestrator usage guide
 ├── REGIONAL_REQUIREMENTS.md        # Azure regional availability guide
-├── REFACTORING_RECOMMENDATIONS.md  # Infrastructure refactoring guide
-├── MIGRATION_GUIDE.md              # Migration from JSON to bicepparam
 ├── QUICKSTART.md                   # Quick start guide
 └── README.md                       # This file
 ```
@@ -96,7 +86,7 @@ Before deploying, ensure you have:
    - Install: `az bicep install`
    - Verify: `az bicep version`
 
-3. **Python 3.8+** (for orchestrator - recommended)
+3. **Python 3.10+** (for orchestrator - recommended)
    - Verify: `python3 --version`
 
 4. **Azure Subscription** with appropriate permissions
@@ -109,35 +99,9 @@ Before deploying, ensure you have:
 
 ---
 
-## Legacy Deployment Methods
+---
 
-For backward compatibility, we maintain the original deployment scripts:
-
-## 🛠️ Legacy Deployment Methods
-
-> ⚠️ **Deprecated**: The bash and PowerShell scripts have been replaced by the Python orchestrator. Use `deploy.py` for all new deployments.
-
-For reference, legacy deployment methods are documented below. These methods lack the production-grade quality gates, health checks, and audit features of the Python orchestrator.
-
-### Legacy Option 1: PowerShell Script (Windows) - DEPRECATED
-
-> **Status**: ⛔ Moved to `legacy/Deploy-AOS.ps1` - Use `python3 deploy.py` instead
-
-```powershell
-# Legacy deployment (deprecated)
-.\legacy\Deploy-AOS.ps1 -ResourceGroupName "rg-aos-dev" -Location "eastus" -Environment "dev"
-```
-
-### Legacy Option 2: Bash Script (Linux/Mac) - DEPRECATED
-
-> **Status**: ⛔ Moved to `legacy/deploy-aos.sh` - Use `python3 deploy.py` instead
-
-```bash
-# Legacy deployment (deprecated)
-./legacy/deploy-aos.sh -g "rg-aos-dev" -l "eastus" -e "dev"
-```
-
-### Option 3: Direct Azure CLI
+## Direct Azure CLI Deployment
 
 ```bash
 # Create resource group
@@ -240,7 +204,7 @@ param enableAppInsights = true
 param enableAzureML = true
 ```
 
-> **Note**: Legacy JSON parameter files have been removed. See [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) for details on the bicepparam format.
+> **Note**: Parameter files use the modern `.bicepparam` format (not JSON).
 
 ### Environment Variables
 
@@ -355,9 +319,7 @@ az deployment operation group list \
 
 ### Deployment Logs
 
-Logs are automatically created by deployment scripts:
-- **PowerShell**: `deployment-{env}-{timestamp}.log`
-- **Bash**: `deployment-{timestamp}.log`
+Deployment logs are created by the Python orchestrator in the deployment directory.
 
 ## 🔧 Troubleshooting
 
@@ -404,18 +366,15 @@ Solution: Some resources take time to provision
 
 ### Debug Mode
 
-Enable verbose output:
+Enable verbose output with the Python orchestrator:
 
-**PowerShell:**
-```powershell
-.\Deploy-AOS.ps1 -ResourceGroupName "rg-aos-dev" -Location "eastus" -Environment "dev" -Verbose
-```
-
-**Bash:**
 ```bash
-# Enable debug mode
-set -x
-./deploy-aos.sh -g "rg-aos-dev" -l "eastus" -e "dev"
+python3 deploy.py \
+  -g "rg-aos-dev" \
+  -l "eastus" \
+  -t "main-modular.bicep" \
+  -p "parameters/dev.bicepparam" \
+  --verbose
 ```
 
 ## 🔐 Security Best Practices
@@ -439,7 +398,7 @@ set -x
    - Follow principle of least privilege
    - Regular access reviews
 
-See [REFACTORING_RECOMMENDATIONS.md](./REFACTORING_RECOMMENDATIONS.md) for comprehensive security improvements.
+See [REGIONAL_REQUIREMENTS.md](./REGIONAL_REQUIREMENTS.md) for comprehensive security improvements.
 
 ## 📈 Scaling Recommendations
 
@@ -461,12 +420,10 @@ For high availability, deploy to multiple regions:
 
 ```bash
 # Deploy to primary region
-./deploy-aos.sh -g "rg-aos-prod-eastus" -l "eastus" -e "prod"
+python3 deploy.py -g "rg-aos-prod-eastus" -l "eastus" -t "main-modular.bicep" -p "parameters/prod.bicepparam"
 
 # Deploy to secondary region
-./deploy-aos.sh -g "rg-aos-prod-westus" -l "westus2" -e "prod"
-
-# Configure Traffic Manager for failover (manual step)
+python3 deploy.py -g "rg-aos-prod-westus" -l "westus2" -t "main-modular.bicep" -p "parameters/prod.bicepparam"
 ```
 
 ## 💰 Cost Estimation
@@ -492,7 +449,6 @@ Use Azure Pricing Calculator for detailed estimates: https://azure.microsoft.com
 
 - **⭐ Regional Requirements**: [REGIONAL_REQUIREMENTS.md](./REGIONAL_REQUIREMENTS.md) - Azure service availability by region
 - **Architecture Documentation**: [../docs/architecture/ARCHITECTURE.md](../docs/architecture/ARCHITECTURE.md)
-- **Refactoring Guide**: [REFACTORING_RECOMMENDATIONS.md](./REFACTORING_RECOMMENDATIONS.md)
 - **Azure Functions Documentation**: https://docs.microsoft.com/azure/azure-functions/
 - **Bicep Documentation**: https://docs.microsoft.com/azure/azure-resource-manager/bicep/
 - **Azure Well-Architected Framework**: https://docs.microsoft.com/azure/architecture/framework/
@@ -500,10 +456,10 @@ Use Azure Pricing Calculator for detailed estimates: https://azure.microsoft.com
 
 ## 🤝 Contributing
 
-To improve deployment scripts:
+To improve deployment infrastructure:
 
 1. Test changes in development environment
-2. Update both PowerShell and Bash scripts
+2. Update deploy.py and Bicep templates as needed
 3. Update parameters files if needed
 4. Update this README and REGIONAL_REQUIREMENTS.md if adding new services
 5. Submit pull request
