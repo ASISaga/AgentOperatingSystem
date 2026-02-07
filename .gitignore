@@ -140,3 +140,6 @@ azure_functions/*/.funcignore
 deployment/*.log
 deployment/*.zip
 deployment/.bicep/
+
+# Test/data artifacts with duplicate extensions
+data/*.json.json

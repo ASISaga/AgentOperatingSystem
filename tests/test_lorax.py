@@ -23,7 +23,7 @@ class TestLoRAxConfig:
         """Test default configuration values"""
         config = LoRAxConfig()
         
-        assert config.base_model == "meta-llama/Llama-3.1-8B-Instruct"
+        assert config.base_model == "meta-llama/Llama-3.3-70B-Instruct"
         assert config.port == 8080
         assert config.adapter_cache_size == 100
         assert config.max_concurrent_requests == 128

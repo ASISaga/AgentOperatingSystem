@@ -1,56 +1,32 @@
 """
-Simple AOS Test Runner
-
-Basic test to ensure AOS can be imported and initialized.
+Simple AOS test to ensure core imports and initialization work.
 """
-import sys
-import os
-import asyncio
+from AgentOperatingSystem.config.aos import AOSConfig
+from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
+from AgentOperatingSystem.messaging.types import Message, MessageType
+from AgentOperatingSystem.config.storage import StorageConfig
 
-# Add the parent directory to Python path so we can import from src
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
 
-async def simple_test():
-    """Simple test that doesn't rely on complex imports"""
-    print("🚀 Simple AOS Test")
-    print("=" * 30)
-    
-    try:
-        # Test basic import
-        print("📦 Testing imports...")
-        
-        # Test configuration
-        from AgentOperatingSystem.config.aos import AOSConfig
+class TestBasicImports:
+    """Verify that core AOS components can be imported and instantiated."""
+
+    def test_configuration(self):
         config = AOSConfig()
-        print("✅ Configuration: SUCCESS")
-        
-        # Test base agent
-        from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
+        assert config is not None
+
+    def test_generic_agent_creation(self):
         agent = GenericPurposeDrivenAgent(
             agent_id="test",
             purpose="Test purpose",
-            adapter_name="test"
+            adapter_name="test",
         )
-        print("✅ Base Agent: SUCCESS")
-        
-        # Test message types
-        from AgentOperatingSystem.messaging.types import Message, MessageType
-        print("✅ Message Types: SUCCESS")
-        
-        # Test storage config
-        from AgentOperatingSystem.config.storage import StorageConfig
-        storage_config = StorageConfig()
-        print("✅ Storage Config: SUCCESS")
-        
-        print("=" * 30)
-        print("✅ All basic tests PASSED!")
-        
-    except Exception as e:
-        print(f"❌ Test failed: {e}")
-        import traceback
-        traceback.print_exc()
+        assert agent is not None
+        assert agent.agent_id == "test"
 
-if __name__ == "__main__":
-    asyncio.run(simple_test())
+    def test_message_types_importable(self):
+        assert Message is not None
+        assert MessageType is not None
+
+    def test_storage_config(self):
+        config = StorageConfig()
+        assert config is not None
