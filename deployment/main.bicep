@@ -2,6 +2,16 @@
 // Azure Infrastructure as Code (Bicep Template)
 // Agent Operating System (AOS) - Complete Azure Deployment
 // ============================================================================
+// ⚠️ LEGACY MONOLITHIC TEMPLATE - For new deployments, use main-modular.bicep
+//
+// This is a legacy monolithic template kept for backward compatibility.
+// For new deployments, use main-modular.bicep which provides:
+//   - Better maintainability with modular architecture
+//   - Production-grade separation of concerns
+//   - Easier updates and customization
+//
+// See MIGRATION_GUIDE.md for migration instructions.
+// ============================================================================
 // This template deploys all required Azure resources for the AOS platform:
 // - Azure Functions (App Service Plan + Function Apps)
 // - Azure Service Bus (Namespace, Queues, Topics)

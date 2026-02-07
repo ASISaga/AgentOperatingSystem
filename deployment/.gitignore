@@ -15,6 +15,18 @@ __pycache__/
 .coverage
 htmlcov/
 
+# Compiled Bicep artifacts (JSON files generated from .bicep)
+*.json
+!parameters.json  # Keep if used for something else
+!tsconfig.json    # Keep TypeScript config if present
+!package.json     # Keep Node.js config if present
+
+# Backup files
+*.original
+*.bak
+*.backup
+*~
+
 # Temporary files
 *.tmp
 *.log

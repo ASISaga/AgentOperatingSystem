@@ -4,16 +4,18 @@
 
 ### Step 1: Prerequisites
 
-Install Azure CLI:
+Install Azure CLI and Python:
 ```bash
 # Windows (PowerShell)
 winget install Microsoft.AzureCLI
+winget install Python.Python.3.11
 
 # macOS
-brew update && brew install azure-cli
+brew update && brew install azure-cli python@3.11
 
 # Linux (Ubuntu/Debian)
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+sudo apt install python3 python3-pip
 ```
 
 Login to Azure:
@@ -21,23 +23,39 @@ Login to Azure:
 az login
 ```
 
-### Step 2: Choose Your Deployment Method
+Install Bicep:
+```bash
+az bicep install
+```
 
-#### Option A: Bash Script (Linux/Mac/WSL)
+### Step 2: Deploy with Python Orchestrator (Recommended)
 
 ```bash
 cd deployment
-./deploy-aos.sh -g "rg-aos-dev" -l "eastus" -e "dev"
+
+# Development deployment
+python3 deploy.py \
+  -g "rg-aos-dev" \
+  -l "eastus" \
+  -t "main-modular.bicep" \
+  -p "parameters/dev.bicepparam"
+
+# Production deployment
+python3 deploy.py \
+  -g "rg-aos-prod" \
+  -l "eastus2" \
+  -t "main-modular.bicep" \
+  -p "parameters/prod.bicepparam"
 ```
 
-#### Option B: PowerShell Script (Windows/Cross-platform)
+The orchestrator provides:
+- ✅ Mandatory Bicep linting with error gates
+- ✅ What-if analysis and destructive change detection
+- ✅ Post-deployment health verification
+- ✅ Smart retry strategies for environmental failures
+- ✅ Complete audit trail with Git SHA linkage
 
-```powershell
-cd deployment
-.\Deploy-AOS.ps1 -ResourceGroupName "rg-aos-dev" -Location "eastus" -Environment "dev"
-```
-
-#### Option C: Direct Azure CLI
+#### Alternative: Direct Azure CLI (Not Recommended)
 
 ```bash
 cd deployment
@@ -45,9 +63,15 @@ az group create --name "rg-aos-dev" --location "eastus"
 az deployment group create \
   --name "aos-deployment-$(date +%Y%m%d)" \
   --resource-group "rg-aos-dev" \
-  --template-file "main.bicep" \
-  --parameters "@parameters.dev.json"
+  --template-file "main-modular.bicep" \
+  --parameters "parameters/dev.bicepparam"
 ```
+
+> **Note**: Direct CLI deployment lacks quality gates, health checks, and audit features.
+
+#### Legacy Scripts (Deprecated)
+
+The bash and PowerShell scripts in `legacy/` are deprecated. Use the Python orchestrator instead.
 
 ### Step 3: Verify Deployment
 
@@ -108,30 +132,34 @@ az group delete --name "rg-aos-dev" --yes --no-wait
 
 ## 📚 Need More Help?
 
+- **Orchestrator Guide**: [ORCHESTRATOR_USER_GUIDE.md](./ORCHESTRATOR_USER_GUIDE.md)
 - **Full Documentation**: [README.md](./README.md)
+- **Regional Requirements**: [REGIONAL_REQUIREMENTS.md](./REGIONAL_REQUIREMENTS.md)
+- **Migration Guide**: [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md)
 - **Refactoring Guide**: [REFACTORING_RECOMMENDATIONS.md](./REFACTORING_RECOMMENDATIONS.md)
 - **GitHub Issues**: https://github.com/ASISaga/AgentOperatingSystem/issues
 
 ## 🎯 Next Steps After Deployment
 
-1. **Test Function Apps**
+1. **Check Deployment Audit Log**
+   ```bash
+   # View deployment audit trail (created by orchestrator)
+   cat deployment/audit/deployment-*.json
+   ```
+
+2. **Test Function Apps**
    ```bash
    curl https://aos-dev-{uniqueid}-func.azurewebsites.net/api/health
    ```
 
-2. **View Logs**
+3. **View Logs**
    - Go to Application Insights in Azure Portal
    - Check "Live Metrics" and "Logs"
 
-3. **Configure Secrets**
+4. **Configure Secrets**
    - Add application secrets to Key Vault
    - Update Function App to reference them
 
-4. **Deploy Code** (if not done during deployment)
-   ```bash
-   ./deploy-aos.sh -g "rg-aos-dev" -l "eastus" -e "dev" -c
-   ```
-
 ---
 
-**Ready to deploy?** Run the command for your platform above! 🚀
+**Ready to deploy?** Use the Python orchestrator command above! 🚀
