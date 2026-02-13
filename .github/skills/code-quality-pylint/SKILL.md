@@ -1,3 +1,8 @@
+---
+name: code-quality-pylint
+description: Master Pylint usage for maintaining high code quality in the Agent Operating System (AOS) repository. Includes static code analysis, error detection, PEP 8 enforcement, and code quality metrics.
+---
+
 # Skill: Code Quality with Pylint
 
 ## Skill Overview

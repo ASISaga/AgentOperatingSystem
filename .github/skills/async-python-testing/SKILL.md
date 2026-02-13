@@ -1,3 +1,8 @@
+---
+name: async-python-testing
+description: Expert knowledge for testing asynchronous Python code in the Agent Operating System. AOS is heavily async-based, and proper async testing patterns are critical for reliable tests.
+---
+
 # Async Python Testing for AOS
 
 ## Description
