@@ -423,6 +423,48 @@ docs/
 
 ---
 
+## 🚀 Deployment
+
+### Deployment Documentation
+
+For comprehensive deployment guidance, see:
+
+- **[DEPLOYMENT_PLAN.md](./DEPLOYMENT_PLAN.md)** - Complete deployment strategy, procedures, and architecture
+- **[DEPLOYMENT_TASKS.md](./DEPLOYMENT_TASKS.md)** - Detailed task checklists for all deployment phases
+- **[deployment/README.md](../../deployment/README.md)** - Deployment infrastructure overview
+- **[deployment/ORCHESTRATOR_USER_GUIDE.md](../../deployment/ORCHESTRATOR_USER_GUIDE.md)** - Python orchestrator usage guide
+- **[deployment/QUICKSTART.md](../../deployment/QUICKSTART.md)** - Quick deployment reference
+
+### Deployment Workflow
+
+```bash
+# 1. Prepare environment
+cd deployment
+
+# 2. Review and customize parameters
+vim parameters/dev.bicepparam
+
+# 3. Deploy with orchestrator (recommended)
+python3 deploy.py \
+  -g "rg-aos-dev" \
+  -l "eastus" \
+  -t "main-modular.bicep" \
+  -p "parameters/dev.bicepparam"
+
+# 4. Verify deployment
+az resource list --resource-group "rg-aos-dev" --output table
+```
+
+### Deployment Best Practices
+
+- **Always test in dev first**: dev → staging → production
+- **Use the Python orchestrator**: Provides quality gates, health checks, and audit trail
+- **Review what-if output**: Understand changes before deploying
+- **Document deployments**: Use Git SHA tracking and audit logs
+- **Follow the task checklists**: See [DEPLOYMENT_TASKS.md](./DEPLOYMENT_TASKS.md)
+
+---
+
 ## 💬 Commit Messages
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/):

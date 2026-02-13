@@ -156,7 +156,15 @@ Add MCP servers with **zero code** - just configuration:
 - **[Quick Start Guide](docs/getting-started/quickstart.md)** - Get up and running quickly
 - **[Installation Guide](docs/getting-started/installation.md)** - Detailed installation instructions
 - **[Configuration Guide](docs/configuration.md)** - System configuration
-- **[Deployment Guide](docs/getting-started/deployment.md)** - Production deployment
+- **[Deployment Guide](docs/getting-started/deployment.md)** - Production deployment overview
+
+### Deployment & Operations
+- **[Deployment Plan](docs/development/DEPLOYMENT_PLAN.md)** - Comprehensive deployment strategy and procedures
+- **[Deployment Task List](docs/development/DEPLOYMENT_TASKS.md)** - Detailed task checklists for all phases
+- **[Deployment Infrastructure](deployment/README.md)** - Infrastructure deployment documentation
+- **[Orchestrator Guide](deployment/ORCHESTRATOR_USER_GUIDE.md)** - Python deployment orchestrator
+- **[Regional Requirements](deployment/REGIONAL_REQUIREMENTS.md)** - Azure region capabilities
+- **[Quick Start Deployment](deployment/QUICKSTART.md)** - Fast deployment reference
 
 ### Core Concepts
 - **[Architecture Overview](docs/architecture/ARCHITECTURE.md)** - System architecture and design
