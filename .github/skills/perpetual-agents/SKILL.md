@@ -1,3 +1,8 @@
+---
+name: perpetual-agents
+description: Expert knowledge for working with Perpetual Agents and PurposeDrivenAgents in the Agent Operating System (AOS). Enables efficient development, debugging, and testing of perpetual agent implementations.
+---
+
 # Working with Perpetual Agents in AOS
 
 ## Description

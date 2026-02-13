@@ -1,3 +1,8 @@
+---
+name: code-refactoring
+description: Expert knowledge for performing major version refactoring in the Agent Operating System, including removing backward compatibility code, consolidating duplicate implementations, and updating all references to use the latest patterns.
+---
+
 # Code Refactoring for Major Version Bumps
 
 ## Description

@@ -1,3 +1,8 @@
+---
+name: azure-functions
+description: Expert knowledge for developing, deploying, and debugging Azure Functions in the Agent Operating System (AOS). Covers the serverless deployment model used by AOS for production workloads, including integration with Microsoft Foundry Agent Service (Azure AI Agents runtime).
+---
+
 # Azure Functions Development for AOS with Foundry Agent Runtime
 
 ## Description

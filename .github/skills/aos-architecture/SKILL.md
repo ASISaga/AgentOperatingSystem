@@ -1,3 +1,8 @@
+---
+name: aos-architecture
+description: Expert knowledge of the Agent Operating System (AOS) architecture, components, and design patterns. Provides deep understanding of how AOS works as a complete operating system for AI agents.
+---
+
 # Agent Operating System Architecture
 
 ## Description
