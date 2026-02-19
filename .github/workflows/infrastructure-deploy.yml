@@ -1,0 +1,537 @@
+name: Infrastructure Deployment Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment (dev, staging, prod)'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      resource_group:
+        description: 'Azure resource group name'
+        required: true
+        type: string
+      location:
+        description: 'Azure region'
+        required: true
+        type: string
+        default: 'eastus'
+      template:
+        description: 'Bicep template file path'
+        required: false
+        type: string
+        default: 'deployment/main-modular.bicep'
+      skip_health_checks:
+        description: 'Skip post-deployment health checks'
+        required: false
+        type: boolean
+        default: false
+  
+  pull_request:
+    types: [labeled]
+    paths:
+      - 'deployment/**/*.bicep'
+      - 'deployment/**/*.bicepparam'
+      - 'deployment/deploy.py'
+      - 'deployment/orchestrator/**'
+  
+  issue_comment:
+    types: [created]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Pre-flight checks and environment setup
+  setup:
+    name: Setup and Validation
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      environment: ${{ steps.check.outputs.environment }}
+      resource_group: ${{ steps.check.outputs.resource_group }}
+      location: ${{ steps.check.outputs.location }}
+      template: ${{ steps.check.outputs.template }}
+      parameters_file: ${{ steps.check.outputs.parameters_file }}
+      is_dry_run: ${{ steps.check.outputs.is_dry_run }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check deployment trigger and intent
+        id: check
+        run: |
+          echo "🔍 Analyzing deployment intent..."
+          
+          # Default values
+          SHOULD_DEPLOY="false"
+          IS_DRY_RUN="true"
+          ENVIRONMENT="dev"
+          RESOURCE_GROUP="${{ github.event.inputs.resource_group }}"
+          LOCATION="${{ github.event.inputs.location || 'eastus' }}"
+          TEMPLATE="${{ github.event.inputs.template || 'deployment/main-modular.bicep' }}"
+          PARAMETERS_FILE=""
+          
+          # Determine trigger type and intent
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "📋 Manual deployment requested"
+            SHOULD_DEPLOY="true"
+            IS_DRY_RUN="false"
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+            PARAMETERS_FILE="deployment/parameters/${ENVIRONMENT}.bicepparam"
+          
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "🔀 Pull request event detected"
+            
+            # Check for deployment labels
+            if [[ "${{ contains(github.event.pull_request.labels.*.name, 'deploy:dev') }}" == "true" ]]; then
+              echo "🏷️  Label 'deploy:dev' found - will deploy to dev"
+              SHOULD_DEPLOY="true"
+              ENVIRONMENT="dev"
+              PARAMETERS_FILE="deployment/parameters/dev.bicepparam"
+            elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'deploy:staging') }}" == "true" ]]; then
+              echo "🏷️  Label 'deploy:staging' found - will deploy to staging"
+              SHOULD_DEPLOY="true"
+              ENVIRONMENT="staging"
+              PARAMETERS_FILE="deployment/parameters/staging.bicepparam"
+            elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'status:approved') }}" == "true" ]] && \
+                 [[ "${{ contains(github.event.pull_request.labels.*.name, 'action:deploy') }}" == "true" ]]; then
+              echo "🏷️  Labels 'status:approved' and 'action:deploy' found - will deploy to prod"
+              SHOULD_DEPLOY="true"
+              IS_DRY_RUN="false"
+              ENVIRONMENT="prod"
+              PARAMETERS_FILE="deployment/parameters/prod.bicepparam"
+            else
+              echo "📊 No deployment labels - will run plan/dry-run only"
+              IS_DRY_RUN="true"
+            fi
+            
+            # Extract resource group from PR body or use default
+            RESOURCE_GROUP="aos-${ENVIRONMENT}-rg"
+          
+          elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            echo "💬 Comment event detected"
+            COMMENT_BODY="${{ github.event.comment.body }}"
+            
+            # Check for deployment commands in comments
+            if echo "$COMMENT_BODY" | grep -qE "^/deploy (dev|staging|prod)"; then
+              ENVIRONMENT=$(echo "$COMMENT_BODY" | grep -oE "^/deploy (dev|staging|prod)" | awk '{print $2}')
+              echo "🚀 Deployment command found: /deploy $ENVIRONMENT"
+              SHOULD_DEPLOY="true"
+              IS_DRY_RUN="false"
+              RESOURCE_GROUP="aos-${ENVIRONMENT}-rg"
+              PARAMETERS_FILE="deployment/parameters/${ENVIRONMENT}.bicepparam"
+            elif echo "$COMMENT_BODY" | grep -qE "^/plan"; then
+              echo "📋 Plan command found: /plan"
+              IS_DRY_RUN="true"
+              RESOURCE_GROUP="aos-${ENVIRONMENT}-rg"
+            fi
+          fi
+          
+          # Output results
+          echo "should_deploy=${SHOULD_DEPLOY}" >> $GITHUB_OUTPUT
+          echo "is_dry_run=${IS_DRY_RUN}" >> $GITHUB_OUTPUT
+          echo "environment=${ENVIRONMENT}" >> $GITHUB_OUTPUT
+          echo "resource_group=${RESOURCE_GROUP}" >> $GITHUB_OUTPUT
+          echo "location=${LOCATION}" >> $GITHUB_OUTPUT
+          echo "template=${TEMPLATE}" >> $GITHUB_OUTPUT
+          echo "parameters_file=${PARAMETERS_FILE}" >> $GITHUB_OUTPUT
+          
+          # Summary
+          echo "## Deployment Intent Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "- **Should Deploy**: ${SHOULD_DEPLOY}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run**: ${IS_DRY_RUN}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${ENVIRONMENT}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Resource Group**: ${RESOURCE_GROUP}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Location**: ${LOCATION}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Template**: ${TEMPLATE}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Parameters**: ${PARAMETERS_FILE}" >> $GITHUB_STEP_SUMMARY
+
+  # Agent Layer: Orchestrate the deployment
+  deploy:
+    name: Deploy Infrastructure (Agent Layer)
+    needs: setup
+    if: needs.setup.outputs.should_deploy == 'true' || needs.setup.outputs.is_dry_run == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Post deployment start comment
+        if: github.event_name == 'pull_request' || github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isDryRun = '${{ needs.setup.outputs.is_dry_run }}' === 'true';
+            const environment = '${{ needs.setup.outputs.environment }}';
+            const mode = isDryRun ? 'Plan/Analysis' : 'Deployment';
+            
+            const body = `## 🚀 Infrastructure ${mode} Started
+            
+            **Environment**: \`${environment}\`
+            **Resource Group**: \`${{ needs.setup.outputs.resource_group }}\`
+            **Location**: \`${{ needs.setup.outputs.location }}\`
+            **Template**: \`${{ needs.setup.outputs.template }}\`
+            
+            ${isDryRun ? '📊 Running in **plan mode** - no actual changes will be made.' : '⚙️  Running **live deployment** - infrastructure will be modified.'}
+            
+            The agent is now analyzing the deployment...
+            `;
+            
+            if (context.eventName === 'pull_request') {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        run: |
+          echo "📦 Installing Python dependencies..."
+          cd deployment
+          pip install -r orchestrator/requirements.txt
+          pip install --upgrade azure-cli
+      
+      - name: Verify Azure CLI
+        run: |
+          echo "🔧 Verifying Azure CLI installation..."
+          az version
+      
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Verify Azure authentication
+        run: |
+          echo "✅ Verifying Azure authentication..."
+          az account show
+          az account list --output table
+      
+      - name: Execute Python Orchestrator (Logic Layer)
+        id: orchestrator
+        continue-on-error: true
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          echo "🐍 Executing Python orchestration layer..."
+          
+          # Build command
+          CMD="python3 deployment/deploy.py \
+            --resource-group '${{ needs.setup.outputs.resource_group }}' \
+            --location '${{ needs.setup.outputs.location }}' \
+            --template '${{ needs.setup.outputs.template }}'"
+          
+          # Add parameters file if exists
+          if [[ -n "${{ needs.setup.outputs.parameters_file }}" ]] && [[ -f "${{ needs.setup.outputs.parameters_file }}" ]]; then
+            CMD="$CMD --parameters '${{ needs.setup.outputs.parameters_file }}'"
+          fi
+          
+          # Add flags
+          CMD="$CMD --allow-warnings"
+          CMD="$CMD --git-sha '${{ github.sha }}'"
+          
+          if [[ "${{ needs.setup.outputs.skip_health_checks }}" == "true" ]]; then
+            CMD="$CMD --skip-health"
+          fi
+          
+          # For dry-run/plan, we still run the orchestrator which does what-if analysis
+          # The orchestrator will stop before actual deployment if we don't confirm
+          if [[ "${{ needs.setup.outputs.is_dry_run }}" == "true" ]]; then
+            echo "📋 Running in PLAN mode (dry-run)"
+            CMD="$CMD --no-confirm-deletes"  # Will still do what-if, just won't prompt
+          fi
+          
+          echo "Executing: $CMD"
+          
+          # Execute and capture output
+          set +e
+          eval "$CMD" 2>&1 | tee orchestrator-output.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          
+          echo "exit_code=${EXIT_CODE}" >> $GITHUB_OUTPUT
+          
+          # Save output for later analysis
+          if [[ -f "orchestrator-output.log" ]]; then
+            echo "output_file=orchestrator-output.log" >> $GITHUB_OUTPUT
+          fi
+          
+          exit ${EXIT_CODE}
+      
+      - name: Analyze orchestrator output (Agent Intelligence)
+        id: analyze
+        if: always()
+        run: |
+          echo "🧠 Agent analyzing orchestrator output..."
+          
+          EXIT_CODE="${{ steps.orchestrator.outputs.exit_code }}"
+          OUTPUT_FILE="${{ steps.orchestrator.outputs.output_file }}"
+          
+          # Initialize analysis variables
+          FAILURE_TYPE="unknown"
+          ERROR_MESSAGE=""
+          SHOULD_RETRY="false"
+          IS_TRANSIENT="false"
+          
+          if [[ -f "$OUTPUT_FILE" ]]; then
+            # Extract key information from output
+            
+            # Check for success
+            if grep -q "DEPLOYMENT SUCCESSFUL\|✅" "$OUTPUT_FILE"; then
+              echo "✅ Deployment succeeded"
+              echo "status=success" >> $GITHUB_OUTPUT
+              echo "failure_type=none" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            
+            # Check for errors
+            if grep -q "DEPLOYMENT FAILED\|❌" "$OUTPUT_FILE"; then
+              echo "❌ Deployment failed - analyzing failure type..."
+              
+              # Extract error message
+              ERROR_MESSAGE=$(grep -A 10 "DEPLOYMENT FAILED\|❌" "$OUTPUT_FILE" | head -20)
+              
+              # Classify failure type using patterns from failure_classifier.py
+              
+              # Check for logic failures (syntax, validation, etc.)
+              if echo "$ERROR_MESSAGE" | grep -qiE "lint.*error|bicep.*error|syntax.*error|validation.*failed|invalid.*parameter|invalid.*bicep|missing.*required.*parameter|template.*validation.*error|circular.*dependency|resource.*type.*not.*found|api.*version.*not.*supported|property.*not.*allowed|deployment.*template.*validation.*failed|parameter.*must be|error\s*bcp[0-9]+"; then
+                FAILURE_TYPE="logic"
+                echo "🔴 Logic failure detected - code/template error"
+                SHOULD_RETRY="false"
+              
+              # Check for environmental failures (throttling, timeouts, etc.)
+              elif echo "$ERROR_MESSAGE" | grep -qiE "timeout|throttl(ed|ing)|rate.*limit|service.*unavailable|internal.*server.*error|network.*error|network.*timeout|connection.*refused|connection.*timeout|temporary.*failure|quota.*exceeded|capacity.*unavailable|region.*unavailable|sku.*not.*available|conflict.*another.*operation"; then
+                FAILURE_TYPE="environmental"
+                IS_TRANSIENT="true"
+                SHOULD_RETRY="true"
+                echo "🟡 Environmental failure detected - transient Azure issue"
+              else
+                FAILURE_TYPE="unknown"
+                SHOULD_RETRY="false"
+                echo "🟠 Unknown failure type"
+              fi
+              
+              echo "status=failed" >> $GITHUB_OUTPUT
+              echo "failure_type=${FAILURE_TYPE}" >> $GITHUB_OUTPUT
+              echo "should_retry=${SHOULD_RETRY}" >> $GITHUB_OUTPUT
+              echo "is_transient=${IS_TRANSIENT}" >> $GITHUB_OUTPUT
+              
+              # Save error for reporting
+              echo "$ERROR_MESSAGE" > error-message.txt
+              echo "error_file=error-message.txt" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "⚠️  No output file found"
+            echo "status=unknown" >> $GITHUB_OUTPUT
+            echo "failure_type=unknown" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Self-healing retry (Environmental failures only)
+        id: retry
+        if: steps.analyze.outputs.should_retry == 'true' && steps.analyze.outputs.is_transient == 'true'
+        continue-on-error: true
+        run: |
+          echo "🔄 Self-healing: Retrying deployment due to transient failure..."
+          
+          # Exponential backoff
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          
+          while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            BACKOFF_DELAY=$((2 ** RETRY_COUNT * 30))  # 60s, 120s, 240s
+            
+            echo "🕐 Retry attempt ${RETRY_COUNT}/${MAX_RETRIES} - waiting ${BACKOFF_DELAY} seconds..."
+            sleep ${BACKOFF_DELAY}
+            
+            echo "🔄 Attempting deployment (retry ${RETRY_COUNT})..."
+            
+            # Re-run orchestrator
+            CMD="python3 deployment/deploy.py \
+              --resource-group '${{ needs.setup.outputs.resource_group }}' \
+              --location '${{ needs.setup.outputs.location }}' \
+              --template '${{ needs.setup.outputs.template }}'"
+            
+            if [[ -n "${{ needs.setup.outputs.parameters_file }}" ]] && [[ -f "${{ needs.setup.outputs.parameters_file }}" ]]; then
+              CMD="$CMD --parameters '${{ needs.setup.outputs.parameters_file }}'"
+            fi
+            
+            CMD="$CMD --allow-warnings --git-sha '${{ github.sha }}'"
+            
+            set +e
+            eval "$CMD" 2>&1 | tee "orchestrator-retry-${RETRY_COUNT}.log"
+            EXIT_CODE=${PIPESTATUS[0]}
+            set -e
+            
+            if [[ $EXIT_CODE -eq 0 ]]; then
+              echo "✅ Retry ${RETRY_COUNT} succeeded!"
+              echo "retry_success=true" >> $GITHUB_OUTPUT
+              echo "retry_count=${RETRY_COUNT}" >> $GITHUB_OUTPUT
+              exit 0
+            else
+              echo "❌ Retry ${RETRY_COUNT} failed"
+              
+              # Check if still transient
+              if grep -qiE "timeout|throttl|rate.*limit|service.*unavailable|network.*error|temporary.*failure" "orchestrator-retry-${RETRY_COUNT}.log"; then
+                echo "Still transient error - will retry..."
+                continue
+              else
+                echo "Error changed to non-transient - stopping retries"
+                echo "retry_success=false" >> $GITHUB_OUTPUT
+                echo "retry_count=${RETRY_COUNT}" >> $GITHUB_OUTPUT
+                exit 1
+              fi
+            fi
+          done
+          
+          echo "❌ All ${MAX_RETRIES} retries exhausted"
+          echo "retry_success=false" >> $GITHUB_OUTPUT
+          echo "retry_count=${RETRY_COUNT}" >> $GITHUB_OUTPUT
+          exit 1
+      
+      - name: Extract deployment summary
+        id: summary
+        if: always()
+        run: |
+          echo "📊 Extracting deployment summary..."
+          
+          # Check if audit logs exist
+          if [[ -d "deployment/audit" ]]; then
+            LATEST_AUDIT=$(ls -t deployment/audit/*.json 2>/dev/null | head -1)
+            if [[ -f "$LATEST_AUDIT" ]]; then
+              echo "📋 Found audit log: $LATEST_AUDIT"
+              
+              # Extract key metrics
+              DEPLOYED_RESOURCES=$(jq -r '.deployed_resources | length' "$LATEST_AUDIT" 2>/dev/null || echo "0")
+              DURATION=$(jq -r '.duration_seconds' "$LATEST_AUDIT" 2>/dev/null || echo "N/A")
+              
+              echo "deployed_resources=${DEPLOYED_RESOURCES}" >> $GITHUB_OUTPUT
+              echo "duration=${DURATION}" >> $GITHUB_OUTPUT
+              echo "audit_file=${LATEST_AUDIT}" >> $GITHUB_OUTPUT
+            fi
+          fi
+      
+      - name: Post deployment result comment
+        if: always() && (github.event_name == 'pull_request' || github.event_name == 'issue_comment')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ steps.analyze.outputs.status }}';
+            const failureType = '${{ steps.analyze.outputs.failure_type }}';
+            const retrySuccess = '${{ steps.retry.outputs.retry_success }}';
+            const retryCount = '${{ steps.retry.outputs.retry_count }}';
+            const environment = '${{ needs.setup.outputs.environment }}';
+            const isDryRun = '${{ needs.setup.outputs.is_dry_run }}' === 'true';
+            
+            let emoji = '❓';
+            let statusText = 'Unknown';
+            let details = '';
+            
+            if (status === 'success' || retrySuccess === 'true') {
+              emoji = '✅';
+              statusText = 'Successful';
+              
+              if (retrySuccess === 'true') {
+                details = `\n\n**Self-Healing**: The deployment initially failed with a transient error, but succeeded after ${retryCount} retry attempt(s). 🔄✨`;
+              }
+              
+              const deployedResources = '${{ steps.summary.outputs.deployed_resources }}';
+              const duration = '${{ steps.summary.outputs.duration }}';
+              
+              if (deployedResources && deployedResources !== '0') {
+                details += `\n\n**Deployed Resources**: ${deployedResources}`;
+              }
+              if (duration && duration !== 'N/A') {
+                details += `\n**Duration**: ${duration} seconds`;
+              }
+            } else if (status === 'failed') {
+              emoji = '❌';
+              statusText = 'Failed';
+              
+              if (failureType === 'logic') {
+                details = `\n\n**Failure Type**: Logic Error (Code/Template)\n**Action Required**: Please fix the Bicep template or parameters and try again.\n\n⚠️ **No retry attempted** - this is a code error that requires manual intervention.`;
+              } else if (failureType === 'environmental') {
+                if (retrySuccess === 'false') {
+                  details = `\n\n**Failure Type**: Environmental (Transient Azure Issue)\n**Retries Attempted**: ${retryCount || 'N/A'}\n\n⚠️ The issue persisted after retry attempts. This may require:\n- Checking Azure service health\n- Trying again later\n- Adjusting resource configurations`;
+                } else {
+                  details = `\n\n**Failure Type**: Environmental (Transient Azure Issue)\n**Retries**: In progress...`;
+                }
+              } else {
+                details = `\n\n**Failure Type**: Unknown\n**Action Required**: Please check the workflow logs for details.`;
+              }
+            }
+            
+            const mode = isDryRun ? 'Plan/Analysis' : 'Deployment';
+            
+            const body = `## ${emoji} Infrastructure ${mode} ${statusText}
+            
+            **Environment**: \`${environment}\`
+            **Resource Group**: \`${{ needs.setup.outputs.resource_group }}\`
+            **Status**: ${statusText}
+            ${details}
+            
+            ${isDryRun ? '📊 This was a **plan/dry-run** - no actual infrastructure changes were made.' : ''}
+            
+            [View workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+            
+            if (context.eventName === 'pull_request') {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }
+      
+      - name: Upload audit logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-audit-${{ github.run_id }}
+          path: |
+            deployment/audit/*.json
+            orchestrator-*.log
+            error-message.txt
+          retention-days: 90
+          if-no-files-found: ignore
+      
+      - name: Final status check
+        if: always()
+        run: |
+          STATUS="${{ steps.analyze.outputs.status }}"
+          RETRY_SUCCESS="${{ steps.retry.outputs.retry_success }}"
+          
+          if [[ "$STATUS" == "success" ]] || [[ "$RETRY_SUCCESS" == "true" ]]; then
+            echo "✅ Deployment workflow completed successfully"
+            exit 0
+          elif [[ "${{ needs.setup.outputs.is_dry_run }}" == "true" ]]; then
+            echo "📊 Plan/dry-run completed"
+            exit 0
+          else
+            echo "❌ Deployment workflow failed"
+            exit 1
+          fi
