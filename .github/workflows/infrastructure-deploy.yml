@@ -228,6 +228,66 @@ jobs:
           az account show
           az account list --output table
       
+      - name: Regional Capability Validation
+        id: regional_validation
+        run: |
+          echo "🌍 Validating regional capabilities..."
+          
+          LOCATION="${{ needs.setup.outputs.location }}"
+          ENVIRONMENT="${{ needs.setup.outputs.environment }}"
+          
+          # Determine required services based on environment and template
+          SERVICES="storage keyvault functions servicebus appinsights loganalytics identity"
+          
+          # Production typically needs premium SKUs and Azure ML
+          if [[ "$ENVIRONMENT" == "prod" ]]; then
+            SERVICES="$SERVICES functions-premium servicebus-premium azureml acr"
+          elif [[ "$ENVIRONMENT" == "staging" ]]; then
+            SERVICES="$SERVICES functions-premium azureml"
+          fi
+          
+          echo "Region: $LOCATION"
+          echo "Environment: $ENVIRONMENT"
+          echo "Required Services: $SERVICES"
+          
+          # Run regional validation
+          python3 deployment/orchestrator/cli/regional_tool.py validate $LOCATION $SERVICES > validation-output.txt 2>&1
+          VALIDATION_EXIT=$?
+          
+          cat validation-output.txt
+          
+          # Generate recommendation if validation failed
+          if [[ $VALIDATION_EXIT -ne 0 ]]; then
+            echo ""
+            echo "⚠️  Region validation warnings detected"
+            echo "📋 Recommended alternative regions:"
+            python3 deployment/orchestrator/cli/regional_tool.py recommend $SERVICES --geography $(
+              if [[ "$LOCATION" =~ ^(eastus|westus|centralus|northcentralus|southcentralus|canadacentral|brazilsouth) ]]; then
+                echo "americas"
+              elif [[ "$LOCATION" =~ ^(northeurope|westeurope|uksouth|francecentral|germanywestcentral|swedencentral) ]]; then
+                echo "europe"
+              else
+                echo "asia"
+              fi
+            ) --limit 3
+            
+            echo ""
+            echo "ℹ️  Bicep template will automatically adjust:"
+            echo "   - Services not available will be disabled"
+            echo "   - Premium SKUs will downgrade to Standard/Consumption"
+            echo "   - Deployment will continue with available services"
+          else
+            echo "✅ Region $LOCATION supports all required services"
+          fi
+          
+          # Save validation results
+          echo "validation_exit=$VALIDATION_EXIT" >> $GITHUB_OUTPUT
+          
+          # Generate deployment summary
+          echo ""
+          echo "📊 Deployment Summary:"
+          python3 deployment/orchestrator/cli/regional_tool.py summary $LOCATION $SERVICES
+      
       - name: Execute Python Orchestrator (Logic Layer)
         id: orchestrator
         continue-on-error: true
