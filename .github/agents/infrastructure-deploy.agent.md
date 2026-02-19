@@ -92,21 +92,38 @@ Execute `deployment/deploy.py` with appropriate flags:
 Analyze orchestrator output to classify results:
 - **Success**: Deployment completed successfully
 - **Logic Failure**: Syntax errors, validation failures, template errors
-  - **Action**: No retry, surface error to developer
+  - **Action**: Attempt autonomous fix using deployment-error-fixer skill
 - **Environmental Failure**: Timeouts, throttling, network errors
   - **Action**: Trigger self-healing retry logic
 
-#### Phase 4: Self-Healing Retry (Environmental Failures Only)
+#### Phase 4: Autonomous Logic Error Fixing (NEW)
+Attempt to autonomously fix logic errors:
+- **Detect error type**: Bicep (BCP codes), Python (syntax/import), parameters
+- **Analyze fix-ability**: Check if error matches known fixable patterns
+- **Apply fix**: Automatically modify code to resolve the issue
+- **Validate fix**: Re-run linting/compilation to verify fix works
+- **Retry deployment**: Re-execute deployment after successful fix
+
+**Auto-fixable errors**:
+- Bicep BCP029 (missing API version)
+- Bicep BCP033 (type mismatch)
+- Bicep BCP037 (invalid property)
+- Python syntax errors (missing colons, indentation)
+- Python missing imports
+- Parameter validation errors
+
+#### Phase 5: Self-Healing Retry (Environmental Failures Only)
 Implement intelligent retry with exponential backoff:
 - **Retry 1**: Wait 60 seconds
 - **Retry 2**: Wait 120 seconds  
 - **Retry 3**: Wait 240 seconds
 - **Stop retrying if**: Error changes to non-transient type
 
-#### Phase 5: Results Communication
+#### Phase 6: Results Communication
 Post detailed status comment with:
 - Deployment status (success/failure)
 - Failure type and recommended action
+- Autonomous fix information (if applied)
 - Self-healing retry information
 - Resource count and duration
 - Link to workflow run

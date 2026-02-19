@@ -349,6 +349,69 @@ jobs:
             echo "failure_type=unknown" >> $GITHUB_OUTPUT
           fi
       
+      - name: Autonomous logic error fixing
+        id: fix_logic_error
+        if: steps.analyze.outputs.failure_type == 'logic'
+        continue-on-error: true
+        run: |
+          echo "🤖 Autonomous error fixing: Attempting to fix logic error..."
+          
+          ERROR_FILE="${{ steps.analyze.outputs.error_file }}"
+          
+          if [[ ! -f "$ERROR_FILE" ]]; then
+            echo "❌ Error file not found: $ERROR_FILE"
+            echo "fix_success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Run autonomous error fixer
+          python3 .github/skills/deployment-error-fixer/scripts/fix_error.py \
+            --error-file "$ERROR_FILE" \
+            --deployment-dir deployment/ \
+            --auto-fix \
+            2>&1 | tee fix-output.log
+          
+          FIX_EXIT_CODE=$?
+          
+          if [[ $FIX_EXIT_CODE -eq 0 ]]; then
+            echo "✅ Error fixed autonomously!"
+            echo "fix_success=true" >> $GITHUB_OUTPUT
+            
+            # Re-run deployment after fix
+            echo ""
+            echo "🔄 Retrying deployment after autonomous fix..."
+            
+            CMD="python3 deployment/deploy.py \
+              --resource-group '${{ needs.setup.outputs.resource_group }}' \
+              --location '${{ needs.setup.outputs.location }}' \
+              --template '${{ needs.setup.outputs.template }}'"
+            
+            if [[ -n "${{ needs.setup.outputs.parameters_file }}" ]] && [[ -f "${{ needs.setup.outputs.parameters_file }}" ]]; then
+              CMD="$CMD --parameters '${{ needs.setup.outputs.parameters_file }}'"
+            fi
+            
+            CMD="$CMD --allow-warnings --git-sha '${{ github.sha }}'"
+            
+            set +e
+            eval "$CMD" 2>&1 | tee orchestrator-retry-after-fix.log
+            RETRY_EXIT_CODE=${PIPESTATUS[0]}
+            set -e
+            
+            if [[ $RETRY_EXIT_CODE -eq 0 ]]; then
+              echo "✅ Deployment succeeded after autonomous fix!"
+              echo "retry_success=true" >> $GITHUB_OUTPUT
+              exit 0
+            else
+              echo "❌ Deployment still failed after fix"
+              echo "retry_success=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          else
+            echo "❌ Could not auto-fix error"
+            echo "fix_success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
       - name: Self-healing retry (Environmental failures only)
         id: retry
         if: steps.analyze.outputs.should_retry == 'true' && steps.analyze.outputs.is_transient == 'true'
@@ -443,6 +506,8 @@ jobs:
             const failureType = '${{ steps.analyze.outputs.failure_type }}';
             const retrySuccess = '${{ steps.retry.outputs.retry_success }}';
             const retryCount = '${{ steps.retry.outputs.retry_count }}';
+            const fixSuccess = '${{ steps.fix_logic_error.outputs.fix_success }}';
+            const fixRetrySuccess = '${{ steps.fix_logic_error.outputs.retry_success }}';
             const environment = '${{ needs.setup.outputs.environment }}';
             const isDryRun = '${{ needs.setup.outputs.is_dry_run }}' === 'true';
             
@@ -450,12 +515,16 @@ jobs:
             let statusText = 'Unknown';
             let details = '';
             
-            if (status === 'success' || retrySuccess === 'true') {
+            if (status === 'success' || retrySuccess === 'true' || fixRetrySuccess === 'true') {
               emoji = '✅';
               statusText = 'Successful';
               
               if (retrySuccess === 'true') {
                 details = `\n\n**Self-Healing**: The deployment initially failed with a transient error, but succeeded after ${retryCount} retry attempt(s). 🔄✨`;
+              }
+              
+              if (fixRetrySuccess === 'true') {
+                details = `\n\n**Autonomous Fix**: The deployment initially failed with a logic error, but the agent autonomously fixed the issue and deployment succeeded! 🤖✨`;
               }
               
               const deployedResources = '${{ steps.summary.outputs.deployed_resources }}';
@@ -472,7 +541,11 @@ jobs:
               statusText = 'Failed';
               
               if (failureType === 'logic') {
-                details = `\n\n**Failure Type**: Logic Error (Code/Template)\n**Action Required**: Please fix the Bicep template or parameters and try again.\n\n⚠️ **No retry attempted** - this is a code error that requires manual intervention.`;
+                if (fixSuccess === 'false') {
+                  details = `\n\n**Failure Type**: Logic Error (Code/Template)\n**Autonomous Fix**: Attempted but failed\n**Action Required**: The agent could not automatically fix this error. Please review the logs and fix manually.\n\n⚠️ This is a code error that requires manual intervention.`;
+                } else {
+                  details = `\n\n**Failure Type**: Logic Error (Code/Template)\n**Action Required**: Please fix the Bicep template or parameters and try again.\n\n⚠️ **No retry attempted** - this is a code error that requires manual intervention.`;
+                }
               } else if (failureType === 'environmental') {
                 if (retrySuccess === 'false') {
                   details = `\n\n**Failure Type**: Environmental (Transient Azure Issue)\n**Retries Attempted**: ${retryCount || 'N/A'}\n\n⚠️ The issue persisted after retry attempts. This may require:\n- Checking Azure service health\n- Trying again later\n- Adjusting resource configurations`;
@@ -524,8 +597,9 @@ jobs:
         run: |
           STATUS="${{ steps.analyze.outputs.status }}"
           RETRY_SUCCESS="${{ steps.retry.outputs.retry_success }}"
+          FIX_RETRY_SUCCESS="${{ steps.fix_logic_error.outputs.retry_success }}"
           
-          if [[ "$STATUS" == "success" ]] || [[ "$RETRY_SUCCESS" == "true" ]]; then
+          if [[ "$STATUS" == "success" ]] || [[ "$RETRY_SUCCESS" == "true" ]] || [[ "$FIX_RETRY_SUCCESS" == "true" ]]; then
             echo "✅ Deployment workflow completed successfully"
             exit 0
           elif [[ "${{ needs.setup.outputs.is_dry_run }}" == "true" ]]; then
