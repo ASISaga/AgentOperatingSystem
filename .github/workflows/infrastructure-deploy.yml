@@ -317,13 +317,13 @@ jobs:
               # Classify failure type using patterns from failure_classifier.py
               
               # Check for logic failures (syntax, validation, etc.)
-              if echo "$ERROR_MESSAGE" | grep -qiE "lint.*error|bicep.*error|syntax.*error|validation.*failed|invalid.*parameter|invalid.*bicep|missing.*required.*parameter|template.*validation.*error|circular.*dependency|resource.*type.*not.*found|api.*version.*not.*supported|property.*not.*allowed|deployment.*template.*validation.*failed|parameter.*must be|error\s*bcp[0-9]+"; then
+              if echo "$ERROR_MESSAGE" | grep -qiE "lint.*error|bicep.*error|syntax.*error|validation.*failed|invalid.*parameter|invalid.*bicep|missing.*required.*parameter|template.*validation.*error|circular.*dependency|resource.*type.*not.*found|api.*version.*not.*supported|property.*not.*allowed|deployment.*template.*validation.*failed|parameter.*must be|error\s*bcp[0-9]+|invalidtemplatedeployment|template deployment.*is not valid"; then
                 FAILURE_TYPE="logic"
                 echo "🔴 Logic failure detected - code/template error"
                 SHOULD_RETRY="false"
               
               # Check for environmental failures (throttling, timeouts, etc.)
-              elif echo "$ERROR_MESSAGE" | grep -qiE "timeout|throttl(ed|ing)|rate.*limit|service.*unavailable|internal.*server.*error|network.*error|network.*timeout|connection.*refused|connection.*timeout|temporary.*failure|quota.*exceeded|capacity.*unavailable|region.*unavailable|sku.*not.*available|conflict.*another.*operation"; then
+              elif echo "$ERROR_MESSAGE" | grep -qiE "timeout|throttl(ed|ing)|rate.*limit|service.*unavailable|internal.*server.*error|network.*error|network.*timeout|connection.*refused|connection.*timeout|temporary.*failure|quota.*exceeded|capacity.*unavailable|region.*unavailable|sku.*not.*available|conflict.*another.*operation|code:\s*conflict|another operation.*in progress"; then
                 FAILURE_TYPE="environmental"
                 IS_TRANSIENT="true"
                 SHOULD_RETRY="true"
