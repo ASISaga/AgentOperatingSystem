@@ -159,6 +159,9 @@ Add MCP servers with **zero code** - just configuration:
 - **[Deployment Guide](docs/getting-started/deployment.md)** - Production deployment overview
 
 ### Deployment & Operations
+- **[GitHub Agentic Deployment Workflow](.github/workflows/infrastructure-deploy.yml)** - Automated deployment agent with self-healing
+- **[Workflow Quick Reference](.github/workflows/QUICKREF.md)** - Fast reference for deployment commands
+- **[Workflow Usage Examples](.github/workflows/USAGE_EXAMPLES.md)** - Detailed usage scenarios and troubleshooting
 - **[Deployment Plan](docs/development/DEPLOYMENT_PLAN.md)** - Comprehensive deployment strategy and procedures
 - **[Deployment Task List](docs/development/DEPLOYMENT_TASKS.md)** - Detailed task checklists for all phases
 - **[Deployment Infrastructure](deployment/README.md)** - Infrastructure deployment documentation
