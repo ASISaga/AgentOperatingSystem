@@ -573,13 +573,14 @@ jobs:
           fi
           
           # Run autonomous error fixer
+          set +e
           python3 .github/skills/deployment-error-fixer/scripts/fix_error.py \
             --error-file "$ERROR_FILE" \
             --deployment-dir deployment/ \
             --auto-fix \
             2>&1 | tee fix-output.log
-          
-          FIX_EXIT_CODE=$?
+          FIX_EXIT_CODE=${PIPESTATUS[0]}
+          set -e
           
           if [[ $FIX_EXIT_CODE -eq 0 ]]; then
             echo "✅ Error fixed autonomously!"
