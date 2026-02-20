@@ -158,10 +158,17 @@ class WhatIfPlanner:
                 timeout=300  # 5 minute timeout for what-if
             )
             
-            # Parse the output
-            changes = self._parse_what_if_output(result.stdout)
+            # Parse the output (what-if results go to stderr for text format)
+            output_text = result.stdout or result.stderr or ""
+            changes = self._parse_what_if_output(output_text)
             
-            return WhatIfResult(changes, result.stdout)
+            # When the command fails, include stderr in the raw output so
+            # callers can see the actual error from Azure.
+            raw_output = output_text
+            if result.returncode != 0 and result.stderr:
+                raw_output = result.stderr
+            
+            return WhatIfResult(changes, raw_output)
         
         except subprocess.TimeoutExpired:
             return WhatIfResult([], "What-if analysis timed out after 5 minutes")

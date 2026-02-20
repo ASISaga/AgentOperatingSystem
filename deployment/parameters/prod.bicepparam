@@ -25,9 +25,6 @@ param b2cPolicyName = 'YOUR_B2C_POLICY_NAME'
 param b2cClientId = 'YOUR_B2C_CLIENT_ID'
 param b2cClientSecret = 'YOUR_B2C_CLIENT_SECRET'
 
-// Admin Configuration
-param adminEmail = 'admin@example.com'
-
 // Tags
 param tags = {
   Environment: 'prod'

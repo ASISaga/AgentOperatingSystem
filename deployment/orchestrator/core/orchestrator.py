@@ -109,7 +109,7 @@ class BicepOrchestrator:
             # Phase 4: Deploy
             if not self._execute_deployment():
                 # Truncate to avoid overly long failure messages in CI output
-                max_error_len = 500
+                max_error_len = 2000
                 error_detail = self.last_deploy_error[:max_error_len] if self.last_deploy_error else "No error details"
                 return False, f"Deployment failed: {error_detail}"
             
@@ -260,7 +260,7 @@ class BicepOrchestrator:
                     delay = retry_strategy["delay"]
                     print(f"\n🔄 Environmental failure - retrying in {delay} seconds...")
                     # Truncate to avoid overwhelming log output; full error is in audit record
-                    max_error_len = 500
+                    max_error_len = 2000
                     print(f"   Azure error: {result[1][:max_error_len] if result[1] else 'No error details'}")
                     import time
                     time.sleep(delay)
@@ -270,6 +270,26 @@ class BicepOrchestrator:
         self.state_machine.transition_to(DeploymentState.FAILED)
         return False
     
+    @staticmethod
+    def _extract_error_lines(stderr: str) -> str:
+        """
+        Extract ERROR lines from Azure CLI stderr, filtering out WARNING lines.
+
+        Azure CLI writes both warnings and errors to stderr.  When the error
+        message is later truncated for logging, the warnings can consume the
+        entire budget and hide the real error.  This helper returns only the
+        error-relevant content.
+        """
+        lines = stderr.splitlines()
+        error_lines = [
+            line for line in lines
+            if line.strip() and not line.strip().startswith("WARNING:")
+        ]
+        if error_lines:
+            return "\n".join(error_lines)
+        # Fall back to full stderr when no ERROR lines were found
+        return stderr
+
     def _deploy_with_cli(self) -> Tuple[bool, str]:
         """Execute deployment via Azure CLI."""
         deployment_name = f"aos-deploy-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
@@ -318,7 +338,12 @@ class BicepOrchestrator:
                 
                 return True, result.stdout
             else:
-                return False, result.stderr or result.stdout
+                # Strip Bicep linter warnings from stderr so the actual
+                # Azure error is not hidden by truncation.
+                error_text = self._extract_error_lines(
+                    result.stderr or result.stdout
+                )
+                return False, error_text
         
         except subprocess.TimeoutExpired:
             return False, "Deployment timed out after 30 minutes"

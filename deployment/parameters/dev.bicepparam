@@ -25,9 +25,6 @@ param b2cPolicyName = ''
 param b2cClientId = ''
 param b2cClientSecret = ''
 
-// Admin Configuration
-param adminEmail = ''
-
 // Tags
 param tags = {
   Environment: 'dev'

@@ -117,9 +117,6 @@ param b2cClientId string = ''
 @secure()
 param b2cClientSecret string = ''
 
-@description('Administrator email address for notifications')
-param adminEmail string = ''
-
 @description('Enable Application Insights')
 param enableAppInsights bool = true
 
