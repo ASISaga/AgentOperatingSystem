@@ -234,15 +234,25 @@ def _extract_error_excerpt(log_text: str, context_before: int = 30, context_afte
     Extract relevant lines around the DEPLOYMENT FAILED marker.
 
     Returns the surrounding context, or the last ``context_before`` lines when
-    no marker is found.
+    no marker is found.  WARNING lines from Bicep linting are stripped so the
+    actual Azure error is not hidden by truncation.
     """
     lines = log_text.splitlines()
     for i, line in enumerate(lines):
         if "DEPLOYMENT FAILED" in line:
             start = max(0, i - context_before)
             end = min(len(lines), i + context_after + 1)
-            return "\n".join(lines[start:end])
-    return "\n".join(lines[-context_before:])
+            excerpt_lines = lines[start:end]
+            # Strip Bicep WARNING lines to surface the real error
+            filtered = [
+                l for l in excerpt_lines
+                if not l.strip().startswith("WARNING:")
+            ]
+            return "\n".join(filtered) if filtered else "\n".join(excerpt_lines)
+    # Fallback: return last N lines, stripping warnings
+    tail = lines[-context_before:]
+    filtered = [l for l in tail if not l.strip().startswith("WARNING:")]
+    return "\n".join(filtered) if filtered else "\n".join(tail)
 
 
 def _classify_log(log_text: str) -> tuple:
