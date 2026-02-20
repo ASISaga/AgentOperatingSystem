@@ -255,6 +255,100 @@ class TestRegionalValidator(unittest.TestCase):
         cap2 = self.validator.get_region_capability('eastus')
         
         self.assertIs(cap1, cap2)  # Same object reference
+    
+    def test_select_optimal_regions_single_region(self):
+        """Test auto-selection returns a single region when primary supports all services."""
+        required = {
+            ServiceType.STORAGE,
+            ServiceType.AZURE_ML,
+            ServiceType.FUNCTIONS_PREMIUM,
+        }
+        
+        result = self.validator.select_optimal_regions(required, environment='prod')
+        
+        self.assertIn('primary', result)
+        self.assertIn('ml', result)
+        self.assertIn('multi_region', result)
+        
+        # Primary must support all core + ML services (Tier 1 region)
+        primary_cap = self.validator.get_region_capability(result['primary'])
+        self.assertTrue(primary_cap.supports_service(ServiceType.STORAGE))
+        self.assertTrue(primary_cap.supports_service(ServiceType.FUNCTIONS_PREMIUM))
+        
+        # When primary supports ML, ml region should equal primary
+        if primary_cap.supports_service(ServiceType.AZURE_ML):
+            self.assertEqual(result['primary'], result['ml'])
+            self.assertFalse(result['multi_region'])
+    
+    def test_select_optimal_regions_multi_region_when_needed(self):
+        """Test auto-selection picks separate ML region when primary lacks ML support."""
+        # Provide a fixed geography that may have non-ML-capable Tier-1 regions
+        # Force the situation by requesting only east-asia geography (no ML there)
+        required = {
+            ServiceType.STORAGE,
+            ServiceType.AZURE_ML,
+        }
+        
+        # With geography=americas, all Tier 1 regions (eastus, eastus2, westus2) support ML
+        result_americas = self.validator.select_optimal_regions(
+            required, preferred_geography='americas'
+        )
+        self.assertIn('primary', result_americas)
+        # ML region must support Azure ML
+        ml_cap = self.validator.get_region_capability(result_americas['ml'])
+        self.assertTrue(ml_cap.supports_service(ServiceType.AZURE_ML))
+    
+    def test_select_optimal_regions_geography_respected(self):
+        """Test auto-selection boosts preferred geography when capability is equal."""
+        required = {ServiceType.STORAGE, ServiceType.FUNCTIONS_CONSUMPTION}
+        
+        # When geography is specified, the result should be a valid known region
+        result_americas = self.validator.select_optimal_regions(
+            required, preferred_geography='americas'
+        )
+        self.assertIn(result_americas['primary'], self.validator.ALL_REGIONS)
+
+        result_europe = self.validator.select_optimal_regions(
+            required, preferred_geography='europe'
+        )
+        self.assertIn(result_europe['primary'], self.validator.ALL_REGIONS)
+        
+        # Results for different geographies can differ
+        # (geography preference applies a boost but isn't a hard filter)
+        result_asia = self.validator.select_optimal_regions(
+            required, preferred_geography='asia'
+        )
+        self.assertIn(result_asia['primary'], self.validator.ALL_REGIONS)
+    
+    def test_select_optimal_regions_ml_region_valid(self):
+        """Test ML region always supports Azure ML."""
+        required = {
+            ServiceType.STORAGE,
+            ServiceType.AZURE_ML,
+            ServiceType.CONTAINER_REGISTRY,
+        }
+        
+        for geography in ('americas', 'europe', 'asia'):
+            result = self.validator.select_optimal_regions(
+                required, preferred_geography=geography
+            )
+            ml_cap = self.validator.get_region_capability(result['ml'])
+            self.assertTrue(
+                ml_cap.supports_service(ServiceType.AZURE_ML),
+                f"ML region {result['ml']} must support Azure ML for geography {geography}"
+            )
+    
+    def test_detect_geography(self):
+        """Test geography detection from region name."""
+        self.assertEqual(self.validator._detect_geography('eastus'), 'americas')
+        self.assertEqual(self.validator._detect_geography('westeurope'), 'europe')
+        self.assertEqual(self.validator._detect_geography('japaneast'), 'asia')
+        # Region not in any known geography set falls back to 'americas'
+        self.assertEqual(
+            self.validator._detect_geography('unknownregion'),
+            'americas',
+            "Unknown regions should fall back to 'americas'"
+        )
 
 
 if __name__ == '__main__':

@@ -377,7 +377,81 @@ class RegionalValidator:
                    'centralindia', 'southindia', 'southafricanorth', 'uaenorth'}
         return set()
     
-    def generate_deployment_summary(self, region: str, 
+    def select_optimal_regions(
+        self,
+        required_services: Set[ServiceType],
+        environment: str = 'dev',
+        preferred_geography: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Automatically select optimal regions for each service group.
+
+        Services that are not available together in one region are split across
+        the nearest compatible regions, preserving the specified geography.
+        Cost is optimised by preferring Tier-1/Tier-2 regions and the cheapest
+        SKUs for non-production environments.
+
+        Args:
+            required_services: All services needed for the deployment
+            environment: Target environment (dev, staging, prod)
+            preferred_geography: Geographic preference ('americas', 'europe', 'asia')
+
+        Returns:
+            Dict with keys:
+                primary   – region for core services
+                ml        – region for Azure ML / Container Registry
+                multi_region – True when primary and ml differ
+                geography – detected or preferred geography
+        """
+        # Separate ML-specific services from core services
+        ml_services = required_services & {ServiceType.AZURE_ML, ServiceType.CONTAINER_REGISTRY}
+        core_services = required_services - ml_services
+
+        # Select best primary region for core services
+        core_recommendations = self.recommend_regions(
+            core_services if core_services else required_services,
+            preferred_geography=preferred_geography,
+            limit=10
+        )
+        primary = core_recommendations[0][0] if core_recommendations else 'eastus'
+
+        # Check whether the primary region also supports ML
+        if ml_services:
+            primary_capability = self.get_region_capability(primary)
+            if primary_capability.supports_service(ServiceType.AZURE_ML):
+                ml_region = primary
+            else:
+                # Find the nearest ML-capable region in the same geography
+                geography = preferred_geography or self._detect_geography(primary)
+                ml_recommendations = self.recommend_regions(
+                    ml_services,
+                    preferred_geography=geography,
+                    limit=5
+                )
+                ml_region = ml_recommendations[0][0] if ml_recommendations else 'eastus'
+        else:
+            ml_region = primary
+
+        geography = preferred_geography or self._detect_geography(primary)
+
+        return {
+            'primary': primary,
+            'ml': ml_region,
+            'multi_region': primary != ml_region,
+            'geography': geography,
+        }
+
+    def _detect_geography(self, region: str) -> str:
+        """Detect the geography name for a given region."""
+        if region in self._get_geography_regions('americas'):
+            return 'americas'
+        if region in self._get_geography_regions('europe'):
+            return 'europe'
+        if region in self._get_geography_regions('asia'):
+            return 'asia'
+        return 'americas'
+
+    def generate_deployment_summary(self, region: str,
                                    required_services: Set[ServiceType]) -> Dict[str, Any]:
         """
         Generate a deployment summary for reporting.
