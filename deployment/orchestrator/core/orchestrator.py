@@ -78,6 +78,7 @@ class BicepOrchestrator:
         self.audit_logger = AuditLogger(config.audit_dir)
         self.audit_record: Optional[AuditRecord] = None
         self.last_deploy_error: str = ""
+        self._no_deploy_needed: bool = False
     
     def deploy(self) -> Tuple[bool, str]:
         """
@@ -203,6 +204,17 @@ class BicepOrchestrator:
         
         print("\n" + self.planner.format_results(result))
         
+        # When what-if succeeds and detects no changes the desired state is already
+        # achieved – skip the actual deployment to avoid spurious failures (e.g.
+        # ARM requiring RBAC write permission even for idempotent role assignments).
+        if result.success and not result.changes:
+            self.audit_record.add_event(
+                "plan",
+                "No changes detected – deployment will be skipped (desired state already achieved)",
+            )
+            self._no_deploy_needed = True
+            return True
+        
         # Check for destructive changes
         if result.has_destructive_changes() and self.config.require_confirmation_for_deletes:
             self.state_machine.transition_to(DeploymentState.AWAITING_CONFIRMATION)
@@ -228,6 +240,13 @@ class BicepOrchestrator:
         """Execute the deployment with retry logic."""
         self.state_machine.transition_to(DeploymentState.DEPLOYING)
         self.audit_record.add_event("deploy", f"Deploying to {self.config.resource_group}")
+        
+        # Skip when what-if already confirmed no changes are needed
+        if self._no_deploy_needed:
+            self.audit_record.add_event(
+                "deploy", "Skipped – what-if analysis confirmed no changes needed"
+            )
+            return True
         
         max_attempts = 3
         for attempt in range(max_attempts):

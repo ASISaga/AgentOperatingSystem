@@ -125,6 +125,28 @@ class TestFailureClassifier(unittest.TestCase):
         failure_type = self.classifier.classify(error)
         self.assertEqual(failure_type, FailureType.ENVIRONMENTAL)
     
+    def test_logic_failure_invalid_template_deployment(self):
+        """Test classification of InvalidTemplateDeployment as logic failure."""
+        error = 'ERROR: {"code":"InvalidTemplateDeployment","message":"Deployment failed with multiple errors"}'
+        failure_type = self.classifier.classify(error)
+        self.assertEqual(failure_type, FailureType.LOGIC)
+
+    def test_logic_failure_rbac_authorization(self):
+        """Test classification of RBAC authorization errors as logic failure."""
+        error = (
+            'Authorization failed for template resource of type '
+            "Microsoft.Authorization/roleAssignments. The client does not have "
+            "permission to perform action 'Microsoft.Authorization/roleAssignments/write'"
+        )
+        failure_type = self.classifier.classify(error)
+        self.assertEqual(failure_type, FailureType.LOGIC)
+
+    def test_logic_failure_namespace_unavailable(self):
+        """Test classification of NamespaceUnavailable as logic failure."""
+        error = "NamespaceUnavailable: Namespace name is not available. Reason: InvalidSuffix."
+        failure_type = self.classifier.classify(error)
+        self.assertEqual(failure_type, FailureType.LOGIC)
+
     def test_unknown_failure(self):
         """Test classification of unknown errors."""
         error = "Some random unexpected error"
