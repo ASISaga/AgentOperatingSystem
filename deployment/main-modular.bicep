@@ -123,9 +123,6 @@ param enableAppInsights bool = true
 @description('Enable Azure ML Workspace')
 param enableAzureML bool = true
 
-@description('Admin email for alerts')
-param adminEmail string = ''
-
 @description('Tags to apply to all resources')
 param tags object = {
   Environment: environment
@@ -357,13 +354,6 @@ module compute 'modules/compute.bicep' = {
     b2cClientId: b2cClientId
     b2cClientSecret: b2cClientSecret
   }
-  dependsOn: [
-    storage
-    serviceBus
-    keyVault
-    monitoring
-    identity
-  ]
 }
 
 // Machine Learning Module
@@ -379,11 +369,6 @@ module machineLearning 'modules/machinelearning.bicep' = if (azureMLEnabled) {
     keyVaultId: keyVault.outputs.keyVaultId
     appInsightsId: monitoring.outputs.appInsightsId
   }
-  dependsOn: [
-    storage
-    keyVault
-    monitoring
-  ]
 }
 
 // RBAC Module (Role Assignments)
@@ -397,12 +382,6 @@ module rbac 'modules/rbac.bicep' = {
     mcpServerFunctionAppPrincipalId: compute.outputs.mcpServerFunctionAppPrincipalId
     realmFunctionAppPrincipalId: compute.outputs.realmFunctionAppPrincipalId
   }
-  dependsOn: [
-    keyVault
-    storage
-    serviceBus
-    compute
-  ]
 }
 
 // ============================================================================
@@ -417,11 +396,13 @@ output environment string = environment
 // Storage
 output storageAccountName string = storage.outputs.storageAccountName
 output storageAccountId string = storage.outputs.storageAccountId
+@secure()
 output storageConnectionString string = storage.outputs.storageConnectionString
 
 // Service Bus
 output serviceBusNamespaceName string = serviceBus.outputs.serviceBusNamespaceName
 output serviceBusNamespaceId string = serviceBus.outputs.serviceBusNamespaceId
+@secure()
 output serviceBusConnectionString string = serviceBus.outputs.serviceBusConnectionString
 
 // Key Vault
@@ -445,8 +426,8 @@ output realmFunctionAppName string = compute.outputs.realmFunctionAppName
 output realmFunctionAppUrl string = compute.outputs.realmFunctionAppUrl
 
 // Azure ML
-output azureMLWorkspaceName string = azureMLEnabled ? machineLearning.outputs.azureMLWorkspaceName : ''
-output azureMLWorkspaceId string = azureMLEnabled ? machineLearning.outputs.azureMLWorkspaceId : ''
+output azureMLWorkspaceName string = azureMLEnabled ? machineLearning!.outputs.azureMLWorkspaceName : ''
+output azureMLWorkspaceId string = azureMLEnabled ? machineLearning!.outputs.azureMLWorkspaceId : ''
 
 // Managed Identity
 output userAssignedIdentityId string = identity.outputs.identityId
