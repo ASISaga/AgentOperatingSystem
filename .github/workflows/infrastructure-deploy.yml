@@ -480,20 +480,23 @@ jobs:
           if [[ -f "$OUTPUT_FILE" ]]; then
             # Extract key information from output
             
-            # Check for success
-            if grep -q "DEPLOYMENT SUCCESSFUL\|✅" "$OUTPUT_FILE"; then
+            # Check for exact terminal success marker (not intermediate ✅ progress messages)
+            if grep -q "DEPLOYMENT SUCCESSFUL" "$OUTPUT_FILE"; then
               echo "✅ Deployment succeeded"
               echo "status=success" >> $GITHUB_OUTPUT
               echo "failure_type=none" >> $GITHUB_OUTPUT
               exit 0
             fi
             
-            # Check for errors
-            if grep -q "DEPLOYMENT FAILED\|❌" "$OUTPUT_FILE"; then
+            # Check for failure: exact terminal marker or non-zero exit code
+            if grep -q "DEPLOYMENT FAILED" "$OUTPUT_FILE" || [[ -n "$EXIT_CODE" && "$EXIT_CODE" != "0" ]]; then
               echo "❌ Deployment failed - analyzing failure type..."
               
-              # Extract error message
-              ERROR_MESSAGE=$(grep -A 10 "DEPLOYMENT FAILED\|❌" "$OUTPUT_FILE" | head -20)
+              # Extract error message from terminal failure marker; fall back to tail of log
+              ERROR_MESSAGE=$(grep -A 10 "DEPLOYMENT FAILED" "$OUTPUT_FILE" | head -20)
+              if [[ -z "$ERROR_MESSAGE" ]]; then
+                ERROR_MESSAGE=$(tail -20 "$OUTPUT_FILE")
+              fi
               
               # Classify failure type using patterns from failure_classifier.py
               
@@ -526,7 +529,12 @@ jobs:
             fi
           else
             echo "⚠️  No output file found"
-            echo "status=unknown" >> $GITHUB_OUTPUT
+            # Use exit code as authoritative signal when output file is missing
+            if [[ -n "$EXIT_CODE" && "$EXIT_CODE" != "0" ]]; then
+              echo "status=failed" >> $GITHUB_OUTPUT
+            else
+              echo "status=unknown" >> $GITHUB_OUTPUT
+            fi
             echo "failure_type=unknown" >> $GITHUB_OUTPUT
           fi
       
