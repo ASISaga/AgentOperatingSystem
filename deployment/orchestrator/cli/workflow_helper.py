@@ -229,6 +229,22 @@ _ENV_PATTERNS = re.compile(
 )
 
 
+def _extract_error_excerpt(log_text: str, context_before: int = 30, context_after: int = 10) -> str:
+    """
+    Extract relevant lines around the DEPLOYMENT FAILED marker.
+
+    Returns the surrounding context, or the last ``context_before`` lines when
+    no marker is found.
+    """
+    lines = log_text.splitlines()
+    for i, line in enumerate(lines):
+        if "DEPLOYMENT FAILED" in line:
+            start = max(0, i - context_before)
+            end = min(len(lines), i + context_after + 1)
+            return "\n".join(lines[start:end])
+    return "\n".join(lines[-context_before:])
+
+
 def _classify_log(log_text: str) -> tuple:
     """
     Classify log text into (status, failure_type, should_retry, is_transient).
@@ -247,17 +263,7 @@ def _classify_log(log_text: str) -> tuple:
     if "DEPLOYMENT FAILED" not in log_text and not log_text.strip():
         return ("unknown", "unknown", False, False)
 
-    # Extract context around DEPLOYMENT FAILED (30 lines before + 10 after)
-    lines = log_text.splitlines()
-    error_lines: list = []
-    for i, line in enumerate(lines):
-        if "DEPLOYMENT FAILED" in line:
-            start = max(0, i - 30)
-            end = min(len(lines), i + 11)
-            error_lines = lines[start:end]
-            break
-
-    error_message = "\n".join(error_lines) if error_lines else "\n".join(lines[-30:])
+    error_message = _extract_error_excerpt(log_text)
 
     # Classify: logic takes precedence over environmental
     if _LOGIC_PATTERNS.search(error_message):
@@ -311,15 +317,7 @@ def cmd_analyze_output(args: argparse.Namespace) -> int:
         print(f"❌ Deployment failed – failure type: {failure_type}")
 
         # Save error message excerpt for downstream steps
-        lines = log_text.splitlines()
-        error_lines: list = []
-        for i, line in enumerate(lines):
-            if "DEPLOYMENT FAILED" in line:
-                start = max(0, i - 30)
-                end = min(len(lines), i + 11)
-                error_lines = lines[start:end]
-                break
-        error_excerpt = "\n".join(error_lines) if error_lines else "\n".join(lines[-30:])
+        error_excerpt = _extract_error_excerpt(log_text)
         error_file = Path("error-message.txt")
         error_file.write_text(error_excerpt, encoding="utf-8")
 
@@ -401,9 +399,8 @@ def cmd_retry(args: argparse.Namespace) -> int:
 
     while retry_count < max_retries:
         retry_count += 1
-        delay = base_delay * (2 ** (retry_count - 1))  # 30s * 2^0=30, *2^1=60, *2^2=120
-        # Match the original workflow delays: attempt 1→60s, 2→120s, 3→240s
-        delay = base_delay * (2 ** retry_count)  # 60, 120, 240
+        # Exponential back-off matching original workflow: attempt 1→60s, 2→120s, 3→240s
+        delay = base_delay * (2 ** retry_count)
 
         print(f"🕐 Retry attempt {retry_count}/{max_retries} – waiting {delay} s...")
         time.sleep(delay)
@@ -488,8 +485,9 @@ def cmd_select_regions(args: argparse.Namespace) -> int:
             capability = validator.get_region_capability(primary_region)
             if ServiceType.AZURE_ML in capability.available_services:
                 ml_region = primary_region
-        except Exception:  # pylint: disable=broad-exception-caught
-            pass
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            print(f"⚠️  Could not verify Azure ML support for '{primary_region}': {exc}",
+                  file=sys.stderr)
     else:
         print("ℹ️  No region specified – running auto-selection...")
         regions = validator.select_optimal_regions(
