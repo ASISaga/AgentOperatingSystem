@@ -52,7 +52,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = if (enableAppI
   kind: 'web'
   properties: {
     Application_Type: 'web'
-    WorkspaceResourceId: enableAppInsights ? logAnalyticsWorkspace!.id : ''
+    WorkspaceResourceId: logAnalyticsWorkspace.?id ?? ''
     IngestionMode: 'LogAnalytics'
   }
 }
@@ -62,19 +62,19 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = if (enableAppI
 // ============================================================================
 
 @description('Log Analytics workspace resource ID')
-output logAnalyticsWorkspaceId string = enableAppInsights ? logAnalyticsWorkspace!.id : ''
+output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.?id ?? ''
 
 @description('Log Analytics workspace name')
-output logAnalyticsWorkspaceName string = enableAppInsights ? logAnalyticsWorkspace!.name : ''
+output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.?name ?? ''
 
 @description('Application Insights resource ID')
-output appInsightsId string = enableAppInsights ? appInsights!.id : ''
+output appInsightsId string = appInsights.?id ?? ''
 
 @description('Application Insights name')
-output appInsightsName string = enableAppInsights ? appInsights!.name : ''
+output appInsightsName string = appInsights.?name ?? ''
 
 @description('Application Insights instrumentation key')
-output appInsightsInstrumentationKey string = enableAppInsights ? appInsights!.properties.InstrumentationKey : ''
+output appInsightsInstrumentationKey string = appInsights.?properties.InstrumentationKey ?? ''
 
 @description('Application Insights connection string')
-output appInsightsConnectionString string = enableAppInsights ? appInsights!.properties.ConnectionString : ''
+output appInsightsConnectionString string = appInsights.?properties.ConnectionString ?? ''

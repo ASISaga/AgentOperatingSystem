@@ -113,6 +113,7 @@ output storageAccountName string = storageAccount.name
 @description('Storage account primary endpoints')
 output storageAccountEndpoints object = storageAccount.properties.primaryEndpoints
 
+#disable-next-line outputs-should-not-contain-secrets
 @description('Storage connection string (contains secrets)')
 @secure()
 output storageConnectionString string = 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'

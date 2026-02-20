@@ -110,7 +110,8 @@ class WhatIfPlanner:
     
     def analyze(self, resource_group: str, template_file: Path, 
                 parameters_file: Optional[Path] = None,
-                location: Optional[str] = None) -> WhatIfResult:
+                location: Optional[str] = None,
+                parameter_overrides: Optional[Dict[str, Any]] = None) -> WhatIfResult:
         """
         Perform what-if analysis on a deployment.
         
@@ -119,6 +120,7 @@ class WhatIfPlanner:
             template_file: Path to Bicep template
             parameters_file: Optional path to parameters file
             location: Required if resource group doesn't exist
+            parameter_overrides: Optional dict of parameter key/value overrides
             
         Returns:
             WhatIfResult containing analysis
@@ -138,6 +140,11 @@ class WhatIfPlanner:
             # Add parameters if provided
             if parameters_file and parameters_file.exists():
                 cmd.extend(["--parameters", str(parameters_file)])
+            
+            # Add parameter overrides
+            if parameter_overrides:
+                for key, value in parameter_overrides.items():
+                    cmd.extend(["--parameters", f"{key}={value}"])
             
             # Add location if provided (needed for new resource groups)
             if location:

@@ -190,7 +190,8 @@ class BicepOrchestrator:
             resource_group=self.config.resource_group,
             template_file=self.config.template_file,
             parameters_file=self.config.parameters_file,
-            location=self.config.location
+            location=self.config.location,
+            parameter_overrides=self.config.parameter_overrides
         )
         
         # Log what-if results
@@ -242,6 +243,7 @@ class BicepOrchestrator:
             # Determine if retry is appropriate
             if not self.failure_classifier.should_retry(failure_type):
                 print(f"\n❌ Logic failure detected - no retry will be attempted")
+                print(f"   Error: {result[1][:500] if result[1] else 'No error details'}")
                 self.state_machine.transition_to(DeploymentState.FAILED)
                 return False
             
