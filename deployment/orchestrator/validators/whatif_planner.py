@@ -59,16 +59,18 @@ class WhatIfChange:
 class WhatIfResult:
     """Result of a what-if analysis."""
     
-    def __init__(self, changes: List[WhatIfChange], raw_output: str):
+    def __init__(self, changes: List[WhatIfChange], raw_output: str, success: bool = False):
         """
         Initialize what-if result.
         
         Args:
             changes: List of detected changes
             raw_output: Raw CLI output
+            success: True when what-if analysis completed without error
         """
         self.changes = changes
         self.raw_output = raw_output
+        self.success = success
     
     def get_destructive_changes(self) -> List[WhatIfChange]:
         """Get all destructive changes."""
@@ -126,7 +128,7 @@ class WhatIfPlanner:
             WhatIfResult containing analysis
         """
         if not template_file.exists():
-            return WhatIfResult([], f"Template file not found: {template_file}")
+            return WhatIfResult([], f"Template file not found: {template_file}", success=False)
         
         try:
             # Build command
@@ -168,14 +170,14 @@ class WhatIfPlanner:
             if result.returncode != 0 and result.stderr:
                 raw_output = result.stderr
             
-            return WhatIfResult(changes, raw_output)
+            return WhatIfResult(changes, raw_output, success=result.returncode == 0)
         
         except subprocess.TimeoutExpired:
-            return WhatIfResult([], "What-if analysis timed out after 5 minutes")
+            return WhatIfResult([], "What-if analysis timed out after 5 minutes", success=False)
         except FileNotFoundError:
-            return WhatIfResult([], "Azure CLI (az) not found. Please install Azure CLI.")
+            return WhatIfResult([], "Azure CLI (az) not found. Please install Azure CLI.", success=False)
         except Exception as e:
-            return WhatIfResult([], f"Unexpected error during what-if analysis: {str(e)}")
+            return WhatIfResult([], f"Unexpected error during what-if analysis: {str(e)}", success=False)
     
     def _parse_what_if_output(self, output: str) -> List[WhatIfChange]:
         """

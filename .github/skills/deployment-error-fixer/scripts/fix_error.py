@@ -25,6 +25,19 @@ class ErrorType:
     UNKNOWN = "unknown"
 
 
+# Pattern matching RBAC / role-assignment authorization errors reported by ARM.
+# Matches messages such as:
+#   "Authorization failed for template resource of type Microsoft.Authorization/roleAssignments"
+#   "The client does not have permission to perform action
+#    'Microsoft.Authorization/roleAssignments/write'"
+_RBAC_AUTHORIZATION_ERROR_PATTERN = re.compile(
+    r"Microsoft\.Authorization/roleAssignments"
+    r"|authorization.*failed.*template.*resource"
+    r"|does not have permission to perform action.*Microsoft\.Authorization",
+    re.IGNORECASE,
+)
+
+
 class DeploymentErrorFixer:
     """Autonomous deployment error fixer."""
     
@@ -123,6 +136,18 @@ class DeploymentErrorFixer:
             result['can_auto_fix'] = True
             result['risk_level'] = 'medium'
             result['fix_description'] = 'Fix parameter validation'
+        
+        # Detect RBAC / role-assignment authorization errors
+        elif _RBAC_AUTHORIZATION_ERROR_PATTERN.search(error_text):
+            result['error_type'] = ErrorType.UNKNOWN
+            result['can_auto_fix'] = False
+            result['risk_level'] = 'high'
+            result['fix_description'] = (
+                'RBAC Authorization Error: the deployment service principal lacks '
+                'Microsoft.Authorization/roleAssignments/write permission. '
+                'Grant the Owner or User Access Administrator role to the service '
+                'principal at the resource group scope, then re-run the deployment.'
+            )
         
         return result
     
@@ -376,6 +401,8 @@ def main():
             sys.exit(1)
     elif not analysis['can_auto_fix']:
         print("\n⚠️  This error cannot be auto-fixed")
+        if analysis.get('fix_description'):
+            print(f"  Guidance: {analysis['fix_description']}")
         sys.exit(1)
     else:
         print("\n✅ Analysis complete (dry-run mode)")

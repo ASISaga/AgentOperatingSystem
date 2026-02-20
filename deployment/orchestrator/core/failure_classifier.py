@@ -46,6 +46,10 @@ class FailureClassifier:
         r"InvalidResourceGroupLocation",  # Resource group already exists in different location
         r"already.*exists.*in.*location", # Generic "already exists in location X" messages
         r"resource.*already.*exists.*location",
+        r"InvalidTemplateDeployment",     # ARM template deployment validation failure
+        r"authorization.*failed.*template.*resource",  # RBAC write denied on template resource
+        r"does not have permission to perform action.*Microsoft\.Authorization",  # SP lacks RBAC write
+        r"NamespaceUnavailable",          # Service Bus namespace name is invalid or reserved
     ]
     
     # Patterns indicating environmental failures (retry possible)
