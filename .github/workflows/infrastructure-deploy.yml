@@ -502,15 +502,18 @@ jobs:
               fi
               
               # Classify failure type using patterns from failure_classifier.py
+              # Patterns are kept in variables for readability.
+              LOGIC_PATTERNS="lint.*error|bicep.*error|syntax.*error|validation.*failed|invalid.*parameter|invalid.*bicep|missing.*required.*parameter|template.*validation.*error|circular.*dependency|resource.*type.*not.*found|api.*version.*not.*supported|property.*not.*allowed|deployment.*template.*validation.*failed|parameter.*must be|error\s*bcp[0-9]+|invalidtemplatedeployment|template deployment.*is not valid|logic.*failure.*detected|InvalidResourceLocation|InvalidResourceGroupLocation|already.*exists.*in.*location|resource.*already.*exists.*location"
+              ENV_PATTERNS="timeout|throttl(ed|ing)|rate.*limit|service.*unavailable|internal.*server.*error|network.*error|network.*timeout|connection.*refused|connection.*timeout|temporary.*failure|quota.*exceeded|capacity.*unavailable|region.*unavailable|sku.*not.*available|conflict.*another.*operation|code:\s*conflict|another operation.*in progress"
               
-              # Check for logic failures (syntax, validation, etc.)
-              if echo "$ERROR_MESSAGE" | grep -qiE "lint.*error|bicep.*error|syntax.*error|validation.*failed|invalid.*parameter|invalid.*bicep|missing.*required.*parameter|template.*validation.*error|circular.*dependency|resource.*type.*not.*found|api.*version.*not.*supported|property.*not.*allowed|deployment.*template.*validation.*failed|parameter.*must be|error\s*bcp[0-9]+|invalidtemplatedeployment|template deployment.*is not valid"; then
+              # Check for logic failures (syntax, validation, resource location conflicts, etc.)
+              if echo "$ERROR_MESSAGE" | grep -qiE "$LOGIC_PATTERNS"; then
                 FAILURE_TYPE="logic"
                 echo "🔴 Logic failure detected - code/template error"
                 SHOULD_RETRY="false"
               
               # Check for environmental failures (throttling, timeouts, etc.)
-              elif echo "$ERROR_MESSAGE" | grep -qiE "timeout|throttl(ed|ing)|rate.*limit|service.*unavailable|internal.*server.*error|network.*error|network.*timeout|connection.*refused|connection.*timeout|temporary.*failure|quota.*exceeded|capacity.*unavailable|region.*unavailable|sku.*not.*available|conflict.*another.*operation|code:\s*conflict|another operation.*in progress"; then
+              elif echo "$ERROR_MESSAGE" | grep -qiE "$ENV_PATTERNS"; then
                 FAILURE_TYPE="environmental"
                 IS_TRANSIENT="true"
                 SHOULD_RETRY="true"
@@ -522,6 +525,12 @@ jobs:
                 IS_TRANSIENT="true"
                 SHOULD_RETRY="true"
                 echo "🟡 Environmental failure detected from orchestrator retry messages"
+              
+              # Fallback: check entire log for orchestrator-classified logic failures
+              elif grep -q "Logic failure detected" "$OUTPUT_FILE"; then
+                FAILURE_TYPE="logic"
+                SHOULD_RETRY="false"
+                echo "🔴 Logic failure detected from orchestrator classification"
               else
                 FAILURE_TYPE="unknown"
                 SHOULD_RETRY="false"

@@ -62,12 +62,42 @@ def _auto_select_location(environment: str, geography: Optional[str] = None) -> 
                                             preferred_geography=geography)
 
 
-def _ensure_resource_group(resource_group: str, location: str) -> bool:
+def _ensure_resource_group(resource_group: str, location: str) -> str:
     """
     Create the resource group if it does not already exist.
 
-    Returns True on success, False on failure.
+    If the resource group already exists in a different location, reuses the
+    existing location (Azure does not allow moving a resource group).
+
+    Returns the actual location of the resource group (may differ from the
+    requested ``location`` when the group pre-exists in another region).
     """
+    # Check whether the resource group already exists to avoid a
+    # InvalidResourceGroupLocation error when the RG is in a different region.
+    try:
+        check = subprocess.run(
+            ["az", "group", "show", "--name", resource_group,
+             "--query", "location", "-o", "tsv"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if check.returncode == 0 and check.stdout.strip():
+            existing_location = check.stdout.strip()
+            if existing_location != location:
+                print(
+                    f"  ℹ️  Resource group '{resource_group}' already exists in"
+                    f" '{existing_location}' (requested '{location}')"
+                    f" – using existing location to avoid InvalidResourceLocation errors.",
+                    file=sys.stderr,
+                )
+            else:
+                print(f"  ✅ Resource group '{resource_group}' already exists in '{existing_location}' – matches requested location (skipping creation)")
+            return existing_location
+    except Exception as exc:
+        print(f"  ⚠️  Could not query resource group: {exc}", file=sys.stderr)
+
+    # Resource group does not exist – create it in the requested location.
     try:
         result = subprocess.run(
             [
@@ -83,14 +113,15 @@ def _ensure_resource_group(resource_group: str, location: str) -> bool:
         if result.returncode == 0:
             data = json.loads(result.stdout)
             state = data.get("properties", {}).get("provisioningState", "")
-            print(f"  Resource group '{resource_group}' is {state} in '{location}'")
-            return True
+            actual_location = data.get("location", location)
+            print(f"  Resource group '{resource_group}' is {state} in '{actual_location}'")
+            return actual_location
         print(f"  ⚠️  Could not create resource group '{resource_group}': {result.stderr}",
               file=sys.stderr)
-        return False
+        return location
     except Exception as exc:
         print(f"  ⚠️  Resource group creation error: {exc}", file=sys.stderr)
-        return False
+        return location
 
 
 def main():
@@ -244,7 +275,15 @@ Examples:
     # Ensure resource group exists
     # -------------------------------------------------------------------------
     print(f"\n📂 Ensuring resource group '{args.resource_group}' exists in '{location}'…")
-    _ensure_resource_group(args.resource_group, location)
+    actual_location = _ensure_resource_group(args.resource_group, location)
+    if actual_location != location:
+        print(f"ℹ️  Adjusting deployment location from '{location}' to existing"
+              f" resource group location '{actual_location}'")
+        # Re-align ML location only if it was not explicitly specified by the user
+        # and was derived from the original primary location (single-region deployment).
+        if not args.location_ml and location_ml == location:
+            location_ml = actual_location
+        location = actual_location
 
     # Create a separate ML resource group when deploying to a different region
     ml_resource_group = args.resource_group
@@ -252,7 +291,11 @@ Examples:
         base = args.resource_group[:-3] if args.resource_group.endswith('-rg') else args.resource_group
         ml_rg_name = base + '-ml-rg'
         print(f"📂 Ensuring ML resource group '{ml_rg_name}' exists in '{location_ml}'…")
-        _ensure_resource_group(ml_rg_name, location_ml)
+        actual_ml_location = _ensure_resource_group(ml_rg_name, location_ml)
+        if actual_ml_location != location_ml:
+            print(f"ℹ️  Adjusting ML deployment location from '{location_ml}' to existing"
+                  f" ML resource group location '{actual_ml_location}'")
+            location_ml = actual_ml_location
         ml_resource_group = ml_rg_name
 
     # -------------------------------------------------------------------------
