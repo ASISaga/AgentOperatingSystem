@@ -426,8 +426,8 @@ output realmFunctionAppName string = compute.outputs.realmFunctionAppName
 output realmFunctionAppUrl string = compute.outputs.realmFunctionAppUrl
 
 // Azure ML
-output azureMLWorkspaceName string = azureMLEnabled ? machineLearning!.outputs.azureMLWorkspaceName : ''
-output azureMLWorkspaceId string = azureMLEnabled ? machineLearning!.outputs.azureMLWorkspaceId : ''
+output azureMLWorkspaceName string = machineLearning.?outputs.azureMLWorkspaceName ?? ''
+output azureMLWorkspaceId string = machineLearning.?outputs.azureMLWorkspaceId ?? ''
 
 // Managed Identity
 output userAssignedIdentityId string = identity.outputs.identityId

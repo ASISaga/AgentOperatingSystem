@@ -107,6 +107,7 @@ output serviceBusNamespaceId string = serviceBusNamespace.id
 @description('Service Bus namespace name')
 output serviceBusNamespaceName string = serviceBusNamespace.name
 
+#disable-next-line outputs-should-not-contain-secrets
 @description('Service Bus connection string (contains secrets)')
 @secure()
 output serviceBusConnectionString string = listKeys('${serviceBusNamespace.id}/AuthorizationRules/RootManageSharedAccessKey', serviceBusNamespace.apiVersion).primaryConnectionString
