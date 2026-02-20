@@ -62,6 +62,31 @@ def _auto_select_location(environment: str, geography: Optional[str] = None) -> 
                                             preferred_geography=geography)
 
 
+def _get_existing_acr_location(resource_group: str) -> Optional[str]:
+    """
+    Detect the location of an existing Container Registry in the resource group.
+
+    Returns the location of the first ACR found in the resource group, or None
+    when no ACR exists or the query fails.  Used to avoid InvalidResourceLocation
+    errors when a Container Registry was previously deployed to a different region.
+    """
+    try:
+        result = subprocess.run(
+            ["az", "acr", "list",
+             "--resource-group", resource_group,
+             "--query", "[0].location",
+             "-o", "tsv"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        print(f"  ⚠️  Could not query Container Registry location: {exc}", file=sys.stderr)
+    return None
+
+
 def _ensure_resource_group(resource_group: str, location: str) -> str:
     """
     Create the resource group if it does not already exist.
@@ -297,6 +322,19 @@ Examples:
                   f" ML resource group location '{actual_ml_location}'")
             location_ml = actual_ml_location
         ml_resource_group = ml_rg_name
+
+    # Check for an existing Container Registry to avoid InvalidResourceLocation errors.
+    # This mirrors the resource-group location check above: when a Container Registry
+    # was previously deployed to a region different from the auto-selected location_ml,
+    # we reuse the existing location rather than failing with InvalidResourceLocation.
+    acr_location = _get_existing_acr_location(args.resource_group)
+    if acr_location and acr_location != location_ml:
+        print(
+            f"ℹ️  Container Registry already exists in '{acr_location}'"
+            f" (deployment would target '{location_ml}')"
+            f" – using existing location to avoid InvalidResourceLocation errors."
+        )
+        location_ml = acr_location
 
     # -------------------------------------------------------------------------
     # Build deployment configuration
