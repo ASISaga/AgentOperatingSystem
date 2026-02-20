@@ -68,7 +68,6 @@ jobs:
       environment: ${{ steps.check.outputs.environment }}
       resource_group: ${{ steps.check.outputs.resource_group }}
       location: ${{ steps.check.outputs.location }}
-      location_ml: ${{ steps.check.outputs.location_ml }}
       geography: ${{ steps.check.outputs.geography }}
       template: ${{ steps.check.outputs.template }}
       parameters_file: ${{ steps.check.outputs.parameters_file }}
@@ -78,103 +77,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
       - name: Check deployment trigger and intent
         id: check
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          INPUT_ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+          INPUT_RESOURCE_GROUP: ${{ github.event.inputs.resource_group }}
+          INPUT_LOCATION: ${{ github.event.inputs.location }}
+          INPUT_GEOGRAPHY: ${{ github.event.inputs.geography }}
+          INPUT_TEMPLATE: ${{ github.event.inputs.template || 'deployment/main-modular.bicep' }}
+          INPUT_SKIP_HEALTH_CHECKS: ${{ github.event.inputs.skip_health_checks }}
+          PR_LABEL_DEPLOY_DEV: ${{ contains(github.event.pull_request.labels.*.name, 'deploy:dev') }}
+          PR_LABEL_DEPLOY_STAGING: ${{ contains(github.event.pull_request.labels.*.name, 'deploy:staging') }}
+          PR_LABEL_STATUS_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'status:approved') }}
+          PR_LABEL_ACTION_DEPLOY: ${{ contains(github.event.pull_request.labels.*.name, 'action:deploy') }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          echo "🔍 Analyzing deployment intent..."
-          
-          # Default values
-          SHOULD_DEPLOY="false"
-          IS_DRY_RUN="true"
-          ENVIRONMENT="dev"
-          RESOURCE_GROUP="${{ github.event.inputs.resource_group }}"
-          LOCATION="${{ github.event.inputs.location }}"
-          GEOGRAPHY="${{ github.event.inputs.geography }}"
-          TEMPLATE="${{ github.event.inputs.template || 'deployment/main-modular.bicep' }}"
-          PARAMETERS_FILE=""
-          
-          # Determine trigger type and intent
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "📋 Manual deployment requested"
-            SHOULD_DEPLOY="true"
-            IS_DRY_RUN="false"
-            ENVIRONMENT="${{ github.event.inputs.environment }}"
-            PARAMETERS_FILE="deployment/parameters/${ENVIRONMENT}.bicepparam"
-          
-          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "🔀 Pull request event detected"
-            
-            # Check for deployment labels
-            if [[ "${{ contains(github.event.pull_request.labels.*.name, 'deploy:dev') }}" == "true" ]]; then
-              echo "🏷️  Label 'deploy:dev' found - will deploy to dev"
-              SHOULD_DEPLOY="true"
-              ENVIRONMENT="dev"
-              PARAMETERS_FILE="deployment/parameters/dev.bicepparam"
-            elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'deploy:staging') }}" == "true" ]]; then
-              echo "🏷️  Label 'deploy:staging' found - will deploy to staging"
-              SHOULD_DEPLOY="true"
-              ENVIRONMENT="staging"
-              PARAMETERS_FILE="deployment/parameters/staging.bicepparam"
-            elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'status:approved') }}" == "true" ]] && \
-                 [[ "${{ contains(github.event.pull_request.labels.*.name, 'action:deploy') }}" == "true" ]]; then
-              echo "🏷️  Labels 'status:approved' and 'action:deploy' found - will deploy to prod"
-              SHOULD_DEPLOY="true"
-              IS_DRY_RUN="false"
-              ENVIRONMENT="prod"
-              PARAMETERS_FILE="deployment/parameters/prod.bicepparam"
-            else
-              echo "📊 No deployment labels - will run plan/dry-run only"
-              IS_DRY_RUN="true"
-            fi
-            
-            # Resource group defaults to environment-based name for PR events
-            if [[ -z "$RESOURCE_GROUP" ]]; then
-              RESOURCE_GROUP="aos-${ENVIRONMENT}-rg"
-            fi
-          
-          elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
-            echo "💬 Comment event detected"
-            COMMENT_BODY="${{ github.event.comment.body }}"
-            
-            # Check for deployment commands in comments
-            if echo "$COMMENT_BODY" | grep -qE "^/deploy (dev|staging|prod)"; then
-              ENVIRONMENT=$(echo "$COMMENT_BODY" | grep -oE "^/deploy (dev|staging|prod)" | awk '{print $2}')
-              echo "🚀 Deployment command found: /deploy $ENVIRONMENT"
-              SHOULD_DEPLOY="true"
-              IS_DRY_RUN="false"
-              RESOURCE_GROUP="aos-${ENVIRONMENT}-rg"
-              PARAMETERS_FILE="deployment/parameters/${ENVIRONMENT}.bicepparam"
-            elif echo "$COMMENT_BODY" | grep -qE "^/plan"; then
-              echo "📋 Plan command found: /plan"
-              IS_DRY_RUN="true"
-              RESOURCE_GROUP="aos-${ENVIRONMENT}-rg"
-            fi
-          fi
-          
-          # Default resource group name when none supplied
-          if [[ -z "$RESOURCE_GROUP" ]]; then
-            RESOURCE_GROUP="aos-${ENVIRONMENT}-rg"
-          fi
-
-          # Output results (location/location_ml resolved in the next step)
-          echo "should_deploy=${SHOULD_DEPLOY}" >> $GITHUB_OUTPUT
-          echo "is_dry_run=${IS_DRY_RUN}" >> $GITHUB_OUTPUT
-          echo "environment=${ENVIRONMENT}" >> $GITHUB_OUTPUT
-          echo "resource_group=${RESOURCE_GROUP}" >> $GITHUB_OUTPUT
-          echo "location=${LOCATION}" >> $GITHUB_OUTPUT
-          echo "geography=${GEOGRAPHY}" >> $GITHUB_OUTPUT
-          echo "template=${TEMPLATE}" >> $GITHUB_OUTPUT
-          echo "parameters_file=${PARAMETERS_FILE}" >> $GITHUB_OUTPUT
-          
-          # Summary
-          echo "## Deployment Intent Analysis" >> $GITHUB_STEP_SUMMARY
-          echo "- **Should Deploy**: ${SHOULD_DEPLOY}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Dry Run**: ${IS_DRY_RUN}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${ENVIRONMENT}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Resource Group**: ${RESOURCE_GROUP}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Location (user-provided)**: ${LOCATION:-'(auto-select)'}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Template**: ${TEMPLATE}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Parameters**: ${PARAMETERS_FILE}" >> $GITHUB_STEP_SUMMARY
+          python3 deployment/orchestrator/cli/workflow_helper.py check-trigger
 
   # Agent Layer: Orchestrate the deployment
   deploy:
@@ -232,9 +156,7 @@ jobs:
           pip install --upgrade azure-cli
       
       - name: Verify Azure CLI
-        run: |
-          echo "🔧 Verifying Azure CLI installation..."
-          az version
+        run: az version
       
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -245,105 +167,16 @@ jobs:
       
       - name: Verify Azure authentication
         run: |
-          echo "✅ Verifying Azure authentication..."
           az account show
           az account list --output table
       
       - name: Auto-Select Deployment Regions
         id: region_select
         run: |
-          echo "🌍 Auto-selecting optimal regions for each service..."
-          
-          ENVIRONMENT="${{ needs.setup.outputs.environment }}"
-          USER_LOCATION="${{ needs.setup.outputs.location }}"
-          GEOGRAPHY="${{ needs.setup.outputs.geography }}"
-
-          if [[ -n "$USER_LOCATION" ]]; then
-            echo "ℹ️  User specified primary region: $USER_LOCATION"
-            PRIMARY_REGION="$USER_LOCATION"
-            # Still auto-select ML region in case primary doesn't support it
-            GEO_ARG=""
-            [[ -n "$GEOGRAPHY" ]] && GEO_ARG="--geography $GEOGRAPHY"
-            ML_RESULT=$(python3 deployment/orchestrator/cli/regional_tool.py \
-              auto-select --environment "$ENVIRONMENT" $GEO_ARG --json 2>/dev/null)
-            ML_REGION=$(echo "$ML_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['ml_region'])")
-            # If primary supports ML, use it; otherwise use auto-selected ML region
-            VALIDATE=$(python3 deployment/orchestrator/cli/regional_tool.py \
-              validate "$PRIMARY_REGION" azureml --json 2>/dev/null)
-            ML_VALID=$(echo "$VALIDATE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(str(d.get('is_valid', False)).lower())" 2>/dev/null || echo "false")
-            [[ "$ML_VALID" == "true" ]] && ML_REGION="$PRIMARY_REGION"
-          else
-            echo "ℹ️  No region specified – running auto-selection..."
-            GEO_ARG=""
-            [[ -n "$GEOGRAPHY" ]] && GEO_ARG="--geography $GEOGRAPHY"
-            RESULT=$(python3 deployment/orchestrator/cli/regional_tool.py \
-              auto-select --environment "$ENVIRONMENT" $GEO_ARG --json)
-            echo "$RESULT"
-            PRIMARY_REGION=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['primary_region'])")
-            ML_REGION=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['ml_region'])")
-            MULTI_REGION=$(echo "$RESULT" | python3 -c "import sys,json; print(str(json.load(sys.stdin)['multi_region']).lower())")
-            if [[ "$MULTI_REGION" == "true" ]]; then
-              echo "⚠️  Multi-region deployment: core → $PRIMARY_REGION, ML/ACR → $ML_REGION"
-            else
-              echo "✅ Single-region deployment: $PRIMARY_REGION"
-            fi
-          fi
-
-          echo "primary_region=${PRIMARY_REGION}" >> $GITHUB_OUTPUT
-          echo "ml_region=${ML_REGION}" >> $GITHUB_OUTPUT
-
-          # Write to step summary
-          echo "## 🌍 Auto-Selected Regions" >> $GITHUB_STEP_SUMMARY
-          echo "- **Primary Region**: \`${PRIMARY_REGION}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Azure ML Region**: \`${ML_REGION}\`" >> $GITHUB_STEP_SUMMARY
-          if [[ "$PRIMARY_REGION" != "$ML_REGION" ]]; then
-            echo "- ⚠️  **Multi-Region**: core services in \`${PRIMARY_REGION}\`, Azure ML in \`${ML_REGION}\`" >> $GITHUB_STEP_SUMMARY
-          fi
-      
-      - name: Create Resource Groups
-        run: |
-          echo "📂 Creating resource groups if they do not exist..."
-          
-          PRIMARY_REGION="${{ steps.region_select.outputs.primary_region }}"
-          ML_REGION="${{ steps.region_select.outputs.ml_region }}"
-          RESOURCE_GROUP="${{ needs.setup.outputs.resource_group }}"
-          ENVIRONMENT="${{ needs.setup.outputs.environment }}"
-
-          # Helper: create resource group only if it does not already exist.
-          # If it exists in a different location, reuse the existing location.
-          create_rg_if_not_exists() {
-            local rg_name="$1"
-            local desired_location="$2"
-            shift 2
-            local tags=("$@")
-            local EXISTING_LOCATION
-            EXISTING_LOCATION=$(az group show --name "$rg_name" --query location -o tsv 2>/dev/null || echo "")
-            if [[ -n "$EXISTING_LOCATION" ]]; then
-              echo "  ✅ Resource group '$rg_name' already exists in '$EXISTING_LOCATION' (skipping creation)"
-            else
-              echo "  Creating '$rg_name' in '$desired_location'..."
-              az group create \
-                --name "$rg_name" \
-                --location "$desired_location" \
-                --tags "${tags[@]}" \
-                --output table
-            fi
-          }
-
-          # Primary resource group
-          create_rg_if_not_exists "$RESOURCE_GROUP" "$PRIMARY_REGION" \
-            "Environment=$ENVIRONMENT" "Application=AgentOperatingSystem" "ManagedBy=GitHubActions"
-
-          # Separate ML resource group when deploying to a different region
-          if [[ "$PRIMARY_REGION" != "$ML_REGION" ]]; then
-            if [[ "$RESOURCE_GROUP" == *-rg ]]; then
-              ML_RESOURCE_GROUP="${RESOURCE_GROUP%-rg}-ml-rg"
-            else
-              ML_RESOURCE_GROUP="${RESOURCE_GROUP}-ml-rg"
-            fi
-            create_rg_if_not_exists "$ML_RESOURCE_GROUP" "$ML_REGION" \
-              "Environment=$ENVIRONMENT" "Application=AgentOperatingSystem" "ManagedBy=GitHubActions" "Component=MachineLearning"
-          fi
+          python3 deployment/orchestrator/cli/workflow_helper.py select-regions \
+            --environment "${{ needs.setup.outputs.environment }}" \
+            --location "${{ needs.setup.outputs.location }}" \
+            --geography "${{ needs.setup.outputs.geography }}"
       
       - name: Regional Capability Validation
         id: regional_validation
@@ -354,55 +187,42 @@ jobs:
           ML_REGION="${{ steps.region_select.outputs.ml_region }}"
           ENVIRONMENT="${{ needs.setup.outputs.environment }}"
           
-          # Determine required services based on environment
-          SERVICES="storage keyvault functions servicebus appinsights loganalytics identity"
-          if [[ "$ENVIRONMENT" == "prod" ]]; then
-            SERVICES="$SERVICES functions-premium servicebus-premium azureml acr"
-          elif [[ "$ENVIRONMENT" == "staging" ]]; then
-            SERVICES="$SERVICES functions-premium azureml"
-          fi
-          
-          echo "Primary Region : $PRIMARY_REGION"
-          echo "ML Region      : $ML_REGION"
-          echo "Environment    : $ENVIRONMENT"
-          echo "Services       : $SERVICES"
-          
-          # Validate primary region (excluding ML services)
+          # Core services required for all environments
           CORE_SERVICES="storage keyvault functions servicebus appinsights loganalytics identity"
           if [[ "$ENVIRONMENT" == "prod" ]]; then
             CORE_SERVICES="$CORE_SERVICES functions-premium servicebus-premium"
           elif [[ "$ENVIRONMENT" == "staging" ]]; then
             CORE_SERVICES="$CORE_SERVICES functions-premium"
           fi
-
-          echo ""
+          
+          echo "Primary Region : $PRIMARY_REGION"
+          echo "ML Region      : $ML_REGION"
+          echo "Environment    : $ENVIRONMENT"
+          
           echo "--- Primary region validation ---"
-          python3 deployment/orchestrator/cli/regional_tool.py validate "$PRIMARY_REGION" $CORE_SERVICES > validation-output.txt 2>&1
+          python3 deployment/orchestrator/cli/regional_tool.py validate \
+            "$PRIMARY_REGION" $CORE_SERVICES > validation-output.txt 2>&1
           VALIDATION_EXIT=$?
           cat validation-output.txt
 
-          # Validate ML region when applicable
           if [[ "$ENVIRONMENT" != "dev" ]]; then
-            echo ""
             echo "--- ML region validation ($ML_REGION) ---"
-            python3 deployment/orchestrator/cli/regional_tool.py validate "$ML_REGION" azureml acr > ml-validation-output.txt 2>&1
+            python3 deployment/orchestrator/cli/regional_tool.py validate \
+              "$ML_REGION" azureml acr > ml-validation-output.txt 2>&1
             cat ml-validation-output.txt
           fi
 
           if [[ $VALIDATION_EXIT -ne 0 ]]; then
-            echo ""
-            echo "ℹ️  Some services have warnings in primary region - auto-selection already handled fallback."
+            echo "ℹ️  Some services have warnings in primary region – auto-selection already handled fallback."
           else
             echo "✅ Primary region $PRIMARY_REGION supports all required core services"
           fi
-          
-          # Save validation results
+
           echo "validation_exit=$VALIDATION_EXIT" >> $GITHUB_OUTPUT
-          
-          # Generate deployment summary
-          echo ""
+
           echo "📊 Deployment Summary for $PRIMARY_REGION:"
-          python3 deployment/orchestrator/cli/regional_tool.py summary "$PRIMARY_REGION" $CORE_SERVICES
+          python3 deployment/orchestrator/cli/regional_tool.py summary \
+            "$PRIMARY_REGION" $CORE_SERVICES
       
       - name: Execute Python Orchestrator (Logic Layer)
         id: orchestrator
@@ -416,146 +236,48 @@ jobs:
           
           PRIMARY_REGION="${{ steps.region_select.outputs.primary_region }}"
           ML_REGION="${{ steps.region_select.outputs.ml_region }}"
+          PARAMETERS_FILE="${{ needs.setup.outputs.parameters_file }}"
           
-          # Build command with auto-resolved regions
-          CMD="python3 deployment/deploy.py \
-            --resource-group '${{ needs.setup.outputs.resource_group }}' \
-            --location '${PRIMARY_REGION}' \
-            --location-ml '${ML_REGION}' \
-            --environment '${{ needs.setup.outputs.environment }}' \
-            --template '${{ needs.setup.outputs.template }}'"
+          # Build argument list without shell evaluation
+          ARGS=(
+            --resource-group "${{ needs.setup.outputs.resource_group }}"
+            --location "$PRIMARY_REGION"
+            --location-ml "$ML_REGION"
+            --environment "${{ needs.setup.outputs.environment }}"
+            --template "${{ needs.setup.outputs.template }}"
+            --allow-warnings
+            --git-sha "${{ github.sha }}"
+          )
           
-          # Add parameters file if exists
-          if [[ -n "${{ needs.setup.outputs.parameters_file }}" ]] && [[ -f "${{ needs.setup.outputs.parameters_file }}" ]]; then
-            CMD="$CMD --parameters '${{ needs.setup.outputs.parameters_file }}'"
+          if [[ -n "$PARAMETERS_FILE" && -f "$PARAMETERS_FILE" ]]; then
+            ARGS+=(--parameters "$PARAMETERS_FILE")
           fi
           
-          # Add flags
-          CMD="$CMD --allow-warnings"
-          CMD="$CMD --git-sha '${{ github.sha }}'"
-          
-          if [[ "${{ needs.setup.outputs.skip_health_checks }}" == "true" ]]; then
-            CMD="$CMD --skip-health"
+          if [[ "${{ github.event.inputs.skip_health_checks }}" == "true" ]]; then
+            ARGS+=(--skip-health)
           fi
           
-          # For dry-run/plan, we still run the orchestrator which does what-if analysis
-          # The orchestrator will stop before actual deployment if we don't confirm
           if [[ "${{ needs.setup.outputs.is_dry_run }}" == "true" ]]; then
             echo "📋 Running in PLAN mode (dry-run)"
-            CMD="$CMD --no-confirm-deletes"  # Will still do what-if, just won't prompt
+            ARGS+=(--no-confirm-deletes)
           fi
           
-          echo "Executing: $CMD"
-          
-          # Execute and capture output
           set +e
-          eval "$CMD" 2>&1 | tee orchestrator-output.log
+          python3 deployment/deploy.py "${ARGS[@]}" 2>&1 | tee orchestrator-output.log
           EXIT_CODE=${PIPESTATUS[0]}
           set -e
           
           echo "exit_code=${EXIT_CODE}" >> $GITHUB_OUTPUT
-          
-          # Save output for later analysis
-          if [[ -f "orchestrator-output.log" ]]; then
-            echo "output_file=orchestrator-output.log" >> $GITHUB_OUTPUT
-          fi
-          
+          echo "output_file=orchestrator-output.log" >> $GITHUB_OUTPUT
           exit ${EXIT_CODE}
       
       - name: Analyze orchestrator output (Agent Intelligence)
         id: analyze
         if: always()
         run: |
-          echo "🧠 Agent analyzing orchestrator output..."
-          
-          EXIT_CODE="${{ steps.orchestrator.outputs.exit_code }}"
-          OUTPUT_FILE="${{ steps.orchestrator.outputs.output_file }}"
-          
-          # Initialize analysis variables
-          FAILURE_TYPE="unknown"
-          ERROR_MESSAGE=""
-          SHOULD_RETRY="false"
-          IS_TRANSIENT="false"
-          
-          if [[ -f "$OUTPUT_FILE" ]]; then
-            # Extract key information from output
-            
-            # Check for exact terminal success marker (not intermediate ✅ progress messages)
-            if grep -q "DEPLOYMENT SUCCESSFUL" "$OUTPUT_FILE"; then
-              echo "✅ Deployment succeeded"
-              echo "status=success" >> $GITHUB_OUTPUT
-              echo "failure_type=none" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-            
-            # Check for failure: exact terminal marker or non-zero exit code
-            if grep -q "DEPLOYMENT FAILED" "$OUTPUT_FILE" || [[ -n "$EXIT_CODE" && "$EXIT_CODE" != "0" ]]; then
-              echo "❌ Deployment failed - analyzing failure type..."
-              
-              # Extract error message: include 30 lines before DEPLOYMENT FAILED to capture
-              # Azure CLI errors printed by the orchestrator during retries (e.g. "Azure error: ..."),
-              # plus 10 lines after for the failure message. Cap at 50 lines total.
-              ERROR_MESSAGE=$(grep -B 30 -A 10 "DEPLOYMENT FAILED" "$OUTPUT_FILE" | head -50)
-              if [[ -z "$ERROR_MESSAGE" ]]; then
-                # Fallback: use last 30 lines of log when DEPLOYMENT FAILED marker is absent
-                ERROR_MESSAGE=$(tail -30 "$OUTPUT_FILE")
-              fi
-              
-              # Classify failure type using patterns from failure_classifier.py
-              # Patterns are kept in variables for readability.
-              LOGIC_PATTERNS="lint.*error|bicep.*error|syntax.*error|validation.*failed|invalid.*parameter|invalid.*bicep|missing.*required.*parameter|template.*validation.*error|circular.*dependency|resource.*type.*not.*found|api.*version.*not.*supported|property.*not.*allowed|deployment.*template.*validation.*failed|parameter.*must be|error\s*bcp[0-9]+|invalidtemplatedeployment|template deployment.*is not valid|logic.*failure.*detected|InvalidResourceLocation|InvalidResourceGroupLocation|already.*exists.*in.*location|resource.*already.*exists.*location"
-              ENV_PATTERNS="timeout|throttl(ed|ing)|rate.*limit|service.*unavailable|internal.*server.*error|network.*error|network.*timeout|connection.*refused|connection.*timeout|temporary.*failure|quota.*exceeded|capacity.*unavailable|region.*unavailable|sku.*not.*available|conflict.*another.*operation|code:\s*conflict|another operation.*in progress"
-              
-              # Check for logic failures (syntax, validation, resource location conflicts, etc.)
-              if echo "$ERROR_MESSAGE" | grep -qiE "$LOGIC_PATTERNS"; then
-                FAILURE_TYPE="logic"
-                echo "🔴 Logic failure detected - code/template error"
-                SHOULD_RETRY="false"
-              
-              # Check for environmental failures (throttling, timeouts, etc.)
-              elif echo "$ERROR_MESSAGE" | grep -qiE "$ENV_PATTERNS"; then
-                FAILURE_TYPE="environmental"
-                IS_TRANSIENT="true"
-                SHOULD_RETRY="true"
-                echo "🟡 Environmental failure detected - transient Azure issue"
-              
-              # Fallback: check entire log for orchestrator-classified environmental failures
-              elif grep -q "Environmental failure" "$OUTPUT_FILE"; then
-                FAILURE_TYPE="environmental"
-                IS_TRANSIENT="true"
-                SHOULD_RETRY="true"
-                echo "🟡 Environmental failure detected from orchestrator retry messages"
-              
-              # Fallback: check entire log for orchestrator-classified logic failures
-              elif grep -q "Logic failure detected" "$OUTPUT_FILE"; then
-                FAILURE_TYPE="logic"
-                SHOULD_RETRY="false"
-                echo "🔴 Logic failure detected from orchestrator classification"
-              else
-                FAILURE_TYPE="unknown"
-                SHOULD_RETRY="false"
-                echo "🟠 Unknown failure type"
-              fi
-              
-              echo "status=failed" >> $GITHUB_OUTPUT
-              echo "failure_type=${FAILURE_TYPE}" >> $GITHUB_OUTPUT
-              echo "should_retry=${SHOULD_RETRY}" >> $GITHUB_OUTPUT
-              echo "is_transient=${IS_TRANSIENT}" >> $GITHUB_OUTPUT
-              
-              # Save error for reporting
-              echo "$ERROR_MESSAGE" > error-message.txt
-              echo "error_file=error-message.txt" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "⚠️  No output file found"
-            # Use exit code as authoritative signal when output file is missing
-            if [[ -n "$EXIT_CODE" && "$EXIT_CODE" != "0" ]]; then
-              echo "status=failed" >> $GITHUB_OUTPUT
-            else
-              echo "status=unknown" >> $GITHUB_OUTPUT
-            fi
-            echo "failure_type=unknown" >> $GITHUB_OUTPUT
-          fi
+          python3 deployment/orchestrator/cli/workflow_helper.py analyze-output \
+            --log-file "${{ steps.orchestrator.outputs.output_file }}" \
+            --exit-code "${{ steps.orchestrator.outputs.exit_code }}"
       
       - name: Autonomous logic error fixing
         id: fix_logic_error
@@ -572,7 +294,6 @@ jobs:
             exit 1
           fi
           
-          # Run autonomous error fixer
           set +e
           python3 .github/skills/deployment-error-fixer/scripts/fix_error.py \
             --error-file "$ERROR_FILE" \
@@ -586,32 +307,34 @@ jobs:
             echo "✅ Error fixed autonomously!"
             echo "fix_success=true" >> $GITHUB_OUTPUT
             
-            # Re-run deployment after fix
-            echo ""
             echo "🔄 Retrying deployment after autonomous fix..."
             
-            CMD="python3 deployment/deploy.py \
-              --resource-group '${{ needs.setup.outputs.resource_group }}' \
-              --location '${{ steps.region_select.outputs.primary_region }}' \
-              --location-ml '${{ steps.region_select.outputs.ml_region }}' \
-              --environment '${{ needs.setup.outputs.environment }}' \
-              --template '${{ needs.setup.outputs.template }}'"
+            PRIMARY_REGION="${{ steps.region_select.outputs.primary_region }}"
+            ML_REGION="${{ steps.region_select.outputs.ml_region }}"
+            PARAMETERS_FILE="${{ needs.setup.outputs.parameters_file }}"
             
-            if [[ -n "${{ needs.setup.outputs.parameters_file }}" ]] && [[ -f "${{ needs.setup.outputs.parameters_file }}" ]]; then
-              CMD="$CMD --parameters '${{ needs.setup.outputs.parameters_file }}'"
+            ARGS=(
+              --resource-group "${{ needs.setup.outputs.resource_group }}"
+              --location "$PRIMARY_REGION"
+              --location-ml "$ML_REGION"
+              --environment "${{ needs.setup.outputs.environment }}"
+              --template "${{ needs.setup.outputs.template }}"
+              --allow-warnings
+              --git-sha "${{ github.sha }}"
+            )
+            
+            if [[ -n "$PARAMETERS_FILE" && -f "$PARAMETERS_FILE" ]]; then
+              ARGS+=(--parameters "$PARAMETERS_FILE")
             fi
             
-            CMD="$CMD --allow-warnings --git-sha '${{ github.sha }}'"
-            
             set +e
-            eval "$CMD" 2>&1 | tee orchestrator-retry-after-fix.log
+            python3 deployment/deploy.py "${ARGS[@]}" 2>&1 | tee orchestrator-retry-after-fix.log
             RETRY_EXIT_CODE=${PIPESTATUS[0]}
             set -e
             
             if [[ $RETRY_EXIT_CODE -eq 0 ]]; then
               echo "✅ Deployment succeeded after autonomous fix!"
               echo "retry_success=true" >> $GITHUB_OUTPUT
-              exit 0
             else
               echo "❌ Deployment still failed after fix"
               echo "retry_success=false" >> $GITHUB_OUTPUT
@@ -628,87 +351,22 @@ jobs:
         if: steps.analyze.outputs.should_retry == 'true' && steps.analyze.outputs.is_transient == 'true'
         continue-on-error: true
         run: |
-          echo "🔄 Self-healing: Retrying deployment due to transient failure..."
-          
-          # Exponential backoff
-          MAX_RETRIES=3
-          RETRY_COUNT=0
-          
-          while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            BACKOFF_DELAY=$((2 ** RETRY_COUNT * 30))  # 60s, 120s, 240s
-            
-            echo "🕐 Retry attempt ${RETRY_COUNT}/${MAX_RETRIES} - waiting ${BACKOFF_DELAY} seconds..."
-            sleep ${BACKOFF_DELAY}
-            
-            echo "🔄 Attempting deployment (retry ${RETRY_COUNT})..."
-            
-            # Re-run orchestrator with the same auto-selected regions
-            CMD="python3 deployment/deploy.py \
-              --resource-group '${{ needs.setup.outputs.resource_group }}' \
-              --location '${{ steps.region_select.outputs.primary_region }}' \
-              --location-ml '${{ steps.region_select.outputs.ml_region }}' \
-              --environment '${{ needs.setup.outputs.environment }}' \
-              --template '${{ needs.setup.outputs.template }}'"
-            
-            if [[ -n "${{ needs.setup.outputs.parameters_file }}" ]] && [[ -f "${{ needs.setup.outputs.parameters_file }}" ]]; then
-              CMD="$CMD --parameters '${{ needs.setup.outputs.parameters_file }}'"
-            fi
-            
-            CMD="$CMD --allow-warnings --git-sha '${{ github.sha }}'"
-            
-            set +e
-            eval "$CMD" 2>&1 | tee "orchestrator-retry-${RETRY_COUNT}.log"
-            EXIT_CODE=${PIPESTATUS[0]}
-            set -e
-            
-            if [[ $EXIT_CODE -eq 0 ]]; then
-              echo "✅ Retry ${RETRY_COUNT} succeeded!"
-              echo "retry_success=true" >> $GITHUB_OUTPUT
-              echo "retry_count=${RETRY_COUNT}" >> $GITHUB_OUTPUT
-              exit 0
-            else
-              echo "❌ Retry ${RETRY_COUNT} failed"
-              
-              # Check if still transient
-              if grep -qiE "timeout|throttl|rate.*limit|service.*unavailable|network.*error|temporary.*failure" "orchestrator-retry-${RETRY_COUNT}.log"; then
-                echo "Still transient error - will retry..."
-                continue
-              else
-                echo "Error changed to non-transient - stopping retries"
-                echo "retry_success=false" >> $GITHUB_OUTPUT
-                echo "retry_count=${RETRY_COUNT}" >> $GITHUB_OUTPUT
-                exit 1
-              fi
-            fi
-          done
-          
-          echo "❌ All ${MAX_RETRIES} retries exhausted"
-          echo "retry_success=false" >> $GITHUB_OUTPUT
-          echo "retry_count=${RETRY_COUNT}" >> $GITHUB_OUTPUT
-          exit 1
+          python3 deployment/orchestrator/cli/workflow_helper.py retry \
+            --resource-group "${{ needs.setup.outputs.resource_group }}" \
+            --location "${{ steps.region_select.outputs.primary_region }}" \
+            --location-ml "${{ steps.region_select.outputs.ml_region }}" \
+            --environment "${{ needs.setup.outputs.environment }}" \
+            --template "${{ needs.setup.outputs.template }}" \
+            --parameters "${{ needs.setup.outputs.parameters_file }}" \
+            --git-sha "${{ github.sha }}" \
+            --max-retries 3
       
       - name: Extract deployment summary
         id: summary
         if: always()
         run: |
-          echo "📊 Extracting deployment summary..."
-          
-          # Check if audit logs exist
-          if [[ -d "deployment/audit" ]]; then
-            LATEST_AUDIT=$(ls -t deployment/audit/*.json 2>/dev/null | head -1)
-            if [[ -f "$LATEST_AUDIT" ]]; then
-              echo "📋 Found audit log: $LATEST_AUDIT"
-              
-              # Extract key metrics
-              DEPLOYED_RESOURCES=$(jq -r '.deployed_resources | length' "$LATEST_AUDIT" 2>/dev/null || echo "0")
-              DURATION=$(jq -r '.duration_seconds' "$LATEST_AUDIT" 2>/dev/null || echo "N/A")
-              
-              echo "deployed_resources=${DEPLOYED_RESOURCES}" >> $GITHUB_OUTPUT
-              echo "duration=${DURATION}" >> $GITHUB_OUTPUT
-              echo "audit_file=${LATEST_AUDIT}" >> $GITHUB_OUTPUT
-            fi
-          fi
+          python3 deployment/orchestrator/cli/workflow_helper.py extract-summary \
+            --audit-dir deployment/audit
       
       - name: Post deployment result comment
         if: always() && (github.event_name == 'pull_request' || github.event_name == 'issue_comment')
