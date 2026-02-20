@@ -339,7 +339,7 @@ class BicepOrchestrator:
                 return True, result.stdout
             else:
                 # Strip Bicep linter warnings from stderr so the actual
-                # Azure error is not hidden by the 500-char truncation.
+                # Azure error is not hidden by truncation.
                 error_text = self._extract_error_lines(
                     result.stderr or result.stdout
                 )
