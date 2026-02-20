@@ -309,13 +309,30 @@ jobs:
           RESOURCE_GROUP="${{ needs.setup.outputs.resource_group }}"
           ENVIRONMENT="${{ needs.setup.outputs.environment }}"
 
+          # Helper: create resource group only if it does not already exist.
+          # If it exists in a different location, reuse the existing location.
+          create_rg_if_not_exists() {
+            local rg_name="$1"
+            local desired_location="$2"
+            shift 2
+            local tags=("$@")
+            local EXISTING_LOCATION
+            EXISTING_LOCATION=$(az group show --name "$rg_name" --query location -o tsv 2>/dev/null || echo "")
+            if [[ -n "$EXISTING_LOCATION" ]]; then
+              echo "  ✅ Resource group '$rg_name' already exists in '$EXISTING_LOCATION' (skipping creation)"
+            else
+              echo "  Creating '$rg_name' in '$desired_location'..."
+              az group create \
+                --name "$rg_name" \
+                --location "$desired_location" \
+                --tags "${tags[@]}" \
+                --output table
+            fi
+          }
+
           # Primary resource group
-          echo "  Creating '$RESOURCE_GROUP' in '$PRIMARY_REGION'..."
-          az group create \
-            --name "$RESOURCE_GROUP" \
-            --location "$PRIMARY_REGION" \
-            --tags Environment="$ENVIRONMENT" Application=AgentOperatingSystem ManagedBy=GitHubActions \
-            --output table
+          create_rg_if_not_exists "$RESOURCE_GROUP" "$PRIMARY_REGION" \
+            "Environment=$ENVIRONMENT" "Application=AgentOperatingSystem" "ManagedBy=GitHubActions"
 
           # Separate ML resource group when deploying to a different region
           if [[ "$PRIMARY_REGION" != "$ML_REGION" ]]; then
@@ -324,12 +341,8 @@ jobs:
             else
               ML_RESOURCE_GROUP="${RESOURCE_GROUP}-ml-rg"
             fi
-            echo "  Creating ML resource group '$ML_RESOURCE_GROUP' in '$ML_REGION'..."
-            az group create \
-              --name "$ML_RESOURCE_GROUP" \
-              --location "$ML_REGION" \
-              --tags Environment="$ENVIRONMENT" Application=AgentOperatingSystem ManagedBy=GitHubActions Component=MachineLearning \
-              --output table
+            create_rg_if_not_exists "$ML_RESOURCE_GROUP" "$ML_REGION" \
+              "Environment=$ENVIRONMENT" "Application=AgentOperatingSystem" "ManagedBy=GitHubActions" "Component=MachineLearning"
           fi
       
       - name: Regional Capability Validation
