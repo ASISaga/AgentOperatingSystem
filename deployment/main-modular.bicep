@@ -57,6 +57,9 @@
 ])
 param location string
 
+@description('Location for Azure ML and Container Registry resources. Defaults to primary location. Override when Azure ML is unavailable in the primary region.')
+param locationML string = location
+
 @description('Environment name (dev, staging, prod)')
 @allowed([
   'dev'
@@ -369,7 +372,7 @@ module machineLearning 'modules/machinelearning.bicep' = if (azureMLEnabled) {
   params: {
     azureMLWorkspaceName: azureMLWorkspaceName
     containerRegistryName: containerRegistryName
-    location: location
+    location: locationML
     tags: tags
     enableAzureML: azureMLEnabled
     storageAccountId: storage.outputs.storageAccountId
@@ -408,6 +411,7 @@ module rbac 'modules/rbac.bicep' = {
 
 output resourceGroupName string = resourceGroup().name
 output location string = location
+output locationML string = locationML
 output environment string = environment
 
 // Storage
@@ -462,6 +466,7 @@ output deploymentWarnings object = {
   azureMLSupported: isAzureMLSupported
   functionsPremiumSupported: isFunctionsPremiumSupported
   serviceBusPremiumSupported: isServiceBusPremiumSupported
+  multiRegionDeployment: location != locationML
   recommendedRegionsForFullCapability: [
     'eastus'
     'eastus2'

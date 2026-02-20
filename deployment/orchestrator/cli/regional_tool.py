@@ -196,12 +196,73 @@ def cmd_summary(args):
     return 0
 
 
+def cmd_auto_select(args):
+    """Automatically select optimal regions for deployment."""
+    validator = RegionalValidator()
+
+    # Default service sets per environment
+    env_services = {
+        'dev': ['storage', 'keyvault', 'functions', 'servicebus',
+                'appinsights', 'loganalytics', 'identity'],
+        'staging': ['storage', 'keyvault', 'functions', 'functions-premium',
+                    'servicebus', 'appinsights', 'loganalytics', 'identity', 'azureml'],
+        'prod': ['storage', 'keyvault', 'functions', 'functions-premium',
+                 'servicebus', 'servicebus-premium', 'appinsights', 'loganalytics',
+                 'identity', 'azureml', 'acr'],
+    }
+
+    service_list = list(args.services) if args.services else env_services.get(
+        args.environment, env_services['dev'])
+    services = parse_services(service_list)
+
+    if not services:
+        print("Error: No valid services specified", file=sys.stderr)
+        return 1
+
+    regions = validator.select_optimal_regions(
+        services,
+        environment=args.environment,
+        preferred_geography=args.geography
+    )
+
+    env = args.environment
+    primary_rg = f"aos-{env}-rg"
+    ml_rg = f"aos-{env}-ml-rg" if regions['multi_region'] else primary_rg
+
+    result = {
+        'environment': env,
+        'primary_region': regions['primary'],
+        'ml_region': regions['ml'],
+        'primary_resource_group': primary_rg,
+        'ml_resource_group': ml_rg,
+        'multi_region': regions['multi_region'],
+        'geography': regions.get('geography', 'americas'),
+    }
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"Auto-Selected Regions for '{env}' environment:")
+        print(f"  Primary Region     : {result['primary_region']}")
+        print(f"  Azure ML Region    : {result['ml_region']}")
+        print(f"  Primary RG         : {result['primary_resource_group']}")
+        print(f"  ML Resource Group  : {result['ml_resource_group']}")
+        if result['multi_region']:
+            print(f"\n  ⚠️  Multi-region deployment:")
+            print(f"     Core services → {result['primary_region']}")
+            print(f"     Azure ML/ACR  → {result['ml_region']}")
+        else:
+            print(f"\n  ✅ Single-region deployment ({result['primary_region']})")
+
+    return 0
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description='Azure Regional Capability Tool for AOS Deployment'
     )
-    
+
     subparsers = parser.add_subparsers(dest='command', help='Commands')
     
     # validate command
@@ -260,21 +321,45 @@ def main():
         help='Required services'
     )
     summary_parser.add_argument('--json', action='store_true', help='Output as JSON')
-    
+
+    # auto-select command
+    auto_select_parser = subparsers.add_parser(
+        'auto-select',
+        help='Automatically select optimal regions per service for an environment'
+    )
+    auto_select_parser.add_argument(
+        '--environment',
+        choices=['dev', 'staging', 'prod'],
+        default='dev',
+        help='Target environment (default: dev)'
+    )
+    auto_select_parser.add_argument(
+        '--geography',
+        choices=['americas', 'europe', 'asia'],
+        help='Preferred geography'
+    )
+    auto_select_parser.add_argument(
+        'services',
+        nargs='*',
+        help='Override services list (defaults to environment preset)'
+    )
+    auto_select_parser.add_argument('--json', action='store_true', help='Output as JSON')
+
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         return 1
-    
+
     # Execute command
     command_map = {
         'validate': cmd_validate,
         'recommend': cmd_recommend,
         'check': cmd_check,
         'summary': cmd_summary,
+        'auto-select': cmd_auto_select,
     }
-    
+
     return command_map[args.command](args)
 
 

@@ -12,14 +12,24 @@ on:
           - staging
           - prod
       resource_group:
-        description: 'Azure resource group name'
-        required: true
+        description: 'Azure resource group name (auto-generated from environment if empty)'
+        required: false
         type: string
       location:
-        description: 'Azure region'
-        required: true
+        description: 'Primary Azure region (auto-selected if empty)'
+        required: false
         type: string
-        default: 'eastus'
+        default: ''
+      geography:
+        description: 'Geographic preference for auto-region selection (used when location is empty)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - americas
+          - europe
+          - asia
+        default: ''
       template:
         description: 'Bicep template file path'
         required: false
@@ -58,6 +68,8 @@ jobs:
       environment: ${{ steps.check.outputs.environment }}
       resource_group: ${{ steps.check.outputs.resource_group }}
       location: ${{ steps.check.outputs.location }}
+      location_ml: ${{ steps.check.outputs.location_ml }}
+      geography: ${{ steps.check.outputs.geography }}
       template: ${{ steps.check.outputs.template }}
       parameters_file: ${{ steps.check.outputs.parameters_file }}
       is_dry_run: ${{ steps.check.outputs.is_dry_run }}
@@ -76,7 +88,8 @@ jobs:
           IS_DRY_RUN="true"
           ENVIRONMENT="dev"
           RESOURCE_GROUP="${{ github.event.inputs.resource_group }}"
-          LOCATION="${{ github.event.inputs.location || 'eastus' }}"
+          LOCATION="${{ github.event.inputs.location }}"
+          GEOGRAPHY="${{ github.event.inputs.geography }}"
           TEMPLATE="${{ github.event.inputs.template || 'deployment/main-modular.bicep' }}"
           PARAMETERS_FILE=""
           
@@ -114,8 +127,10 @@ jobs:
               IS_DRY_RUN="true"
             fi
             
-            # Extract resource group from PR body or use default
-            RESOURCE_GROUP="aos-${ENVIRONMENT}-rg"
+            # Resource group defaults to environment-based name for PR events
+            if [[ -z "$RESOURCE_GROUP" ]]; then
+              RESOURCE_GROUP="aos-${ENVIRONMENT}-rg"
+            fi
           
           elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
             echo "💬 Comment event detected"
@@ -136,12 +151,18 @@ jobs:
             fi
           fi
           
-          # Output results
+          # Default resource group name when none supplied
+          if [[ -z "$RESOURCE_GROUP" ]]; then
+            RESOURCE_GROUP="aos-${ENVIRONMENT}-rg"
+          fi
+
+          # Output results (location/location_ml resolved in the next step)
           echo "should_deploy=${SHOULD_DEPLOY}" >> $GITHUB_OUTPUT
           echo "is_dry_run=${IS_DRY_RUN}" >> $GITHUB_OUTPUT
           echo "environment=${ENVIRONMENT}" >> $GITHUB_OUTPUT
           echo "resource_group=${RESOURCE_GROUP}" >> $GITHUB_OUTPUT
           echo "location=${LOCATION}" >> $GITHUB_OUTPUT
+          echo "geography=${GEOGRAPHY}" >> $GITHUB_OUTPUT
           echo "template=${TEMPLATE}" >> $GITHUB_OUTPUT
           echo "parameters_file=${PARAMETERS_FILE}" >> $GITHUB_OUTPUT
           
@@ -151,7 +172,7 @@ jobs:
           echo "- **Dry Run**: ${IS_DRY_RUN}" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: ${ENVIRONMENT}" >> $GITHUB_STEP_SUMMARY
           echo "- **Resource Group**: ${RESOURCE_GROUP}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Location**: ${LOCATION}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Location (user-provided)**: ${LOCATION:-'(auto-select)'}" >> $GITHUB_STEP_SUMMARY
           echo "- **Template**: ${TEMPLATE}" >> $GITHUB_STEP_SUMMARY
           echo "- **Parameters**: ${PARAMETERS_FILE}" >> $GITHUB_STEP_SUMMARY
 
@@ -180,7 +201,7 @@ jobs:
             
             **Environment**: \`${environment}\`
             **Resource Group**: \`${{ needs.setup.outputs.resource_group }}\`
-            **Location**: \`${{ needs.setup.outputs.location }}\`
+            **Region**: auto-selecting optimal region(s) for each service…
             **Template**: \`${{ needs.setup.outputs.template }}\`
             
             ${isDryRun ? '📊 Running in **plan mode** - no actual changes will be made.' : '⚙️  Running **live deployment** - infrastructure will be modified.'}
@@ -228,56 +249,138 @@ jobs:
           az account show
           az account list --output table
       
+      - name: Auto-Select Deployment Regions
+        id: region_select
+        run: |
+          echo "🌍 Auto-selecting optimal regions for each service..."
+          
+          ENVIRONMENT="${{ needs.setup.outputs.environment }}"
+          USER_LOCATION="${{ needs.setup.outputs.location }}"
+          GEOGRAPHY="${{ needs.setup.outputs.geography }}"
+
+          if [[ -n "$USER_LOCATION" ]]; then
+            echo "ℹ️  User specified primary region: $USER_LOCATION"
+            PRIMARY_REGION="$USER_LOCATION"
+            # Still auto-select ML region in case primary doesn't support it
+            GEO_ARG=""
+            [[ -n "$GEOGRAPHY" ]] && GEO_ARG="--geography $GEOGRAPHY"
+            ML_RESULT=$(python3 deployment/orchestrator/cli/regional_tool.py \
+              auto-select --environment "$ENVIRONMENT" $GEO_ARG --json 2>/dev/null)
+            ML_REGION=$(echo "$ML_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['ml_region'])")
+            # If primary supports ML, use it; otherwise use auto-selected ML region
+            VALIDATE=$(python3 deployment/orchestrator/cli/regional_tool.py \
+              validate "$PRIMARY_REGION" azureml --json 2>/dev/null)
+            ML_VALID=$(echo "$VALIDATE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(str(d.get('is_valid', False)).lower())" 2>/dev/null || echo "false")
+            [[ "$ML_VALID" == "true" ]] && ML_REGION="$PRIMARY_REGION"
+          else
+            echo "ℹ️  No region specified – running auto-selection..."
+            GEO_ARG=""
+            [[ -n "$GEOGRAPHY" ]] && GEO_ARG="--geography $GEOGRAPHY"
+            RESULT=$(python3 deployment/orchestrator/cli/regional_tool.py \
+              auto-select --environment "$ENVIRONMENT" $GEO_ARG --json)
+            echo "$RESULT"
+            PRIMARY_REGION=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['primary_region'])")
+            ML_REGION=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['ml_region'])")
+            MULTI_REGION=$(echo "$RESULT" | python3 -c "import sys,json; print(str(json.load(sys.stdin)['multi_region']).lower())")
+            if [[ "$MULTI_REGION" == "true" ]]; then
+              echo "⚠️  Multi-region deployment: core → $PRIMARY_REGION, ML/ACR → $ML_REGION"
+            else
+              echo "✅ Single-region deployment: $PRIMARY_REGION"
+            fi
+          fi
+
+          echo "primary_region=${PRIMARY_REGION}" >> $GITHUB_OUTPUT
+          echo "ml_region=${ML_REGION}" >> $GITHUB_OUTPUT
+
+          # Write to step summary
+          echo "## 🌍 Auto-Selected Regions" >> $GITHUB_STEP_SUMMARY
+          echo "- **Primary Region**: \`${PRIMARY_REGION}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Azure ML Region**: \`${ML_REGION}\`" >> $GITHUB_STEP_SUMMARY
+          if [[ "$PRIMARY_REGION" != "$ML_REGION" ]]; then
+            echo "- ⚠️  **Multi-Region**: core services in \`${PRIMARY_REGION}\`, Azure ML in \`${ML_REGION}\`" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Create Resource Groups
+        run: |
+          echo "📂 Creating resource groups if they do not exist..."
+          
+          PRIMARY_REGION="${{ steps.region_select.outputs.primary_region }}"
+          ML_REGION="${{ steps.region_select.outputs.ml_region }}"
+          RESOURCE_GROUP="${{ needs.setup.outputs.resource_group }}"
+          ENVIRONMENT="${{ needs.setup.outputs.environment }}"
+
+          # Primary resource group
+          echo "  Creating '$RESOURCE_GROUP' in '$PRIMARY_REGION'..."
+          az group create \
+            --name "$RESOURCE_GROUP" \
+            --location "$PRIMARY_REGION" \
+            --tags Environment="$ENVIRONMENT" Application=AgentOperatingSystem ManagedBy=GitHubActions \
+            --output table
+
+          # Separate ML resource group when deploying to a different region
+          if [[ "$PRIMARY_REGION" != "$ML_REGION" ]]; then
+            if [[ "$RESOURCE_GROUP" == *-rg ]]; then
+              ML_RESOURCE_GROUP="${RESOURCE_GROUP%-rg}-ml-rg"
+            else
+              ML_RESOURCE_GROUP="${RESOURCE_GROUP}-ml-rg"
+            fi
+            echo "  Creating ML resource group '$ML_RESOURCE_GROUP' in '$ML_REGION'..."
+            az group create \
+              --name "$ML_RESOURCE_GROUP" \
+              --location "$ML_REGION" \
+              --tags Environment="$ENVIRONMENT" Application=AgentOperatingSystem ManagedBy=GitHubActions Component=MachineLearning \
+              --output table
+          fi
+      
       - name: Regional Capability Validation
         id: regional_validation
         run: |
           echo "🌍 Validating regional capabilities..."
           
-          LOCATION="${{ needs.setup.outputs.location }}"
+          PRIMARY_REGION="${{ steps.region_select.outputs.primary_region }}"
+          ML_REGION="${{ steps.region_select.outputs.ml_region }}"
           ENVIRONMENT="${{ needs.setup.outputs.environment }}"
           
-          # Determine required services based on environment and template
+          # Determine required services based on environment
           SERVICES="storage keyvault functions servicebus appinsights loganalytics identity"
-          
-          # Production typically needs premium SKUs and Azure ML
           if [[ "$ENVIRONMENT" == "prod" ]]; then
             SERVICES="$SERVICES functions-premium servicebus-premium azureml acr"
           elif [[ "$ENVIRONMENT" == "staging" ]]; then
             SERVICES="$SERVICES functions-premium azureml"
           fi
           
-          echo "Region: $LOCATION"
-          echo "Environment: $ENVIRONMENT"
-          echo "Required Services: $SERVICES"
+          echo "Primary Region : $PRIMARY_REGION"
+          echo "ML Region      : $ML_REGION"
+          echo "Environment    : $ENVIRONMENT"
+          echo "Services       : $SERVICES"
           
-          # Run regional validation
-          python3 deployment/orchestrator/cli/regional_tool.py validate $LOCATION $SERVICES > validation-output.txt 2>&1
+          # Validate primary region (excluding ML services)
+          CORE_SERVICES="storage keyvault functions servicebus appinsights loganalytics identity"
+          if [[ "$ENVIRONMENT" == "prod" ]]; then
+            CORE_SERVICES="$CORE_SERVICES functions-premium servicebus-premium"
+          elif [[ "$ENVIRONMENT" == "staging" ]]; then
+            CORE_SERVICES="$CORE_SERVICES functions-premium"
+          fi
+
+          echo ""
+          echo "--- Primary region validation ---"
+          python3 deployment/orchestrator/cli/regional_tool.py validate "$PRIMARY_REGION" $CORE_SERVICES > validation-output.txt 2>&1
           VALIDATION_EXIT=$?
-          
           cat validation-output.txt
-          
-          # Generate recommendation if validation failed
+
+          # Validate ML region when applicable
+          if [[ "$ENVIRONMENT" != "dev" ]]; then
+            echo ""
+            echo "--- ML region validation ($ML_REGION) ---"
+            python3 deployment/orchestrator/cli/regional_tool.py validate "$ML_REGION" azureml acr > ml-validation-output.txt 2>&1
+            cat ml-validation-output.txt
+          fi
+
           if [[ $VALIDATION_EXIT -ne 0 ]]; then
             echo ""
-            echo "⚠️  Region validation warnings detected"
-            echo "📋 Recommended alternative regions:"
-            python3 deployment/orchestrator/cli/regional_tool.py recommend $SERVICES --geography $(
-              if [[ "$LOCATION" =~ ^(eastus|westus|centralus|northcentralus|southcentralus|canadacentral|brazilsouth) ]]; then
-                echo "americas"
-              elif [[ "$LOCATION" =~ ^(northeurope|westeurope|uksouth|francecentral|germanywestcentral|swedencentral) ]]; then
-                echo "europe"
-              else
-                echo "asia"
-              fi
-            ) --limit 3
-            
-            echo ""
-            echo "ℹ️  Bicep template will automatically adjust:"
-            echo "   - Services not available will be disabled"
-            echo "   - Premium SKUs will downgrade to Standard/Consumption"
-            echo "   - Deployment will continue with available services"
+            echo "ℹ️  Some services have warnings in primary region - auto-selection already handled fallback."
           else
-            echo "✅ Region $LOCATION supports all required services"
+            echo "✅ Primary region $PRIMARY_REGION supports all required core services"
           fi
           
           # Save validation results
@@ -285,8 +388,8 @@ jobs:
           
           # Generate deployment summary
           echo ""
-          echo "📊 Deployment Summary:"
-          python3 deployment/orchestrator/cli/regional_tool.py summary $LOCATION $SERVICES
+          echo "📊 Deployment Summary for $PRIMARY_REGION:"
+          python3 deployment/orchestrator/cli/regional_tool.py summary "$PRIMARY_REGION" $CORE_SERVICES
       
       - name: Execute Python Orchestrator (Logic Layer)
         id: orchestrator
@@ -298,10 +401,15 @@ jobs:
         run: |
           echo "🐍 Executing Python orchestration layer..."
           
-          # Build command
+          PRIMARY_REGION="${{ steps.region_select.outputs.primary_region }}"
+          ML_REGION="${{ steps.region_select.outputs.ml_region }}"
+          
+          # Build command with auto-resolved regions
           CMD="python3 deployment/deploy.py \
             --resource-group '${{ needs.setup.outputs.resource_group }}' \
-            --location '${{ needs.setup.outputs.location }}' \
+            --location '${PRIMARY_REGION}' \
+            --location-ml '${ML_REGION}' \
+            --environment '${{ needs.setup.outputs.environment }}' \
             --template '${{ needs.setup.outputs.template }}'"
           
           # Add parameters file if exists
@@ -443,7 +551,9 @@ jobs:
             
             CMD="python3 deployment/deploy.py \
               --resource-group '${{ needs.setup.outputs.resource_group }}' \
-              --location '${{ needs.setup.outputs.location }}' \
+              --location '${{ steps.region_select.outputs.primary_region }}' \
+              --location-ml '${{ steps.region_select.outputs.ml_region }}' \
+              --environment '${{ needs.setup.outputs.environment }}' \
               --template '${{ needs.setup.outputs.template }}'"
             
             if [[ -n "${{ needs.setup.outputs.parameters_file }}" ]] && [[ -f "${{ needs.setup.outputs.parameters_file }}" ]]; then
@@ -492,10 +602,12 @@ jobs:
             
             echo "🔄 Attempting deployment (retry ${RETRY_COUNT})..."
             
-            # Re-run orchestrator
+            # Re-run orchestrator with the same auto-selected regions
             CMD="python3 deployment/deploy.py \
               --resource-group '${{ needs.setup.outputs.resource_group }}' \
-              --location '${{ needs.setup.outputs.location }}' \
+              --location '${{ steps.region_select.outputs.primary_region }}' \
+              --location-ml '${{ steps.region_select.outputs.ml_region }}' \
+              --environment '${{ needs.setup.outputs.environment }}' \
               --template '${{ needs.setup.outputs.template }}'"
             
             if [[ -n "${{ needs.setup.outputs.parameters_file }}" ]] && [[ -f "${{ needs.setup.outputs.parameters_file }}" ]]; then
@@ -623,6 +735,8 @@ jobs:
             
             **Environment**: \`${environment}\`
             **Resource Group**: \`${{ needs.setup.outputs.resource_group }}\`
+            **Primary Region**: \`${{ steps.region_select.outputs.primary_region }}\`
+            **Azure ML Region**: \`${{ steps.region_select.outputs.ml_region }}\`
             **Status**: ${statusText}
             ${details}
             
