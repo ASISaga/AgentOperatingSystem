@@ -492,10 +492,13 @@ jobs:
             if grep -q "DEPLOYMENT FAILED" "$OUTPUT_FILE" || [[ -n "$EXIT_CODE" && "$EXIT_CODE" != "0" ]]; then
               echo "❌ Deployment failed - analyzing failure type..."
               
-              # Extract error message from terminal failure marker; fall back to tail of log
-              ERROR_MESSAGE=$(grep -A 10 "DEPLOYMENT FAILED" "$OUTPUT_FILE" | head -20)
+              # Extract error message: include 30 lines before DEPLOYMENT FAILED to capture
+              # Azure CLI errors printed by the orchestrator during retries (e.g. "Azure error: ..."),
+              # plus 10 lines after for the failure message. Cap at 50 lines total.
+              ERROR_MESSAGE=$(grep -B 30 -A 10 "DEPLOYMENT FAILED" "$OUTPUT_FILE" | head -50)
               if [[ -z "$ERROR_MESSAGE" ]]; then
-                ERROR_MESSAGE=$(tail -20 "$OUTPUT_FILE")
+                # Fallback: use last 30 lines of log when DEPLOYMENT FAILED marker is absent
+                ERROR_MESSAGE=$(tail -30 "$OUTPUT_FILE")
               fi
               
               # Classify failure type using patterns from failure_classifier.py
@@ -512,6 +515,13 @@ jobs:
                 IS_TRANSIENT="true"
                 SHOULD_RETRY="true"
                 echo "🟡 Environmental failure detected - transient Azure issue"
+              
+              # Fallback: check entire log for orchestrator-classified environmental failures
+              elif grep -q "Environmental failure" "$OUTPUT_FILE"; then
+                FAILURE_TYPE="environmental"
+                IS_TRANSIENT="true"
+                SHOULD_RETRY="true"
+                echo "🟡 Environmental failure detected from orchestrator retry messages"
               else
                 FAILURE_TYPE="unknown"
                 SHOULD_RETRY="false"
