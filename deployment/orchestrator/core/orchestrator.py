@@ -77,6 +77,7 @@ class BicepOrchestrator:
         self.health_verifier = HealthVerifier()
         self.audit_logger = AuditLogger(config.audit_dir)
         self.audit_record: Optional[AuditRecord] = None
+        self.last_deploy_error: str = ""
     
     def deploy(self) -> Tuple[bool, str]:
         """
@@ -107,7 +108,10 @@ class BicepOrchestrator:
             
             # Phase 4: Deploy
             if not self._execute_deployment():
-                return False, "Deployment failed"
+                # Truncate to avoid overly long failure messages in CI output
+                max_error_len = 500
+                error_detail = self.last_deploy_error[:max_error_len] if self.last_deploy_error else "No error details"
+                return False, f"Deployment failed: {error_detail}"
             
             # Phase 5: Verify health
             if not self.config.skip_health_checks:
@@ -233,6 +237,9 @@ class BicepOrchestrator:
                 self.audit_record.add_event("deploy", "Deployment succeeded", {"attempt": attempt + 1})
                 return True
             
+            # Capture the last error for propagation
+            self.last_deploy_error = result[1] or ""
+            
             # Classify failure
             failure_type = self.failure_classifier.classify(result[1])
             self.audit_record.add_event("deploy", f"Deployment failed (attempt {attempt + 1})", {
@@ -252,6 +259,9 @@ class BicepOrchestrator:
                 if retry_strategy["should_retry"]:
                     delay = retry_strategy["delay"]
                     print(f"\n🔄 Environmental failure - retrying in {delay} seconds...")
+                    # Truncate to avoid overwhelming log output; full error is in audit record
+                    max_error_len = 500
+                    print(f"   Azure error: {result[1][:max_error_len] if result[1] else 'No error details'}")
                     import time
                     time.sleep(delay)
                 else:
