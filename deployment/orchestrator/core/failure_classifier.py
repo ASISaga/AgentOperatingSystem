@@ -42,6 +42,10 @@ class FailureClassifier:
         r"deployment.*template.*validation.*failed",
         r"parameter.*must be",
         r"error\s*bcp\d+",  # Bicep error codes
+        r"InvalidResourceLocation",       # Resource already exists in different location
+        r"InvalidResourceGroupLocation",  # Resource group already exists in different location
+        r"already.*exists.*in.*location", # Generic "already exists in location X" messages
+        r"resource.*already.*exists.*location",
     ]
     
     # Patterns indicating environmental failures (retry possible)

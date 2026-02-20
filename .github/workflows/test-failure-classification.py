@@ -44,6 +44,11 @@ class WorkflowFailureClassifier:
         r"error\s*bcp\d+",
         r"invalidtemplatedeployment",
         r"template deployment.*is not valid",
+        r"logic.*failure.*detected",
+        r"InvalidResourceLocation",
+        r"InvalidResourceGroupLocation",
+        r"already.*exists.*in.*location",
+        r"resource.*already.*exists.*location",
     ]
     
     # Environmental failure patterns (from workflow)
@@ -185,6 +190,24 @@ def test_real_world_errors() -> List[Tuple[str, bool]]:
         (
             "TooManyRequests: Rate limit is exceeded. Try again in 60 seconds.",
             FailureType.ENVIRONMENTAL
+        ),
+        (
+            "ERROR: (InvalidResourceGroupLocation) Invalid resource group location 'southeastasia'."
+            " The Resource group already exists in location 'australiaeast'.",
+            FailureType.LOGIC
+        ),
+        (
+            'ERROR: {"code": "MultipleErrorsOccurred", "message": "Multiple error occurred:'
+            ' Conflict,Conflict,Conflict,Conflict."}\n'
+            'Inner Errors: {"code": "InvalidResourceLocation", "message": "The resource'
+            " 'myresource' already exists in location 'australiaeast' in resource group"
+            " 'my-rg'. A resource with the same name cannot be created in location 'southeastasia'.\"}\n",
+            FailureType.LOGIC
+        ),
+        (
+            "❌ Logic failure detected - no retry will be attempted\n"
+            "   Error: ERROR: some deployment error details",
+            FailureType.LOGIC
         ),
     ]
     
