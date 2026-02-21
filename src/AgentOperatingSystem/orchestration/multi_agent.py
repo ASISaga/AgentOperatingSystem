@@ -12,14 +12,14 @@ from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from datetime import datetime
 
 try:
-    from agent_framework import ChatAgent, WorkflowBuilder
+    from agent_framework import Agent, WorkflowBuilder
     AGENT_FRAMEWORK_AVAILABLE = True
 except ImportError:
     AGENT_FRAMEWORK_AVAILABLE = False
     logging.warning("Agent Framework not available")
 
 if TYPE_CHECKING:
-    from agent_framework import ChatAgent
+    from agent_framework import Agent
 
 from .agent_framework_system import AgentFrameworkSystem
 from ..agents.purpose_driven import GenericPurposeDrivenAgent as BaseAgent
@@ -176,7 +176,7 @@ class MultiAgentSystem:
                 "conversation_id": conversation_id
             }
 
-    async def create_agent(self, name: str, instructions: str, capabilities: List[str] = None) -> 'ChatAgent':
+    async def create_agent(self, name: str, instructions: str, capabilities: List[str] = None) -> 'Agent':
         """Create a new agent with specified capabilities"""
         return await self.agent_framework_system.create_agent(name, instructions, capabilities)
 

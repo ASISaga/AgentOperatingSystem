@@ -1,9 +1,9 @@
 """
 BaseExecutor for agent_framework-based executors.
-Provides a stable abstraction for all AOS and BusinessInfinity executors.
+Provides a stable abstraction for all AOS executors.
 
-Note: In agent-framework >= 1.0.0b251218, use WorkflowBuilder.register_executor()
-or WorkflowBuilder.register_agent() instead of the deprecated add_executor() method.
+In agent-framework >= 1.0.0rc1, use WorkflowBuilder with add_edge()/add_chain()
+to compose executors into workflows.
 """
 from agent_framework import Executor, WorkflowContext as _WorkflowContext, handler as _handler
 
@@ -13,14 +13,11 @@ handler = _handler
 
 class BaseExecutor(Executor):
     """
-    Base class for all agent_framework-based executors in AOS and BusinessInfinity.
+    Base class for all agent_framework-based executors in AOS.
     Inherit from this class to ensure consistent interface and future-proofing.
     """
-    def __init__(self, name: str):
-        super().__init__(name)
-        # Add any shared initialization logic here
-
-    # Optionally, provide a default handler (can be overridden)
+    def __init__(self, id: str):
+        super().__init__(id)
 
     @handler
     async def handle(self, intent: dict, ctx: WorkflowContext[dict]):

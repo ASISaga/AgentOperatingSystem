@@ -53,7 +53,7 @@ from .observability.structured import StructuredLogger as StructuredLoggerNew, c
 from .services.service_interfaces import IStorageService, IMessagingService, IWorkflowService, IAuthService
 from .monitoring.audit_trail_generic import AuditTrailManager as AuditTrailManagerNew, AuditEvent as AuditEventNew, AuditSeverity
 
-__version__ = "1.1.0"
+__version__ = "3.0.0"
 __author__ = "ASISaga"
 
 # Main exports
