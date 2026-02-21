@@ -434,7 +434,7 @@ async def test_end_to_end_flow():
 
 **Solution**:
 1. Ensure Azure Functions Core Tools is installed
-2. Verify Python version matches (3.8+)
+2. Verify Python version matches (3.10+)
 3. Check local.settings.json exists and is valid
 4. Install all dependencies: `pip install -e ".[azure,full]"`
 5. Use Azurite for local storage emulation

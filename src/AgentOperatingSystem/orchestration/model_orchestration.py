@@ -27,7 +27,7 @@ except ImportError:
 
 # Optional Agent Framework imports
 try:
-    from agent_framework import ChatAgent, WorkflowBuilder
+    from agent_framework import Agent, WorkflowBuilder
     AGENT_FRAMEWORK_AVAILABLE = True
 except ImportError:
     AGENT_FRAMEWORK_AVAILABLE = False
@@ -74,8 +74,8 @@ class ModelOrchestrator:
             "timeout": 30
         }
 
-        # Semantic Kernel is now Agent Framework
-        self.agent_framework_client: Optional['ChatAgent'] = None
+        # Agent Framework client (renamed from ChatAgent to Agent in 1.0.0rc1)
+        self.agent_framework_client: Optional['Agent'] = None
 
         # Azure Foundry Agent Service configuration
         self.foundry_agent_service_config = {
@@ -190,13 +190,13 @@ class ModelOrchestrator:
         """Initialize Agent Framework"""
 
         try:
-            # Create a generic chat agent for model orchestration
+            # Create an Agent for model orchestration
             # Note: In production, use a real chat client instead of Mock
             from unittest.mock import Mock
-            mock_chat_client = Mock()
+            mock_client = Mock()
 
-            self.agent_framework_client = ChatAgent(
-                chat_client=mock_chat_client,
+            self.agent_framework_client = Agent(
+                client=mock_client,
                 instructions="You are a model orchestration agent responsible for managing AI model requests.",
                 name="ModelOrchestrator"
             )

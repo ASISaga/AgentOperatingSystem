@@ -17,7 +17,7 @@ description: Master Pylint usage for maintaining high code quality in the Agent 
 - As part of CI/CD pipeline
 
 **Prerequisites**:
-- Python 3.8+ installed
+- Python 3.10+ installed
 - Repository dependencies installed (`pip install -e ".[dev]"`)
 - Basic understanding of Python syntax and PEP 8
 

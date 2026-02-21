@@ -1,10 +1,11 @@
 # Agent Operating System (AOS)
 ## A Complete Operating System for AI Agents
 
-**Version:** 2.0.0  
+**Version:** 3.0.0  
 **Status:** Production Ready  
-**Platform:** Microsoft Azure
-**Python:** 3.10+
+**Platform:** Microsoft Azure  
+**Python:** 3.10+  
+**Agent Framework:** Microsoft Agent Framework 1.0.0rc1
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)

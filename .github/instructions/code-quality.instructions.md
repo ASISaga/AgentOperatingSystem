@@ -29,7 +29,7 @@ pylint src/AgentOperatingSystem/agents/perpetual_agent.py
 
 The repository uses a comprehensive `.pylintrc` configuration in `pyproject.toml` that is tailored for:
 
-- **Python 3.8+** compatibility
+- **Python 3.10+** compatibility
 - **Async/await** patterns
 - **Azure services** integration
 - **Agent-based architecture** patterns
@@ -220,7 +220,7 @@ async def process():
 The repository includes a GitHub Actions workflow (`.github/workflows/pylint.yml`) that:
 
 1. Runs on every push and pull request to `main` and `develop` branches
-2. Tests against Python 3.8, 3.9, 3.10, and 3.11
+2. Tests against Python 3.10, 3.11, and 3.12
 3. Generates detailed reports for source code, tests, and function app
 4. Uploads results as artifacts for review
 5. Enforces minimum quality score of 5.0/10

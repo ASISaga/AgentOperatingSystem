@@ -94,9 +94,10 @@ manager.register_agent(agent)
 ```
 
 ### Core Technologies
-- **Language**: Python 3.8+
+- **Language**: Python 3.10+
 - **Platform**: Microsoft Azure (Functions, Service Bus, Storage)
-- **Framework**: Microsoft Agent Framework
+- **Framework**: Microsoft Agent Framework 1.0.0rc1
+- **Orchestrations**: agent-framework-orchestrations 1.0.0b260219
 - **Async**: asyncio for concurrent operations
 - **Testing**: pytest with pytest-asyncio
 

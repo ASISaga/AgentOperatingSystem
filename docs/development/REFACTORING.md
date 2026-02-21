@@ -30,7 +30,7 @@ October 2, 2025
   - Agent registration and deregistration
   - Agent discovery and health monitoring
 
-#### Existing Classes (Maintained for Backward Compatibility)
+#### Existing Classes (Maintained for Backward Compatibility in v2.0.0; backward compat removed in v3.0.0)
 - **`agents/base.py`**: Original `BaseAgent`, `Agent`, `StatefulAgent`
 - **`agents/leadership.py`**: Original `LeadershipAgent`
 - **`agents/perpetual.py`**: `PerpetualAgent`

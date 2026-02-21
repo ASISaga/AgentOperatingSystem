@@ -189,7 +189,7 @@ async def example():
 A: `pytest tests/` - Most tests are async and use pytest-asyncio
 
 **Q: What Python version is required?**
-A: Python 3.8 or higher (see pyproject.toml)
+A: Python 3.10 or higher (see pyproject.toml)
 
 **Q: How do I install dependencies?**
 A: `pip install -e ".[full]"` for all features, or `pip install -e .` for core only

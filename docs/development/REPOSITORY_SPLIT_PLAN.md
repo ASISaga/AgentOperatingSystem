@@ -1,9 +1,10 @@
 # Repository Split Plan: AgentOperatingSystem → Multi-Repository Architecture
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Date:** February 2026  
 **Status:** Proposed  
-**Author:** Architecture Analysis
+**Author:** Architecture Analysis  
+**Last Updated:** February 21, 2026 (agent-framework 1.0.0rc1 upgrade)
 
 ---
 
@@ -223,6 +224,8 @@ dependencies = [
     "opentelemetry-sdk>=1.30.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.30.0",
     "opentelemetry-instrumentation-fastapi>=0.51b0",
+    "agent-framework>=1.0.0rc1",
+    "agent-framework-orchestrations>=1.0.0b260219",
 ]
 
 [project.optional-dependencies]
@@ -233,6 +236,9 @@ azure = [
     "azure-data-tables>=12.7.0",
     "azure-servicebus>=7.14.0",
     "azure-keyvault-secrets>=4.10.0",
+    "azure-ai-agents>=1.1.0",
+    "azure-ai-projects>=1.0.0",
+    "agent-framework-azure-ai>=1.0.0rc1",
 ]
 ```
 
@@ -498,9 +504,12 @@ azure_functions/
 
 **pyproject.toml / requirements.txt dependencies:**
 ```
-aos-core[azure]>=2.0.0
+aos-core[azure]>=3.0.0
 aos-intelligence[foundry]>=1.0.0    # Optional, for ML-backed agents
 azure-functions>=1.21.0
+agent-framework>=1.0.0rc1
+agent-framework-orchestrations>=1.0.0b260219
+agent-framework-azurefunctions>=1.0.0b260219
 ```
 
 **Key design decisions:**
@@ -743,8 +752,10 @@ on:
 
 | Package | Consumed By |
 |---------|------------|
-| `aos-core>=2.0.0` | aos-intelligence, aos-azure-functions |
+| `aos-core>=3.0.0` | aos-intelligence, aos-azure-functions |
 | `aos-intelligence>=1.0.0` | aos-azure-functions (optional) |
+| `agent-framework>=1.0.0rc1` | aos-core, aos-azure-functions |
+| `agent-framework-orchestrations>=1.0.0b260219` | aos-core, aos-azure-functions |
 
 ---
 

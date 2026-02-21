@@ -1,8 +1,9 @@
 """
 AOS Agent Framework Multi-Agent System
 
-Provides multi-agent orchestration capabilities using Microsoft Agent Framework.
-Supports agent collaboration, workflow execution, and advanced orchestration patterns.
+Provides multi-agent orchestration capabilities using Microsoft Agent Framework 1.0.0rc1.
+Supports agent collaboration, workflow execution via SequentialBuilder, and advanced
+orchestration patterns via agent-framework-orchestrations.
 """
 
 import os
@@ -12,26 +13,14 @@ from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 
 try:
-    from agent_framework import ChatAgent, WorkflowBuilder
+    from agent_framework import Agent, WorkflowBuilder, Runner
+    from agent_framework.observability import enable_instrumentation
     AGENT_FRAMEWORK_AVAILABLE = True
-
-    # Try to import logging setup if available (replaces deprecated setup_telemetry)
-    try:
-        from agent_framework import setup_logging
-        LOGGING_AVAILABLE = True
-    except ImportError:
-        LOGGING_AVAILABLE = False
-        def setup_logging(*args, **kwargs):
-            """Fallback logging setup"""
-            logging.info("Logging setup called (fallback implementation)")
-            pass
 except ImportError:
     AGENT_FRAMEWORK_AVAILABLE = False
-    TELEMETRY_AVAILABLE = False
     logging.warning("Agent Framework not available")
 
-    # Mock classes for when Agent Framework is not available
-    class ChatAgent:
+    class Agent:
         def __init__(self, *args, **kwargs):
             pass
 
@@ -39,17 +28,27 @@ except ImportError:
         def __init__(self, *args, **kwargs):
             pass
 
-    def setup_logging(*args, **kwargs):
-        """Fallback logging setup"""
-        pass
+try:
+    from agent_framework_orchestrations import (
+        SequentialBuilder,
+        GroupChatBuilder,
+        ConcurrentBuilder,
+        HandoffBuilder,
+    )
+    ORCHESTRATIONS_AVAILABLE = True
+except ImportError:
+    ORCHESTRATIONS_AVAILABLE = False
+    logging.warning("Agent Framework Orchestrations not available")
 
 from ..agents.purpose_driven import GenericPurposeDrivenAgent as BaseAgent
 
 
 class AgentFrameworkSystem:
     """
-    Multi-agent system using Microsoft Agent Framework for AOS.
-    Replaces Semantic Kernel-based orchestration with modern Agent Framework patterns.
+    Multi-agent system using Microsoft Agent Framework 1.0.0rc1 for AOS.
+
+    Uses agent-framework-orchestrations builders (SequentialBuilder,
+    GroupChatBuilder, ConcurrentBuilder) for multi-agent workflows.
     """
 
     def __init__(self):
@@ -72,8 +71,8 @@ class AgentFrameworkSystem:
             if not AGENT_FRAMEWORK_AVAILABLE:
                 raise ImportError("Agent Framework not available")
 
-            # Setup telemetry for tracing
-            await self._setup_telemetry()
+            # Setup observability instrumentation
+            await self._setup_observability()
 
             # Initialize default agents
             await self._initialize_default_agents()
@@ -85,57 +84,43 @@ class AgentFrameworkSystem:
             self.logger.error(f"Failed to initialize Agent Framework System: {e}")
             raise
 
-    async def _setup_telemetry(self):
+    async def _setup_observability(self):
         """
-        Setup OpenTelemetry tracing for Agent Framework
+        Setup OpenTelemetry observability for Agent Framework.
 
-        Note: In agent-framework >= 1.0.0b251218, setup_telemetry has been replaced with setup_logging.
-        Custom OTLP endpoints are no longer configurable through this function.
+        In agent-framework >= 1.0.0rc1, use enable_instrumentation() from
+        agent_framework.observability. Custom OTLP endpoints are configured
+        via the OpenTelemetry SDK or environment variables:
 
-        To configure a custom OTLP endpoint, use the OpenTelemetry SDK directly before calling this method:
-
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-        otlp_exporter = OTLPSpanExporter(endpoint="http://localhost:4317")
-        # Configure tracer provider with the exporter...
-
-        Or set environment variables:
-        export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+            export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
         """
         try:
-            # Use AI Toolkit's OTLP endpoint for tracing
-            # Note: setup_telemetry has been replaced with setup_logging in agent-framework >= 1.0.0b251218
-            setup_logging(
-                level=logging.INFO,
-                enable_sensitive_data=True  # Enable capturing prompts and completions
-            )
-            self.logger.info("Logging setup completed")
+            enable_instrumentation(enable_sensitive_data=True)
+            self.logger.info("Observability instrumentation enabled")
         except Exception as e:
-            self.logger.warning(f"Could not setup logging: {e}")
+            self.logger.warning(f"Could not setup observability: {e}")
 
     async def _initialize_default_agents(self):
         """Initialize default agent roles using Agent Framework"""
         try:
             # Business Analyst Agent
-            ba_agent = await self._create_chat_agent(
+            ba_agent = await self._create_agent(
                 "BusinessAnalyst",
                 "You are a Business Analyst responsible for analyzing requirements and documenting business processes.",
-                {"domain": "business_analysis", "capabilities": ["requirements_analysis", "process_documentation"]}
             )
             self.agents["BusinessAnalyst"] = ba_agent
 
             # Software Engineer Agent
-            se_agent = await self._create_chat_agent(
+            se_agent = await self._create_agent(
                 "SoftwareEngineer",
                 "You are a Software Engineer responsible for implementing solutions and writing code.",
-                {"domain": "software_engineering", "capabilities": ["coding", "architecture", "testing"]}
             )
             self.agents["SoftwareEngineer"] = se_agent
 
             # Product Owner Agent
-            po_agent = await self._create_chat_agent(
+            po_agent = await self._create_agent(
                 "ProductOwner",
                 "You are a Product Owner responsible for defining requirements and ensuring quality.",
-                {"domain": "product_management", "capabilities": ["requirements_definition", "quality_assurance"]}
             )
             self.agents["ProductOwner"] = po_agent
 
@@ -144,28 +129,25 @@ class AgentFrameworkSystem:
         except Exception as e:
             self.logger.error(f"Failed to initialize default agents: {e}")
 
-    async def _create_chat_agent(self, name: str, instructions: str, metadata: Dict[str, Any]) -> ChatAgent:
-        """Create a ChatAgent with the specified configuration"""
+    async def _create_agent(self, name: str, instructions: str, **kwargs) -> Agent:
+        """Create an Agent with the specified configuration"""
         try:
-            # Create a mock chat client for testing - in production this would be a real client
             from unittest.mock import Mock
-            mock_chat_client = Mock()
+            mock_client = Mock()
 
-            # Create chat agent with Agent Framework
-            agent = ChatAgent(
-                chat_client=mock_chat_client,
+            agent = Agent(
+                client=mock_client,
                 instructions=instructions,
                 name=name,
-                **metadata
             )
             return agent
         except Exception as e:
-            self.logger.error(f"Failed to create chat agent {name}: {e}")
+            self.logger.error(f"Failed to create agent {name}: {e}")
             raise
 
     async def run_multi_agent_conversation(self, input_message: str, agent_roles: List[str] = None) -> Dict[str, Any]:
         """
-        Run a multi-agent conversation using Agent Framework workflows
+        Run a multi-agent conversation using Agent Framework orchestrations.
         """
         if not self.is_initialized:
             await self.initialize()
@@ -180,7 +162,6 @@ class AgentFrameworkSystem:
                     else:
                         self.logger.warning(f"Agent role '{role}' not found")
             else:
-                # Use all available agents if none specified
                 selected_agents = list(self.agents.values())
 
             if not selected_agents:
@@ -209,23 +190,20 @@ class AgentFrameworkSystem:
                 "error": str(e),
                 "timestamp": datetime.utcnow().isoformat(),
                 "input_message": input_message,
-                "selected_agents": [agent.name for agent in selected_agents]
+                "selected_agents": [getattr(a, 'name', str(a)) for a in selected_agents]
             }
 
-    async def _create_conversation_workflow(self, agents: List[ChatAgent], input_message: str) -> Any:
-        """Create a workflow for multi-agent conversation"""
+    async def _create_conversation_workflow(self, agents: List[Agent], input_message: str) -> Any:
+        """Create a workflow for multi-agent conversation using SequentialBuilder"""
         try:
-            workflow_builder = WorkflowBuilder()
-
-            # Add agents to workflow
-            for agent in agents:
-                workflow_builder.add_agent(agent)
-
-            # Define conversation flow
-            workflow = workflow_builder.build_sequential_workflow(
-                initial_message=input_message,
-                agents=agents
-            )
+            if ORCHESTRATIONS_AVAILABLE:
+                builder = SequentialBuilder(participants=agents)
+                workflow = builder.build()
+            else:
+                # Fallback: use WorkflowBuilder with add_chain
+                workflow = WorkflowBuilder(
+                    start_executor=agents[0],
+                ).add_chain(agents).build()
 
             return workflow
 
@@ -236,7 +214,6 @@ class AgentFrameworkSystem:
     async def _execute_workflow(self, workflow: Any) -> Dict[str, Any]:
         """Execute the Agent Framework workflow"""
         try:
-            # Execute the workflow
             result = await workflow.execute()
 
             return {
@@ -254,14 +231,9 @@ class AgentFrameworkSystem:
                 "timestamp": datetime.utcnow().isoformat()
             }
 
-    async def create_agent(self, name: str, instructions: str, capabilities: List[str] = None) -> ChatAgent:
+    async def create_agent(self, name: str, instructions: str, capabilities: List[str] = None) -> Agent:
         """Create a new agent with specified capabilities"""
-        metadata = {
-            "capabilities": capabilities or [],
-            "created_at": datetime.utcnow().isoformat()
-        }
-
-        agent = await self._create_chat_agent(name, instructions, metadata)
+        agent = await self._create_agent(name, instructions)
         self.agents[name] = agent
 
         self.logger.info(f"Created new agent: {name}")
@@ -277,7 +249,7 @@ class AgentFrameworkSystem:
             self.logger.warning(f"Agent {name} not found for removal")
             return False
 
-    def get_agent(self, name: str) -> Optional[ChatAgent]:
+    def get_agent(self, name: str) -> Optional[Agent]:
         """Get an agent by name"""
         return self.agents.get(name)
 
@@ -291,13 +263,12 @@ class AgentFrameworkSystem:
             **self.stats,
             "total_agents": len(self.agents),
             "is_initialized": self.is_initialized,
-            "framework": "Microsoft Agent Framework"
+            "framework": "Microsoft Agent Framework 1.0.0rc1"
         }
 
     async def shutdown(self):
         """Shutdown the Agent Framework system"""
         try:
-            # Clean up resources
             self.agents.clear()
             self.workflows.clear()
             self.is_initialized = False
