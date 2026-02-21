@@ -8,7 +8,7 @@ This directory contains specialized agent prompts/personas for working with the 
 **Specialization**: Python development for AOS
 
 **Expertise**:
-- Python 3.8+ features and async/await programming
+- Python 3.10+ features and async/await programming
 - Perpetual agent implementation patterns
 - PurposeDrivenAgent and ContextMCPServer usage
 - Testing with pytest-asyncio

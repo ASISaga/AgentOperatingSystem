@@ -1,32 +1,113 @@
 # Breaking Changes - Microsoft Agent Framework Upgrade
 
-## Version Upgrade: 1.0.0b251001 → 1.0.0b251218
+## Version Upgrade: 1.0.0b251218 → 1.0.0rc1 (AOS 3.0.0)
 
-This document details the breaking changes introduced when upgrading to the latest version of Microsoft's `agent-framework` package.
+This document details the breaking changes introduced when upgrading to agent-framework 1.0.0rc1 and adding agent-framework-orchestrations 1.0.0b260219.
 
-**Release Date:** October 1, 2024 → December 18, 2024  
-**Version Span:** 7 intermediate releases  
-**Official Release Notes:** See [RELEASE_NOTES.md](./RELEASE_NOTES.md) for complete changelog
+**Release Date:** February 2026  
+**AOS Version:** 3.0.0  
+**Backward Compatibility:** Not maintained — clean break
+
+---
+
+## Summary of Breaking Changes (1.0.0rc1)
+
+### 1. ChatAgent Renamed to Agent
+
+The `ChatAgent` class has been renamed to `Agent`. The constructor parameter `chat_client` has been renamed to `client`.
+
+```python
+# Before (1.0.0b251218)
+from agent_framework import ChatAgent
+agent = ChatAgent(chat_client=my_client, instructions="...", name="MyAgent")
+
+# After (1.0.0rc1)
+from agent_framework import Agent
+agent = Agent(client=my_client, instructions="...", name="MyAgent")
+```
+
+### 2. setup_logging Replaced by enable_instrumentation
+
+The `setup_logging()` function has been removed from the top-level module. Use `enable_instrumentation()` from `agent_framework.observability` instead.
+
+```python
+# Before (1.0.0b251218)
+from agent_framework import setup_logging
+setup_logging(level=logging.INFO, enable_sensitive_data=True)
+
+# After (1.0.0rc1)
+from agent_framework.observability import enable_instrumentation
+enable_instrumentation(enable_sensitive_data=True)
+```
+
+### 3. WorkflowBuilder API Overhaul
+
+The `WorkflowBuilder` API has changed significantly:
+- `start_executor` is now a required constructor parameter
+- `register_agent()` and `register_executor()` methods have been removed
+- Use `add_chain()` and `add_edge()` to compose workflows
+
+```python
+# Before (1.0.0b251218)
+builder = WorkflowBuilder()
+builder.register_agent(agent1)
+builder.register_agent(agent2)
+workflow = builder.build()
+
+# After (1.0.0rc1)
+builder = WorkflowBuilder(start_executor=agent1)
+builder.add_chain([agent1, agent2])
+workflow = builder.build()
+```
+
+### 4. Executor Constructor Parameter
+
+The `Executor` base class constructor parameter changed from `name` to `id`.
+
+```python
+# Before
+class MyExecutor(Executor):
+    def __init__(self):
+        super().__init__(name="my_executor")
+
+# After
+class MyExecutor(Executor):
+    def __init__(self):
+        super().__init__(id="my_executor")
+```
+
+### 5. New Separate Orchestrations Package
+
+Multi-agent orchestration builders have been moved to the new `agent-framework-orchestrations` package:
+
+```python
+from agent_framework_orchestrations import (
+    SequentialBuilder,      # Sequential multi-agent workflows
+    ConcurrentBuilder,      # Parallel multi-agent workflows
+    GroupChatBuilder,       # Group chat with orchestrator agent
+    HandoffBuilder,         # Agent handoff patterns
+    MagenticBuilder,        # Magentic-One orchestration
+)
+```
 
 ---
 
-## Summary of Breaking Changes
+## AOS Files Changed for 1.0.0rc1
 
-The upgrade from `agent-framework>=1.0.0b251001` to `agent-framework>=1.0.0b251218` introduces several breaking changes that affect the AOS codebase and any applications built on top of it (e.g., BusinessInfinity).
-
-### Critical Breaking Changes (AOS-Specific)
-
-1. **Telemetry/Logging API Changes** - Addressed in this upgrade
-2. **WorkflowBuilder API Changes** - Addressed in this upgrade
-3. **ChatAgent Constructor Requirements** - No changes needed (already compatible)
-4. **Model Type Naming Updates** - Addressed in this upgrade
-
-### Additional Breaking Changes (Upstream)
-
-5. **Observability Updates** (v1.0.0b251216) - May affect custom telemetry
-6. **Azure AI Component Renaming** (v1.0.0b251209) - May affect Azure AI integrations
+| File | Changes |
+|------|---------|
+| `pyproject.toml` | Added agent-framework>=1.0.0rc1, agent-framework-orchestrations>=1.0.0b260219 |
+| `azure_functions/RealmOfAgents/requirements.txt` | Updated agent-framework version |
+| `src/.../orchestration/agent_framework_system.py` | ChatAgent→Agent, setup_logging→enable_instrumentation, SequentialBuilder |
+| `src/.../orchestration/model_orchestration.py` | ChatAgent→Agent, client parameter |
+| `src/.../orchestration/workflow_orchestrator.py` | New WorkflowBuilder API, SequentialBuilder |
+| `src/.../orchestration/multi_agent.py` | ChatAgent→Agent |
+| `src/.../executor/base_executor.py` | Executor(name=) → Executor(id=) |
+| `tests/test_agent_framework_components.py` | Updated all mocks and assertions |
 
 ---
+
+## Previous: Version Upgrade 1.0.0b251001 → 1.0.0b251218
 
 ## 1. Telemetry/Logging API Changes
 
