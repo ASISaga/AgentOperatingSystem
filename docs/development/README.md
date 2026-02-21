@@ -13,6 +13,9 @@ This directory contains comprehensive documentation for developers and operators
 - **[REFACTORING.md](./REFACTORING.md)** - System refactoring documentation and architecture evolution
 - **[MIGRATION.md](./MIGRATION.md)** - Migration guide for upgrading between versions
 
+**Repository Architecture:**
+- **[REPOSITORY_SPLIT_PLAN.md](./REPOSITORY_SPLIT_PLAN.md)** ⭐ - Detailed plan for splitting into multiple focused repositories
+
 ### For DevOps/Operators
 
 **Deployment Documentation:**
