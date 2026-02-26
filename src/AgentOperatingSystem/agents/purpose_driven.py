@@ -1,23 +1,23 @@
 """
-PurposeDrivenAgent - Consolidated Fundamental Building Block of AgentOperatingSystem
+PurposeDrivenAgent - The Fundamental Building Block of AgentOperatingSystem
 
-This file consolidates BaseAgent, PerpetualAgent, and PurposeDrivenAgent into a single
-standalone class that is the fundamental building block of AOS.
+PurposeDrivenAgent is a directly-instantiable, perpetual agent class. It is the
+base class for all purpose-driven agents in AOS and can also be used on its own.
 
-PurposeDrivenAgent works against a perpetual, assigned purpose rather than short-term
+PurposeDrivenAgent works against a single, perpetual purpose rather than short-term
 tasks. This is the fundamental building block that makes AOS an operating system of
 Purpose-Driven, Perpetual Agents.
 
 Architecture Components:
-- LoRA Adapters: Provide domain-specific knowledge (language, vocabulary, concepts,
-  and agent persona) to PurposeDrivenAgents.  Each class in the inheritance chain
-  contributes exactly one adapter via _add_layer().
-- Core Purposes: Added to the primary LLM context to guide agent behavior
+- LoRA Adapters: Provide domain-specific vocabulary, persona, and knowledge.
+  Each class in the inheritance chain contributes exactly one adapter via _add_layer().
+- Core Purpose: There is exactly one purpose per agent. It is added to the LLM
+  context during initialization so that every decision is purpose-aligned.
 - MCP: Provides context management, domain-specific tools, and access to contemporary
-  software systems
+  software systems.
 
 Layer Stacking:
-  Each concrete class in the inheritance chain (PurposeDrivenAgent, LeadershipAgent,
+  Each class in the inheritance chain (PurposeDrivenAgent, LeadershipAgent,
   CMOAgent, …) adds one entry to self._layers by calling self._add_layer().  Each
   layer specifies its LoRA adapter, a domain context dict, and a list of skill names.
   The full capability of an agent is the union of all layers.
@@ -30,55 +30,66 @@ Layer Stacking:
   get_all_skills()     → all skills from all layers
   get_layer_contexts() → merged context dict from all layers
 
+Deployment:
+  PurposeDrivenAgent exposes a deploy() method that invokes the Python Azure
+  deployment orchestrator (deployment/deploy.py).  Derived-agent GitHub workflows
+  call this method to deploy their agent to Azure.
+
 agent_framework.Agent (Microsoft Agent Framework >= 1.0.0rc1) is a MANDATORY runtime
 dependency.  PurposeDrivenAgent directly inherits from it.
 """
 
+import subprocess
+import sys
+from pathlib import Path
 from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 import logging
 import asyncio
 import uuid
-from abc import ABC
 from agent_framework import Agent
 from ..ml.pipeline_ops import trigger_lora_training, run_azure_ml_pipeline, aml_infer
 from ..mcp.context_server import ContextMCPServer
 
 
-class PurposeDrivenAgent(Agent, ABC):
+class PurposeDrivenAgent(Agent):
     """
-    Purpose-Driven Perpetual Agent - The fundamental building block of AOS.
+    Purpose-Driven Perpetual Agent — The fundamental building block of AOS.
 
-    This is an ABSTRACT BASE CLASS that combines:
-    - BaseAgent: Generic agent with lifecycle, messaging, and state management
-    - PerpetualAgent: Agents that run indefinitely and respond to events
-    - PurposeDrivenAgent: Purpose-driven perpetual agents
+    PurposeDrivenAgent is directly instantiable and can be used on its own or
+    extended by more specialised agents (LeadershipAgent, CMOAgent, etc.).
 
-    NOTE: This is an abstract base class (ABC). You cannot directly instantiate
-    PurposeDrivenAgent. Instead, create a concrete subclass (like LeadershipAgent,
-    CMOAgent, or create your own custom agent).
+    Core Design Principles:
+    - **Single purpose**: There is exactly one purpose per agent. It is added to
+      the LLM context during initialization so every decision is purpose-aligned.
+    - **Layer stacking**: Each class in the inheritance chain calls _add_layer()
+      once to contribute its LoRA adapter (vocabulary, persona, knowledge), a
+      domain context dict, and a list of skill names.
+    - **Perpetual**: Runs indefinitely, awakening on events.
+    - **Stateful**: Maintains context across all interactions via MCP.
+    - **Deployable**: Provides deploy() to push itself to Azure via the Python
+      deployment orchestrator. Derived-agent GitHub workflows call this method.
 
-    Unlike task-based agents that execute and terminate, PurposeDrivenAgent
-    works continuously against an assigned, long-term purpose.
+    Layer Stacking:
+      get_adapters()       → ordered list of all LoRA adapters
+      get_all_skills()     → union of all skill names across layers
+      get_layer_contexts() → merged context dict from all layers
+      get_agent_type()     → alias for get_adapters()
 
-    Layer Stacking Architecture:
-    Each concrete class in the inheritance chain calls self._add_layer() once in
-    its __init__ to register its contribution:
-      - adapter_name: the LoRA adapter that provides domain knowledge & persona
-      - context:      a dict of domain-specific context entries stored in MCP
-      - skills:       a list of skill/capability names this layer introduces
+    Example — direct use:
+        >>> agent = PurposeDrivenAgent(
+        ...     agent_id="assistant",
+        ...     purpose="General assistance and task execution",
+        ...     adapter_name="general"
+        ... )
+        >>> await agent.initialize()
+        >>> await agent.start()
 
-    get_adapters()       returns the ordered list of all LoRA adapters
-    get_all_skills()     returns the union of all skill names
-    get_layer_contexts() returns the merged context dict from all layers
-    get_agent_type()     returns get_adapters() - no subclass override needed
-
-    Other characteristics:
-    - Persistent: Remains registered and active indefinitely
-    - Event-driven: Awakens in response to events
-    - Stateful: Maintains context across all interactions via MCP
-    - Resource-efficient: Sleeps when idle, awakens on events
-    - Autonomous: Makes decisions aligned with its purpose
+    Example — subclassing:
+        >>> class MyAgent(PurposeDrivenAgent):
+        ...     def __init__(self, agent_id):
+        ...         super().__init__(agent_id=agent_id, purpose="My purpose", adapter_name=None)
+        ...         self._add_layer("my-domain", {"domain": "custom"}, ["my_skill"])
     """
 
     def __init__(
@@ -101,7 +112,8 @@ class PurposeDrivenAgent(Agent, ABC):
 
         Args:
             agent_id: Unique identifier for this agent
-            purpose: The long-term purpose this agent works toward (added to LLM context)
+            purpose: The single, long-term purpose this agent works toward.
+                     Added to the LLM context so every decision is purpose-aligned.
             name: Human-readable agent name
             role: Agent role/type
             agent_type: Type of agent (e.g., "perpetual", "purpose_driven")
@@ -109,27 +121,19 @@ class PurposeDrivenAgent(Agent, ABC):
             success_criteria: List of criteria that define success (optional)
             tools: Tools available to the agent (optional, via MCP)
             system_message: System message for the agent (optional)
-            adapter_name: LoRA adapter for THIS base layer (e.g., 'generic', 'ceo').
+            adapter_name: LoRA adapter for THIS base layer (e.g., 'general', 'ceo').
                 Subclasses that manage their own layers should pass None here and
                 call self._add_layer() explicitly after super().__init__().
             config: Optional configuration dictionary
             aos: Optional reference to AgentOperatingSystem instance for querying available personas
 
         Architecture:
-            - The purpose is added to the primary LLM context to guide behavior
+            - The purpose is added to the primary LLM context to guide behavior.
             - Each class in the inheritance chain calls _add_layer() to register
-              its LoRA adapter, domain context, and skill names.
-            - MCP (via ContextMCPServer) provides context management and domain tools
+              its LoRA adapter (vocabulary, persona, knowledge), domain context,
+              and skill names.
+            - MCP (via ContextMCPServer) provides context management and domain tools.
         """
-        # Guard: PurposeDrivenAgent is abstract by convention — direct instantiation
-        # is not permitted.  Use GenericPurposeDrivenAgent or a concrete subclass.
-        if type(self) is PurposeDrivenAgent:
-            raise TypeError(
-                "Cannot directly instantiate abstract class PurposeDrivenAgent. "
-                "Use GenericPurposeDrivenAgent or a concrete subclass that calls "
-                "self._add_layer() to register its adapter, context, and skills."
-            )
-
         # Initialise agent_framework.Agent (mandatory runtime dependency).
         # client=None defers LLM client wiring to the AOS runtime layer.
         # instructions receives the combined system message + purpose statement
@@ -838,6 +842,77 @@ class PurposeDrivenAgent(Agent, ABC):
             "total_events_processed": self.total_events_processed
         }
 
+    def deploy(
+        self,
+        environment: str = "dev",
+        resource_group: Optional[str] = None,
+        location: Optional[str] = None,
+        template: Optional[str] = None,
+        extra_args: Optional[List[str]] = None,
+    ) -> int:
+        """
+        Deploy this agent to Azure using the Python deployment orchestrator.
+
+        This method invokes ``deployment/deploy.py`` (the AOS Bicep orchestrator)
+        as a subprocess.  It is the entry-point called by derived-agent GitHub
+        workflows that need to deploy or update an agent on Azure.
+
+        Args:
+            environment:    Target Azure environment ('dev', 'staging', 'prod').
+                            Defaults to 'dev'.
+            resource_group: Azure resource-group name.  When omitted the
+                            orchestrator derives a name from the environment.
+            location:       Primary Azure region.  When omitted the orchestrator
+                            auto-selects a region.
+            template:       Path to the Bicep template file.  When omitted the
+                            orchestrator uses the default modular template.
+            extra_args:     Additional CLI arguments forwarded verbatim to
+                            deploy.py (e.g. ['--skip-health-checks']).
+
+        Returns:
+            The subprocess return-code (0 = success).
+
+        Raises:
+            FileNotFoundError: If deploy.py cannot be located relative to the
+                               package root.
+        """
+        deploy_script = Path(__file__).resolve().parents[3] / "deployment" / "deploy.py"
+        if not deploy_script.exists():
+            raise FileNotFoundError(
+                f"Deployment script not found at {deploy_script}. "
+                "Ensure the deployment/ directory is present in the repository root."
+            )
+
+        cmd = [sys.executable, str(deploy_script), "--environment", environment]
+
+        if resource_group:
+            cmd += ["--resource-group", resource_group]
+        if location:
+            cmd += ["--location", location]
+        if template:
+            cmd += ["--template", template]
+        if extra_args:
+            cmd += extra_args
+
+        self.logger.info(
+            f"Deploying agent '{self.agent_id}' to Azure "
+            f"(environment={environment}, resource_group={resource_group or 'auto'})"
+        )
+
+        result = subprocess.run(cmd, check=False, capture_output=True, text=True)
+        if result.stdout:
+            self.logger.info(result.stdout.rstrip())
+        if result.returncode == 0:
+            self.logger.info(f"Agent '{self.agent_id}' deployed successfully.")
+        else:
+            if result.stderr:
+                self.logger.error(result.stderr.rstrip())
+            self.logger.error(
+                f"Deployment of agent '{self.agent_id}' failed "
+                f"(return-code {result.returncode})."
+            )
+        return result.returncode
+
     async def _perpetual_loop(self) -> None:
         """
         Main perpetual loop - runs indefinitely.
@@ -948,24 +1023,11 @@ class PurposeDrivenAgent(Agent, ABC):
         self.logger.debug(f"Loaded purpose context for {self.agent_id}")
 
 
-class GenericPurposeDrivenAgent(PurposeDrivenAgent):
-    """
-    Concrete implementation of PurposeDrivenAgent for general-purpose use.
-
-    Passes adapter_name directly to PurposeDrivenAgent.__init__(), which
-    registers it as the single base layer.  get_agent_type() is inherited and
-    returns [adapter_name] automatically via the layer stack.
-
-    For more specialised use cases consider LeadershipAgent, CMOAgent, or a
-    custom subclass that calls self._add_layer() in its own __init__.
-
-    Example:
-        >>> agent = GenericPurposeDrivenAgent(
-        ...     agent_id="assistant",
-        ...     purpose="General assistance and task execution",
-        ...     adapter_name="general"
-        ... )
-        >>> await agent.initialize()
-        >>> await agent.start()
-    """
+# ---------------------------------------------------------------------------
+# Backward-compatibility aliases
+# ---------------------------------------------------------------------------
+# GenericPurposeDrivenAgent has been merged into PurposeDrivenAgent.
+# The alias ensures that existing code importing GenericPurposeDrivenAgent
+# (or its older aliases BaseAgent / PerpetualAgent) continues to work.
+GenericPurposeDrivenAgent = PurposeDrivenAgent
 
