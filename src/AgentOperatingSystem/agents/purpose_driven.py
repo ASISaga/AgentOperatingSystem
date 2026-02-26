@@ -15,7 +15,9 @@ Architecture Components:
 - MCP: Provides context management, domain-specific tools, and access to contemporary
   software systems
 
-PurposeDrivenAgent will eventually be moved to a dedicated repository.
+PurposeDrivenAgent inherits from agent_framework.Agent (Microsoft Agent Framework)
+when the package is available, establishing it as the foundational AOS building block
+on top of the agent-framework runtime.
 """
 
 from typing import Dict, Any, List, Optional, Callable
@@ -27,8 +29,18 @@ from abc import ABC, abstractmethod
 from ..ml.pipeline_ops import trigger_lora_training, run_azure_ml_pipeline, aml_infer
 from ..mcp.context_server import ContextMCPServer
 
+try:
+    from agent_framework import Agent as _AgentFrameworkBase
+    _AGENT_FRAMEWORK_AVAILABLE = True
+except ImportError:
+    # Stub base class when agent_framework package is not installed.
+    # Install via: pip install agent-framework>=1.0.0rc1
+    class _AgentFrameworkBase:  # pylint: disable=too-few-public-methods
+        """Stub for agent_framework.Agent when the package is not available."""
+    _AGENT_FRAMEWORK_AVAILABLE = False
 
-class PurposeDrivenAgent(ABC):
+
+class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
     """
     Purpose-Driven Perpetual Agent - The fundamental building block of AOS.
 
@@ -127,6 +139,22 @@ class PurposeDrivenAgent(ABC):
               knowledge, vocabulary, concepts, and agent persona
             - MCP (via ContextMCPServer) provides context management and domain tools
         """
+        # Initialise agent_framework.Agent base class when the package is available.
+        # Maps PurposeDrivenAgent parameters to the agent_framework.Agent interface:
+        #   client       → LLM client (None defers client wiring to the AOS runtime)
+        #   name         → agent identity in the framework
+        #   instructions → combined system message and purpose, used as LLM context
+        if _AGENT_FRAMEWORK_AVAILABLE:
+            try:
+                super().__init__(
+                    client=None,
+                    name=name or agent_id,
+                    instructions=system_message or purpose,
+                )
+            except TypeError:
+                # Agent signature may vary across rc versions; fall back silently.
+                pass
+
         # BaseAgent attributes
         self.agent_id = agent_id
         self.name = name or agent_id
