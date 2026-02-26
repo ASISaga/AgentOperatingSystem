@@ -1,10 +1,10 @@
 # Repository Split Plan: AgentOperatingSystem → Multi-Repository Architecture
 
-**Version:** 1.3  
+**Version:** 1.4  
 **Date:** February 2026  
 **Status:** Proposed  
 **Author:** Architecture Analysis  
-**Last Updated:** February 26, 2026 (agent repositories extracted; aos-core renamed to aos-kernel; aos-intelligence extracted)
+**Last Updated:** February 2026 (split aos-azure-functions into 3 independent function app repos; distributed docs and copilot extensions to owning repos)
 
 ---
 
@@ -20,9 +20,11 @@
   - [4. aos-kernel](#4-aos-kernel)
   - [5. aos-deployment](#5-aos-deployment)
   - [6. aos-intelligence](#6-aos-intelligence)
-  - [7. aos-docs](#7-aos-docs)
-  - [8. aos-azure-functions](#8-aos-azure-functions)
-  - [9. aos-copilot-extensions](#9-aos-copilot-extensions)
+  - [7. aos-function-app](#7-aos-function-app)
+  - [8. aos-realm-of-agents](#8-aos-realm-of-agents)
+  - [9. aos-mcp-servers](#9-aos-mcp-servers)
+- [Documentation Distribution](#documentation-distribution)
+- [Copilot Extensions Distribution](#copilot-extensions-distribution)
 - [Dependency Graph](#dependency-graph)
 - [Shared Contracts & Interfaces](#shared-contracts--interfaces)
 - [Migration Strategy](#migration-strategy)
@@ -34,16 +36,14 @@
 
 ## Executive Summary
 
-The AgentOperatingSystem repository currently contains **198 Python files** (~45,000 LOC), **117 Markdown documents** (~38,000 lines), **9 Bicep infrastructure templates**, **5 CI/CD workflows**, and **8 GitHub Copilot skills** — all in a single repository. These components span six distinct domains with different release cadences, team ownership profiles, and dependency chains:
+The AgentOperatingSystem repository currently contains **198 Python files** (~45,000 LOC), **117 Markdown documents** (~38,000 lines), **9 Bicep infrastructure templates**, **5 CI/CD workflows**, and **8 GitHub Copilot skills** — all in a single repository. These components span **4 distinct domains** with different release cadences, team ownership profiles, and dependency chains:
 
 1. **Core OS runtime** (agents, orchestration, messaging, storage, auth, config)
 2. **Infrastructure deployment** (Bicep templates, Python orchestrator, regional validation)
 3. **Agent intelligence** (ML pipelines, LoRA/LoRAx, DPO training, self-learning, knowledge/RAG)
-4. **Documentation** (architecture, specifications, guides, release notes)
-5. **Azure Functions hosting** (function apps, MCP servers, RealmOfAgents)
-6. **GitHub Copilot extensions** (skills, prompts, instructions, agent configs, workflows)
+4. **Azure Functions hosting** — three independent function apps (main entry point, RealmOfAgents, MCPServers)
 
-This plan proposes splitting into **9 focused repositories** under the `ASISaga` GitHub organization, connected via Python package dependencies and shared interface contracts.
+This plan proposes splitting into **9 focused repositories** under the `ASISaga` GitHub organization, connected via Python package dependencies and shared interface contracts. Documentation and GitHub Copilot extensions (skills, prompts, instructions) are **distributed** to the repositories they belong to rather than centralized in dedicated repos.
 
 ---
 
@@ -129,18 +129,22 @@ ASISaga/
 ├── aos-kernel            # OS kernel: orchestration, messaging, storage, auth (renamed from aos-core)
 ├── aos-deployment        # Infrastructure: Bicep, orchestrator, regional validation, CI/CD
 ├── aos-intelligence      # ML/AI: LoRA, DPO, self-learning, knowledge, RAG
-├── aos-docs              # All documentation: architecture, specs, guides, API ref
-├── aos-azure-functions   # Azure Functions: function_app.py, RealmOfAgents, MCPServers
-└── aos-copilot-extensions # GitHub Copilot: skills, prompts, instructions, agent configs
+├── aos-function-app      # Main Azure Functions entry point (root function_app.py, host.json)
+├── aos-realm-of-agents   # RealmOfAgents config-driven agent deployment function app
+└── aos-mcp-servers       # MCPServers config-driven MCP server deployment function app
 ```
 
 ### Why 9 Repositories (Not Fewer, Not More)
 
 - **Three agent repos** reflect the agent inheritance hierarchy: each agent is independently deployable, versioned, and documented. Teams building new agents can take `purpose-driven-agent` as their base without pulling in the full AOS kernel.
 - **`aos-kernel`** (renamed from `aos-core`) better reflects its role as the OS kernel — orchestration engine, messaging, storage, auth — not a "core" library. The `aos-` prefix distinguishes it from the agent repos which are standalone.
-- **6 remaining repos** retain the natural domain boundaries: deployment infrastructure, ML intelligence, documentation, Azure Functions hosting, and Copilot developer tooling.
-- **Each repo has a distinct release cadence**: agent repos (semver, API-stability focused), kernel (breaking-change gated), deployment (infra change driven), intelligence (model/training driven), docs (continuous), azure-functions (deployment driven), copilot-extensions (feature driven).
-- **Each repo has a distinct primary audience**: agent repos (agent SDK consumers, other agent authors), kernel (SDK consumers, platform engineers), deployment (infra operators), intelligence (ML engineers), docs (all stakeholders), azure-functions (platform engineers), copilot-extensions (developer experience).
+- **Three Azure Function repos** (one per function app) — each function app has its own deployment lifecycle, scaling requirements, and team ownership. Independent repos enable independent versioning, CI/CD pipelines, and Azure deployment slots without cross-app coupling.
+- **`aos-deployment`** is standalone infrastructure-as-code — Bicep templates, deployment orchestrator, and regional validation.
+- **`aos-intelligence`** isolates heavy ML dependencies (PyTorch, transformers) from the kernel and function apps.
+- **Documentation distributed** — each repo carries its own `docs/` directory. No centralized docs repo; documentation lives next to the code it describes.
+- **Copilot extensions distributed** — skills, prompts, and instructions are co-located in the `.github/` directory of the repo they specialize in.
+- **Each repo has a distinct release cadence**: agent repos (semver, API-stability focused), kernel (breaking-change gated), deployment (infra change driven), intelligence (model/training driven), function apps (deployment driven, independently scaled).
+- **Each repo has a distinct primary audience**: agent repos (agent SDK consumers, other agent authors), kernel (SDK consumers, platform engineers), deployment (infra operators), intelligence (ML engineers), function apps (platform engineers, DevOps).
 
 ---
 
@@ -574,89 +578,11 @@ foundry = [
 
 ---
 
-### 7. aos-docs
+### 7. aos-function-app
 
-**Purpose:** All project documentation — architecture, specifications, guides, API reference, release notes, and contributor guides.
+**Purpose:** Main Azure Functions entry point for the Agent Operating System. Exposes AOS as cloud services via Service Bus triggers and HTTP endpoints.
 
-**What moves here:**
-
-```
-docs/
-├── README.md                       # Documentation index
-├── architecture/
-│   └── ARCHITECTURE.md             # System architecture (803 lines)
-├── overview/
-│   ├── vision.md
-│   ├── principles.md
-│   ├── perpetual-agents.md
-│   └── services.md
-├── getting-started/
-│   ├── quickstart.md
-│   ├── quickstart-old.md
-│   ├── installation.md
-│   └── azure-functions.md          # (keep reference, detail in aos-azure-functions)
-├── specifications/
-│   ├── README.md
-│   ├── auth.md
-│   ├── extensibility.md
-│   ├── governance.md
-│   ├── learning.md
-│   ├── mcp.md
-│   ├── messaging.md
-│   ├── ml.md
-│   ├── observability.md
-│   ├── orchestration.md
-│   ├── refactoring.md
-│   ├── reliability.md
-│   └── storage.md
-├── features/
-│   ├── features-overview.md
-│   └── advanced-features.md
-├── development/
-│   ├── CONTRIBUTING.md
-│   ├── MIGRATION.md
-│   ├── REFACTORING.md
-│   └── README.md
-├── reference/
-│   └── system-apis.md
-├── releases/
-│   ├── CHANGELOG.md
-│   ├── RELEASE_NOTES.md
-│   └── BREAKING_CHANGES.md
-├── # Standalone docs from root
-├── APP_CONFIGURATION.md
-├── CODE_ORGANIZATION.md
-├── DPO_README.md
-├── ENHANCED_ORCHESTRATION_INTEGRATION.md
-├── FOUNDRY_AGENT_SERVICE.md
-├── INTEGRATION_COMPLETE.md
-├── Implementation.md
-├── LORAX.md
-├── RealmOfAgents.md
-├── a2a_communication.md
-├── configuration.md
-├── development.md
-├── extensibility.md
-├── llm_architecture.md
-├── rest_api.md
-├── self_learning.md
-├── testing.md
-└── testing_infrastructure.md
-```
-
-**Estimated size:** ~21,595 Markdown lines (docs/) + select root .md files
-
-**Key design decisions:**
-- Uses **GitHub Pages** or a docs site generator (MkDocs/Docusaurus) for a unified documentation site.
-- Each sub-repo keeps only a minimal README.md pointing to aos-docs for detailed documentation.
-- API reference auto-generated from `purpose-driven-agent`, agent repos, `aos-kernel`, and `aos-intelligence` source code.
-- Versioned documentation matching `aos-kernel` release versions.
-
----
-
-### 8. aos-azure-functions
-
-**Purpose:** Azure Functions host applications that expose AOS as cloud services — the function app, RealmOfAgents (config-driven agent deployment), and MCPServers (config-driven MCP server deployment).
+**Cut-paste-ready directory structure:** `docs/agent-repositories/aos-function-app/` in this monorepo.
 
 **What moves here:**
 
@@ -664,34 +590,26 @@ docs/
 function_app.py                 # Main Azure Functions entry point (332 LOC)
 host.json                       # Azure Functions host configuration
 local.settings.json             # Local dev settings (template)
-azure_functions/
-├── RealmOfAgents/              # Config-driven agent deployment
-│   ├── function_app.py         # RealmOfAgents function app
-│   ├── function_app_original.py
-│   ├── agent_config_schema.py
-│   ├── example_agent_registry.json
-│   ├── host.json
-│   ├── requirements.txt
-│   ├── README.md
-│   └── MIGRATION_TO_FOUNDRY.md
-├── MCPServers/                 # Config-driven MCP server deployment
-│   ├── function_app.py         # MCPServers function app
-│   ├── mcp_server_schema.py
-│   ├── example_mcp_server_registry.json
-│   ├── host.json
-│   ├── requirements.txt
-│   └── README.md
-├── README.md
-├── DEPLOYMENT.md
-├── IMPLEMENTATION_SUMMARY.md
-└── setup_infrastructure.sh
-.github/workflows/
-└── cicd-pipeline.yml           # CI/CD pipeline (references function apps)
+.github/
+├── skills/azure-functions/SKILL.md
+├── instructions/azure-functions.instructions.md
+├── prompts/azure-expert.md
+└── workflows/ci.yml
+docs/
+├── architecture.md
+├── azure-functions.md
+├── api-reference.md
+└── contributing.md
+tests/
+└── test_azure_functions_infrastructure.py
+pyproject.toml
+README.md
+LICENSE
 ```
 
-**Estimated size:** ~1,888 Python LOC + configuration files
+**Package name:** `aos-function-app` (deployment target, not a library)
 
-**pyproject.toml / requirements.txt dependencies:**
+**Dependencies:**
 ```
 aos-kernel[azure]>=3.0.0
 aos-intelligence[foundry]>=1.0.0    # Optional, for ML-backed agents
@@ -703,59 +621,181 @@ agent-framework-azurefunctions>=1.0.0b260219
 
 **Key design decisions:**
 - This is a **deployment target**, not a library. It depends on `aos-kernel` and optionally `aos-intelligence`.
-- The `cicd-pipeline.yml` workflow moves here since it's specific to building and deploying the function apps.
-- `host.json` and Azure Functions configuration stay here.
+- Contains only the root-level function app entry point (`function_app.py`) and its Azure Functions host config.
+- The `azure-functions` Copilot skill and related instructions/prompts are co-located here.
+- Independently deployable and scalable — changes to RealmOfAgents or MCPServers do not require redeploying this app.
 
 ---
 
-### 9. aos-copilot-extensions
+### 8. aos-realm-of-agents
 
-**Purpose:** GitHub Copilot skills, custom prompts, instructions, and agent configuration files that enhance developer experience across all AOS repositories.
+**Purpose:** Config-driven agent deployment Azure Function app. Dynamically deploys and manages agents based on registry configuration.
+
+**Cut-paste-ready directory structure:** `docs/agent-repositories/aos-realm-of-agents/` in this monorepo.
 
 **What moves here:**
 
 ```
-.github/
-├── skills/
-│   ├── Readme.md
-│   ├── aos-architecture/SKILL.md
-│   ├── async-python-testing/SKILL.md
-│   ├── azure-functions/SKILL.md
-│   ├── code-quality-pylint/SKILL.md
-│   ├── code-refactoring/SKILL.md
-│   └── perpetual-agents/SKILL.md
-├── prompts/
-│   ├── README.md
-│   ├── azure-expert.md
-│   ├── code-quality-expert.md
-│   ├── python-expert.md
-│   └── testing-expert.md
-├── instructions/
-│   ├── Readme.md
-│   ├── agents.instructions.md
-│   ├── architecture.instructions.md
-│   ├── code-quality.instructions.md
-│   ├── development.instructions.md
-│   ├── documents.instructions.md
-│   └── python.instructions.md
-├── spec/
-│   └── skills.md
+azure_functions/RealmOfAgents/
+├── function_app.py
+├── function_app_original.py
+├── agent_config_schema.py
+├── example_agent_registry.json
+├── host.json
+├── requirements.txt
+├── local.settings.json.example
 ├── README.md
-├── ONBOARDING_VALIDATION.md
-├── PYLINT_IMPLEMENTATION_SUMMARY.md
-└── PYLINT_QUICKREF.md
-.github/workflows/
-└── pylint.yml                  # Code quality workflow (applicable across repos)
+└── MIGRATION_TO_FOUNDRY.md
+.github/
+├── workflows/ci.yml
+└── instructions/realm-of-agents.instructions.md
+docs/
+├── architecture.md
+├── RealmOfAgents.md
+├── api-reference.md
+└── contributing.md
+tests/
+└── test_realm_of_agents.py
+pyproject.toml
+LICENSE
 ```
 
-**Estimated size:** ~10,972 Markdown lines + 1 YAML workflow
+**Package name:** `aos-realm-of-agents` (deployment target)
+
+**Dependencies:**
+```
+aos-kernel[azure]>=3.0.0
+azure-functions>=1.21.0
+agent-framework>=1.0.0rc1
+```
 
 **Key design decisions:**
-- Skills that are repo-specific (`deployment-error-fixer`, `azure-troubleshooting`) move to their respective repos (aos-deployment).
-- General-purpose skills (architecture, testing, code quality, agents) live here.
-- Prompts and instructions are reusable across all AOS repos.
-- Each AOS repo includes this as a Git submodule or copies relevant skills via CI.
-- The `deployment-expert.md` prompt moves to aos-deployment.
+- Standalone function app with its own `host.json` and deployment configuration.
+- Config-driven: agents are defined via a JSON registry (`example_agent_registry.json`), not hard-coded.
+- Independently versioned and deployed — agent registry changes do not affect the main function app or MCPServers.
+
+---
+
+### 9. aos-mcp-servers
+
+**Purpose:** Config-driven MCP server deployment Azure Function app. Dynamically deploys and manages MCP servers based on registry configuration.
+
+**Cut-paste-ready directory structure:** `docs/agent-repositories/aos-mcp-servers/` in this monorepo.
+
+**What moves here:**
+
+```
+azure_functions/MCPServers/
+├── function_app.py
+├── mcp_server_schema.py
+├── example_mcp_server_registry.json
+├── host.json
+├── requirements.txt
+├── local.settings.json.example
+└── README.md
+.github/
+├── workflows/ci.yml
+└── instructions/mcp-servers.instructions.md
+docs/
+├── architecture.md
+├── mcp.md
+├── api-reference.md
+└── contributing.md
+tests/
+└── test_mcp_servers.py
+pyproject.toml
+LICENSE
+```
+
+**Package name:** `aos-mcp-servers` (deployment target)
+
+**Dependencies:**
+```
+aos-kernel[azure]>=3.0.0
+azure-functions>=1.21.0
+```
+
+**Key design decisions:**
+- Standalone function app with its own `host.json` and deployment configuration.
+- Config-driven: MCP servers are defined via a JSON registry, not hard-coded.
+- Independently versioned and deployed — MCP server changes do not affect the main function app or RealmOfAgents.
+
+---
+
+## Documentation Distribution
+
+With the removal of a dedicated `aos-docs` repository, documentation is **distributed** across all repositories. Each repo owns and maintains the documentation relevant to its domain.
+
+### Per-Repository docs/ Structure
+
+Every repository carries its own `docs/` directory with at minimum:
+
+- **`architecture.md`** — Module-specific architecture and design decisions
+- **`api-reference.md`** — Auto-generated or hand-written API documentation
+- **`contributing.md`** — Contribution guidelines specific to that repo
+
+### Distribution of Current Documentation
+
+| Documentation Category | Target Repository |
+|----------------------|-------------------|
+| Specification docs (`docs/specifications/auth.md`, `messaging.md`, `orchestration.md`, `mcp.md`, `reliability.md`, `storage.md`, `observability.md`, `governance.md`, `extensibility.md`) | **aos-kernel** (module specs live with the kernel) |
+| Specification docs (`docs/specifications/ml.md`, `learning.md`) | **aos-intelligence** |
+| Getting-started guides (`quickstart.md`, `installation.md`), overview docs (`vision.md`, `principles.md`, `perpetual-agents.md`, `services.md`) | **aos-kernel** (primary SDK entry point) |
+| Release docs (`CHANGELOG.md`, `RELEASE_NOTES.md`, `BREAKING_CHANGES.md`) | **aos-kernel** (per-repo changelogs encouraged) |
+| Architecture overview (`ARCHITECTURE.md`) | **aos-kernel** (system-level architecture) |
+| Deployment docs (`DEPLOYMENT_PLAN.md`, `DEPLOYMENT_TASKS.md`, `deployment.md`, `azure-functions.md`) | **aos-deployment** |
+| ML/Intelligence docs (`DPO_README.md`, `LORAX.md`, `self_learning.md`, `FOUNDRY_AGENT_SERVICE.md`) | **aos-intelligence** |
+| Azure Functions docs (`RealmOfAgents.md`, `IMPLEMENTATION_SUMMARY.md`) | Respective function app repos |
+| Agent-specific docs | Respective agent repos (`purpose-driven-agent`, `leadership-agent`, `cmo-agent`) |
+| Development guides (`CONTRIBUTING.md`, `MIGRATION.md`, `REFACTORING.md`) | **aos-kernel** (canonical), with repo-specific guides in each repo |
+
+### Documentation Site
+
+API reference is auto-generated from source code across all repos. A lightweight documentation aggregator (e.g., GitHub Pages on `aos-kernel` or a meta-repo) can pull and cross-link docs from all repos if a unified site is desired.
+
+---
+
+## Copilot Extensions Distribution
+
+With the removal of a dedicated `aos-copilot-extensions` repository, GitHub Copilot skills, prompts, and instructions are **distributed** to the repositories they specialize in. Each repo's `.github/` directory contains its own Copilot extensions.
+
+### Skills Distribution
+
+| Skill | Target Repository |
+|-------|-------------------|
+| `aos-architecture` | **aos-kernel** |
+| `async-python-testing` | **aos-kernel** |
+| `code-quality-pylint` | **aos-kernel** |
+| `code-refactoring` | **aos-kernel** |
+| `deployment-error-fixer` | **aos-deployment** |
+| `azure-troubleshooting` | **aos-deployment** |
+| `azure-functions` | **aos-function-app** |
+| `perpetual-agents` | **purpose-driven-agent** |
+| `leadership-agent` | **leadership-agent** |
+| `cmo-agent` | **cmo-agent** |
+
+### Prompts Distribution
+
+Prompts follow the same pattern — each prompt moves to the repo whose domain it covers:
+- `azure-expert.md` → **aos-function-app**
+- `code-quality-expert.md` → **aos-kernel**
+- `python-expert.md` → **aos-kernel**
+- `testing-expert.md` → **aos-kernel**
+- `deployment-expert.md` → **aos-deployment**
+
+### Instructions Distribution
+
+Instructions are distributed similarly:
+- `architecture.instructions.md`, `code-quality.instructions.md`, `development.instructions.md`, `python.instructions.md` → **aos-kernel**
+- `agents.instructions.md` → **purpose-driven-agent**
+- `documents.instructions.md` → **aos-kernel**
+- `azure-functions.instructions.md` → **aos-function-app**
+- `realm-of-agents.instructions.md` → **aos-realm-of-agents**
+- `mcp-servers.instructions.md` → **aos-mcp-servers**
+
+### Canonical Spec Reference
+
+`spec/skills.md` (the skills specification) moves to **aos-kernel** as the canonical reference for the Copilot skills format across all AOS repos.
 
 ---
 
@@ -763,44 +803,41 @@ agent-framework-azurefunctions>=1.0.0b260219
 
 ```
                     ┌──────────────────┐
-                    │    aos-docs      │  (no code dependencies)
-                    └──────────────────┘
+                    │  agent_framework  │  ← External (Microsoft Agent Framework)
+                    └────────┬─────────┘
+                             │
+          ┌──────────────────▼───────────────┐
+          │      purpose-driven-agent         │  ← Foundational agent base class
+          └──────────┬───────────────────────┘
+                     │
+           ┌─────────▼─────────┐
+           │ leadership-agent   │
+           └─────────┬─────────┘
+                     │
+           ┌─────────▼─────────┐
+           │    cmo-agent       │
+           └───────────────────┘
 
-┌──────────────────────┐
-│ aos-copilot-extensions│  (no code dependencies, used as submodule)
-└──────────────────────┘
-
-          ┌────────────────────────────────┐
-          │      agent_framework           │  ← External (Microsoft Agent Framework)
-          └────────────────┬───────────────┘
-                           │
-          ┌────────────────▼───────────────┐
-          │      purpose-driven-agent      │  ← Foundational agent base class
-          └────────┬───────────────────────┘
-                   │
-         ┌─────────▼─────────┐
-         │  leadership-agent  │  ← Inherits PurposeDrivenAgent
-         └─────────┬──────────┘
-                   │
-         ┌─────────▼─────────┐
-         │     cmo-agent      │  ← Inherits LeadershipAgent
-         └───────────────────┘
-
-          ┌────────────────────────────────┐
-          │         aos-kernel             │  ← OS kernel (depends on purpose-driven-agent)
-          └─────────────┬──────────────────┘
-                        │
-             ┌──────────┴──────────┐
-             ▼                     ▼
-    ┌─────────────────┐  ┌──────────────────────┐
-    │ aos-intelligence│  │  aos-azure-functions  │
-    │  depends on:    │  │     depends on:       │
-    │  aos-kernel     │  │     aos-kernel        │
-    └─────────────────┘  │     aos-intelligence  │ (optional)
-                         └───────────────────────┘
+          ┌──────────────────────────────────┐
+          │           aos-kernel              │  ← OS kernel (depends on purpose-driven-agent)
+          └────────────┬─────────────────────┘
+                       │
+         ┌─────────────┼───────────────────────────┐
+         ▼             ▼                            ▼
+┌─────────────────┐  ┌───────────────────┐   ┌──────────────────────┐
+│ aos-intelligence│  │  aos-function-app │   │ aos-realm-of-agents  │
+│  depends on:    │  │    depends on:    │   │    depends on:       │
+│  aos-kernel     │  │    aos-kernel     │   │    aos-kernel        │
+└─────────────────┘  │  aos-intelligence │   └──────────────────────┘
+                     │    (optional)     │
+                     └───────────────────┘   ┌──────────────────┐
+                                             │  aos-mcp-servers  │
+                                             │    depends on:    │
+                                             │    aos-kernel     │
+                                             └──────────────────┘
 
           ┌──────────────────┐
-          │  aos-deployment  │  (standalone, no Python AOS deps)
+          │  aos-deployment   │  (standalone, no Python AOS deps)
           └──────────────────┘
 ```
 
@@ -810,10 +847,10 @@ agent-framework-azurefunctions>=1.0.0b260219
 3. `cmo-agent` depends on `leadership-agent>=1.0.0`.
 4. `aos-kernel` depends on `purpose-driven-agent>=1.0.0` and no other AOS packages.
 5. `aos-intelligence` depends on `aos-kernel>=3.0.0` for interfaces and base classes.
-6. `aos-azure-functions` depends on `aos-kernel` (required) and `aos-intelligence` (optional).
-7. `aos-deployment` is **standalone** — it deploys Azure infrastructure and has no Python dependency on AOS runtime.
-8. `aos-docs` is **standalone** — pure documentation, no code.
-9. `aos-copilot-extensions` is **standalone** — developer tooling, used as a submodule or reference.
+6. `aos-function-app` depends on `aos-kernel` (required) and `aos-intelligence` (optional).
+7. `aos-realm-of-agents` depends on `aos-kernel` (required).
+8. `aos-mcp-servers` depends on `aos-kernel` (required).
+9. `aos-deployment` is **standalone** — it deploys Azure infrastructure and has no Python dependency on AOS runtime.
 
 ---
 
@@ -891,7 +928,7 @@ The `messaging/contracts.py` module stays in `aos-kernel` as the canonical messa
 **Duration:** 1 week  
 **Risk:** Low
 
-1. Create empty repos: `purpose-driven-agent`, `leadership-agent`, `cmo-agent`, `aos-kernel`, `aos-deployment`, `aos-intelligence`, `aos-docs`, `aos-azure-functions`, `aos-copilot-extensions`.
+1. Create empty repos: `purpose-driven-agent`, `leadership-agent`, `cmo-agent`, `aos-kernel`, `aos-deployment`, `aos-intelligence`, `aos-function-app`, `aos-realm-of-agents`, `aos-mcp-servers`.
 2. Copy the cut-paste-ready structures from `docs/agent-repositories/` into the three agent repos.
 3. Set up CI/CD templates in each.
 4. Set up package publishing (PyPI or private registry) for agent repos and `aos-kernel`.
@@ -908,12 +945,12 @@ Use `git filter-branch` or `git subtree split` to preserve commit history:
 | A0 | `docs/agent-repositories/purpose-driven-agent/` | purpose-driven-agent |
 | A1 | `docs/agent-repositories/leadership-agent/` | leadership-agent |
 | A2 | `docs/agent-repositories/cmo-agent/` | cmo-agent |
-| B | `src/AgentOperatingSystem/` (minus agents/, ml/, learning/, knowledge/), `tests/` (minus agent/ML tests) | aos-kernel |
-| C | `deployment/`, select workflows, select docs | aos-deployment |
-| D | `src/AgentOperatingSystem/{ml,learning,knowledge}/`, `data/`, `knowledge/`, ML tests | aos-intelligence |
-| E | `docs/`, select root .md files | aos-docs |
-| F | `function_app.py`, `azure_functions/`, `host.json` | aos-azure-functions |
-| G | `.github/{skills,prompts,instructions,spec}/`, select .github/*.md | aos-copilot-extensions |
+| B | `src/AgentOperatingSystem/` (minus agents/, ml/, learning/, knowledge/), `tests/` (minus agent/ML tests), kernel-level docs, kernel-level Copilot extensions | aos-kernel |
+| C | `deployment/`, select workflows, deployment docs, deployment Copilot extensions | aos-deployment |
+| D | `src/AgentOperatingSystem/{ml,learning,knowledge}/`, `data/`, `knowledge/`, ML tests, ML/intelligence docs | aos-intelligence |
+| E | `function_app.py`, `host.json`, `local.settings.json`, Azure Functions Copilot extensions, Azure Functions docs | aos-function-app |
+| F | `azure_functions/RealmOfAgents/`, RealmOfAgents docs, RealmOfAgents Copilot extensions | aos-realm-of-agents |
+| G | `azure_functions/MCPServers/`, MCPServers docs, MCPServers Copilot extensions | aos-mcp-servers |
 
 ### Phase 4: Wire Dependencies
 
@@ -924,8 +961,10 @@ Use `git filter-branch` or `git subtree split` to preserve commit history:
 2. Publish `leadership-agent` and `cmo-agent` depending on it.
 3. Publish `aos-kernel` depending on `purpose-driven-agent`.
 4. Update `aos-intelligence` to depend on `aos-kernel`.
-5. Update `aos-azure-functions` to depend on `aos-kernel` and `aos-intelligence`.
-6. Set up cross-repo CI triggers (e.g., `purpose-driven-agent` release triggers downstream CI).
+5. Update `aos-function-app` to depend on `aos-kernel` and `aos-intelligence`.
+6. Update `aos-realm-of-agents` to depend on `aos-kernel`.
+7. Update `aos-mcp-servers` to depend on `aos-kernel`.
+8. Set up cross-repo CI triggers (e.g., `purpose-driven-agent` release triggers downstream CI).
 
 ### Phase 5: Archive and Redirect
 
@@ -950,9 +989,9 @@ Use `git filter-branch` or `git subtree split` to preserve commit history:
 | aos-kernel | `ci.yml` (lint, test, build), `release.yml` (publish to PyPI) |
 | aos-deployment | `infrastructure-deploy.yml`, `infrastructure-monitoring.yml`, `infrastructure-troubleshooting.yml` |
 | aos-intelligence | `ci.yml` (lint, test against aos-kernel), `release.yml` |
-| aos-docs | `docs-build.yml` (build docs site), `docs-deploy.yml` (publish) |
-| aos-azure-functions | `cicd-pipeline.yml` (build, test, deploy function apps) |
-| aos-copilot-extensions | `validate.yml` (validate skill format per spec) |
+| aos-function-app | `ci.yml` (build, test, deploy main function app) |
+| aos-realm-of-agents | `ci.yml` (build, test, deploy RealmOfAgents function app) |
+| aos-mcp-servers | `ci.yml` (build, test, deploy MCPServers function app) |
 
 ### Cross-Repository Triggers
 
@@ -978,10 +1017,10 @@ on:
 |---------|------------|
 | `purpose-driven-agent>=1.0.0` | leadership-agent, cmo-agent, aos-kernel |
 | `leadership-agent>=1.0.0` | cmo-agent |
-| `aos-kernel>=3.0.0` | aos-intelligence, aos-azure-functions |
-| `aos-intelligence>=1.0.0` | aos-azure-functions (optional) |
-| `agent-framework>=1.0.0rc1` | purpose-driven-agent, aos-kernel, aos-azure-functions |
-| `agent-framework-orchestrations>=1.0.0b260219` | aos-kernel, aos-azure-functions |
+| `aos-kernel>=3.0.0` | aos-intelligence, aos-function-app, aos-realm-of-agents, aos-mcp-servers |
+| `aos-intelligence>=1.0.0` | aos-function-app (optional) |
+| `agent-framework>=1.0.0rc1` | purpose-driven-agent, aos-kernel, aos-function-app, aos-realm-of-agents |
+| `agent-framework-orchestrations>=1.0.0b260219` | aos-kernel, aos-function-app |
 
 ---
 
@@ -1012,7 +1051,7 @@ on:
 **Mitigation:**
 - Auto-generate API reference from source code in `purpose-driven-agent`, agent repos, `aos-kernel`, and `aos-intelligence`.
 - Use a docs CI pipeline that builds and validates cross-references.
-- Each sub-repo's README links to the canonical docs in aos-docs.
+- Documentation co-located with code in each repo's `docs/` directory improves maintainability and reduces staleness.
 
 ### Risk 4: History Fragmentation
 
@@ -1038,18 +1077,21 @@ on:
 
 | # | Decision | Rationale | Date |
 |---|----------|-----------|------|
-| 1 | Split into 6 repos, not 3 or 4 | Natural domain boundaries; different release cadences and audiences | Feb 2026 |
+| 1 | Split into 9 repos | Natural domain boundaries; different release cadences and audiences; each function app independently deployable | Feb 2026 |
 | 2 | `aos-deployment` has no Python dependency on `aos-kernel` | Deployment orchestrator is standalone CLI; no runtime coupling needed | Feb 2026 |
 | 3 | ML/Intelligence in separate repo from kernel | Heavy dependencies (PyTorch, transformers), different release cadence, different team expertise | Feb 2026 |
-| 4 | Copilot extensions in separate repo | Reusable across all AOS repos; distinct lifecycle from code | Feb 2026 |
+| 4 | Distribute Copilot extensions to owning repos | Skills, prompts, and instructions are more effective when co-located with the code they describe | Feb 2026 |
 | 5 | Interface-based decoupling over direct imports | Enables optional installation of intelligence; follows dependency inversion principle | Feb 2026 |
 | 6 | Phase 1 (prepare boundaries) before any split | Reduces risk of broken imports; validates architecture in safe monorepo environment | Feb 2026 |
 | 7 | Preserve git history via filter-branch | Maintains traceability; important for audit and compliance | Feb 2026 |
-| 8 | Docs in separate repo with docs site | Enables unified documentation experience; scales independently | Feb 2026 |
+| 8 | Distribute docs to owning repos | Documentation co-located with code improves maintainability; each repo owns its docs | Feb 2026 |
 | 9 | Each agent in its own dedicated repository | Agents have distinct purposes, audiences, and versioning; each can be consumed independently; clean inheritance hierarchy expressed as package dependencies | Feb 2026 |
 | 10 | Rename `aos-core` to `aos-kernel` | "Kernel" better describes the role: the orchestration engine, messaging bus, and system services that form the OS foundation; distinguishes clearly from `purpose-driven-agent` which is the agent foundation | Feb 2026 |
 | 11 | `PurposeDrivenAgent` inherits from `agent_framework.Agent` | Establishes the canonical class hierarchy on top of the Microsoft Agent Framework runtime; graceful fallback stub preserves behaviour when package is not installed | Feb 2026 |
 | 12 | Agent repo cut-paste structures in `docs/agent-repositories/` | Provides immediately usable scaffolding for the split without requiring a separate meta-repository; each folder is a complete, self-sufficient repository ready to cut-paste | Feb 2026 |
+| 13 | Split `aos-azure-functions` into 3 repos | Each function app has its own deployment lifecycle, scaling requirements, and team ownership; independently versioned and deployed | Feb 2026 |
+| 14 | Remove dedicated `aos-docs` repo | Documentation co-located with code improves maintainability; each repo owns its docs | Feb 2026 |
+| 15 | Remove dedicated `aos-copilot-extensions` repo | Copilot skills, prompts, and instructions are more effective when co-located with the code they describe | Feb 2026 |
 
 ---
 
@@ -1060,16 +1102,17 @@ on:
 | purpose-driven-agent | ~4 | ~5 | pyproject.toml, LICENSE | ~10 |
 | leadership-agent | ~2 | ~5 | pyproject.toml, LICENSE | ~8 |
 | cmo-agent | ~2 | ~5 | pyproject.toml, LICENSE | ~8 |
-| aos-kernel | ~111 | ~5 | pyproject.toml | ~116 |
+| aos-kernel | ~111 | ~30 | pyproject.toml | ~141 |
 | aos-deployment | ~27 | ~20 | 12 Bicep/param, 3 YAML | ~62 |
-| aos-intelligence | ~20 | ~5 | 19 JSON | ~44 |
-| aos-docs | 0 | ~60 | 0 | ~60 |
-| aos-azure-functions | ~10 | ~8 | 3 JSON, host.json | ~21 |
-| aos-copilot-extensions | ~2 | ~25 | 1 YAML | ~28 |
-| **Total** | **~178** | **~138** | **~38** | **~357** |
+| aos-intelligence | ~20 | ~10 | 19 JSON | ~49 |
+| aos-function-app | ~2 | ~8 | host.json, 1 YAML | ~12 |
+| aos-realm-of-agents | ~4 | ~6 | 2 JSON, host.json | ~13 |
+| aos-mcp-servers | ~3 | ~5 | 2 JSON, host.json | ~11 |
+| **Total** | **~175** | **~94** | **~43** | **~314** |
 
 > Note: Some files appear in multiple counts due to shared ownership (e.g., docs that reference deployment).
 > The current monorepo has ~198 Python + ~117 MD + ~40 other = ~355 files.
+> Documentation and Copilot extensions are distributed across repos, increasing per-repo file counts but eliminating the dedicated aos-docs and aos-copilot-extensions repos.
 
 ---
 
