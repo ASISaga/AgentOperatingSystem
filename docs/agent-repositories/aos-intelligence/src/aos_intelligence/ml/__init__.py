@@ -1,0 +1,69 @@
+"""
+aos_intelligence.ml — Machine Learning Module
+
+ML pipeline management, LoRAx multi-adapter serving, DPO training,
+self-learning system, and Azure Foundry Agent Service integration.
+All ML operations use Llama 3.3 70B as the base model.
+"""
+
+from .pipeline import MLPipelineManager
+
+try:
+    from .self_learning_system import (
+        SelfLearningSystem, LearningEpisode, LearningPattern, AdaptationPlan,
+        LearningPhase, LearningFocus, FeedbackType
+    )
+    SELF_LEARNING_AVAILABLE = True
+except ImportError:
+    SELF_LEARNING_AVAILABLE = False
+
+try:
+    from .dpo_trainer import (
+        DPOTrainer, DPOConfig, PreferenceData, PreferenceDataCollector
+    )
+    DPO_AVAILABLE = True
+except ImportError:
+    DPO_AVAILABLE = False
+
+try:
+    from .lorax_server import (
+        LoRAxServer, LoRAxConfig, LoRAxAdapterRegistry, AdapterInfo
+    )
+    LORAX_AVAILABLE = True
+except ImportError:
+    LORAX_AVAILABLE = False
+
+try:
+    from .foundry_agent_service import (
+        FoundryAgentServiceClient, FoundryAgentServiceConfig,
+        FoundryResponse, ThreadInfo
+    )
+    FOUNDRY_AGENT_SERVICE_AVAILABLE = True
+except ImportError:
+    FOUNDRY_AGENT_SERVICE_AVAILABLE = False
+
+__all__ = [
+    "MLPipelineManager",
+]
+
+if SELF_LEARNING_AVAILABLE:
+    __all__.extend([
+        "SelfLearningSystem", "LearningEpisode", "LearningPattern", "AdaptationPlan",
+        "LearningPhase", "LearningFocus", "FeedbackType",
+    ])
+
+if DPO_AVAILABLE:
+    __all__.extend([
+        "DPOTrainer", "DPOConfig", "PreferenceData", "PreferenceDataCollector",
+    ])
+
+if LORAX_AVAILABLE:
+    __all__.extend([
+        "LoRAxServer", "LoRAxConfig", "LoRAxAdapterRegistry", "AdapterInfo",
+    ])
+
+if FOUNDRY_AGENT_SERVICE_AVAILABLE:
+    __all__.extend([
+        "FoundryAgentServiceClient", "FoundryAgentServiceConfig",
+        "FoundryResponse", "ThreadInfo",
+    ])
