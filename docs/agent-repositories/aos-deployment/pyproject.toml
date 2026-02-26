@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=75.0.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "aos-deployment"
+version = "3.0.0"
+description = "Infrastructure deployment for the Agent Operating System — Bicep, orchestrator, regional validation"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+
+dependencies = [
+    "pydantic>=2.12.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pylint>=3.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["deployment/tests"]
+
+[tool.pylint.main]
+max-line-length = 120

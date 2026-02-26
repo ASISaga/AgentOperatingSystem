@@ -1,0 +1,4 @@
+{
+    "_comment": "Copy from monorepo: azure_functions/example_agent_registry.json or equivalent. Defines agent configurations for config-driven deployment.",
+    "agents": []
+}

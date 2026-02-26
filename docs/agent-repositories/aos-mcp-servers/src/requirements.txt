@@ -1,0 +1,4 @@
+# Copy from monorepo requirements or generate from pyproject.toml
+# Core dependencies for MCPServers function app
+aos-kernel[azure]>=3.0.0
+azure-functions>=1.21.0

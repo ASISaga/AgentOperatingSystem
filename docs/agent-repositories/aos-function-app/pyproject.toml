@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=75.0.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "aos-function-app"
+version = "3.0.0"
+description = "Main Azure Functions entry point for the Agent Operating System"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+
+dependencies = [
+    "aos-kernel[azure]>=3.0.0",
+    "azure-functions>=1.21.0",
+    "agent-framework>=1.0.0rc1",
+    "agent-framework-orchestrations>=1.0.0b260219",
+    "agent-framework-azurefunctions>=1.0.0b260219",
+]
+
+[project.optional-dependencies]
+intelligence = [
+    "aos-intelligence[foundry]>=1.0.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pylint>=3.0.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
