@@ -1,20 +1,21 @@
 ---
 name: perpetual-agents
-description: Expert knowledge for working with Perpetual Agents and PurposeDrivenAgents in the Agent Operating System (AOS). Enables efficient development, debugging, and testing of perpetual agent implementations.
+description: Expert knowledge for working with PurposeDrivenAgents in the Agent Operating System (AOS). Enables efficient development, debugging, and testing of perpetual agent implementations.
 ---
 
-# Working with Perpetual Agents in AOS
+# Working with PurposeDrivenAgents in AOS
 
 ## Description
-Expert knowledge for working with Perpetual Agents and PurposeDrivenAgents in the Agent Operating System (AOS). This skill enables efficient development, debugging, and testing of perpetual agent implementations.
+Expert knowledge for working with PurposeDrivenAgents in the Agent Operating System (AOS). This skill enables efficient development, debugging, and testing of perpetual agent implementations.
 
 ## When to Use This Skill
-- Creating new perpetual agents
+- Creating new purpose-driven perpetual agents
 - Modifying existing agent behavior
 - Debugging agent lifecycle issues
 - Understanding agent state management
 - Implementing purpose-driven decision making
 - Working with ContextMCPServer for state preservation
+- Deploying agents to Azure
 
 ## Key Concepts
 
@@ -30,18 +31,22 @@ result = agent.run(task)
 **Perpetual (AOS)**:
 ```python
 # Agent registered once, runs forever
-# Use concrete implementations
-agent = GenericPurposeDrivenAgent(agent_id="assistant", purpose="...", adapter_name="general")
+agent = PurposeDrivenAgent(agent_id="assistant", purpose="...", adapter_name="general")
 # Or use specialized agents
 agent = LeadershipAgent(agent_id="ceo", adapter_name="ceo")
 manager.register_agent(agent)
 # Agent continuously responds to events, state persists
 ```
 
+### Core Design Principles
+- **Single purpose**: Exactly one purpose per agent, added to LLM context.
+- **Layer stacking**: Each class in the inheritance chain calls `_add_layer()` once to contribute its LoRA adapter (vocabulary, persona, knowledge), domain context, and skills.
+- **Deployable**: `agent.deploy()` pushes the agent to Azure via the Python deployment orchestrator.
+
 ### Agent Lifecycle
-1. **Creation**: Create concrete agent instance (LeadershipAgent, GenericPurposeDrivenAgent, etc.)
-2. **Initialization**: `await agent.initialize()` - Sets up ContextMCPServer
-3. **Registration**: `manager.register_agent(agent)` - Makes agent available
+1. **Creation**: `PurposeDrivenAgent(...)` or a specialized subclass
+2. **Initialization**: `await agent.initialize()` — sets up ContextMCPServer, stores purpose + layer contexts
+3. **Registration**: `manager.register_agent(agent)` — makes agent available
 4. **Event Loop**: Agent automatically responds to events while sleeping when idle
 5. **Deregistration**: Only when explicitly removed
 
@@ -55,26 +60,27 @@ manager.register_agent(agent)
 
 ### Creating a Basic Perpetual Agent
 ```python
-from AgentOperatingSystem.agents import PerpetualAgent
+from AgentOperatingSystem.agents import PurposeDrivenAgent
 
-# Create perpetual agent
-agent = PerpetualAgent(
+# Create perpetual agent directly (no need for a separate subclass)
+agent = PurposeDrivenAgent(
     agent_id="unique_agent_id",
-    adapter_name="adapter_name"
+    purpose="My agent's single, long-term purpose",
+    adapter_name="adapter_name"   # LoRA adapter: vocabulary, persona, domain knowledge
 )
 
-# Initialize (creates ContextMCPServer)
+# Initialize (creates ContextMCPServer, stores purpose in context)
 await agent.initialize()
 
 # Start perpetual operation
 await agent.start()
 ```
 
-### Creating a Purpose-Driven Agent (Recommended)
+### Creating a Purpose-Driven Agent (Specialized Subclass)
 ```python
 from AgentOperatingSystem.agents import LeadershipAgent
 
-# Create purpose-driven perpetual agent (using concrete subclass)
+# Create purpose-driven perpetual agent (specialized subclass)
 agent = LeadershipAgent(
     agent_id="ceo",
     purpose="Strategic oversight and company growth",
@@ -93,8 +99,37 @@ await agent.start()
 alignment_score = await agent.evaluate_purpose_alignment(action)
 decision = await agent.make_purpose_driven_decision(context)
 goal_id = await agent.add_goal("Increase revenue by 50%")
-goals = await agent.get_goals()
-await agent.update_goal(goal_id, status="in_progress")
+```
+
+### Extending PurposeDrivenAgent with a New Layer
+```python
+from AgentOperatingSystem.agents import PurposeDrivenAgent
+
+class MyDomainAgent(PurposeDrivenAgent):
+    def __init__(self, agent_id: str, purpose: str):
+        super().__init__(agent_id=agent_id, purpose=purpose, adapter_name=None)
+        self._add_layer(
+            adapter_name="my-domain",
+            context={
+                "domain": "my-domain",
+                "capabilities": ["capability_a", "capability_b"],
+            },
+            skills=["skill_a", "skill_b"],
+        )
+```
+
+### Deploying an Agent to Azure
+```python
+# Deploy to dev (invokes deployment/deploy.py — the Python Bicep orchestrator)
+return_code = agent.deploy(environment="dev", resource_group="my-agents-rg")
+
+# Deploy to production with specific region
+return_code = agent.deploy(
+    environment="prod",
+    resource_group="prod-agents-rg",
+    location="eastus",
+)
+assert return_code == 0, "Deployment failed"
 ```
 
 ### Agent Event Handling
@@ -102,62 +137,26 @@ await agent.update_goal(goal_id, status="in_progress")
 async def handle_event(self, event):
     """Override to handle events."""
     try:
-        # Process event
         result = await self.process_event_logic(event)
-        
-        # Update state (automatically persisted)
-        self.state["last_event"] = event
-        await self.save_state()
-        
+        await self._save_context_to_mcp()
         return result
     except Exception as e:
         self.logger.error(f"Error handling event: {e}")
         raise
 ```
 
-### State Management
-```python
-# State is automatically persisted via ContextMCPServer
-class MyAgent(PurposeDrivenAgent):
-    async def initialize(self):
-        await super().initialize()
-        # Load persisted state
-        self.state = await self.load_state() or {}
-    
-    async def update_state(self, key, value):
-        self.state[key] = value
-        # State automatically saved via ContextMCPServer
-        await self.save_state()
-    
-    async def get_state(self, key):
-        return self.state.get(key)
-```
-
 ### Agent Registration with Manager
 ```python
 from AgentOperatingSystem.orchestration import AgentManager
+from AgentOperatingSystem.agents import LeadershipAgent
 
-# Create manager
 manager = AgentManager()
 
-# Create and register agents
-ceo_agent = LeadershipAgent(
-    agent_id="ceo",
-    purpose="Strategic oversight",
-    adapter_name="ceo"
-)
+ceo_agent = LeadershipAgent(agent_id="ceo", purpose="Strategic oversight", adapter_name="ceo")
 await ceo_agent.initialize()
 manager.register_agent(ceo_agent)
 
-cfo_agent = LeadershipAgent(
-    agent_id="cfo", 
-    purpose="Financial management",
-    adapter_name="cfo"
-)
-await cfo_agent.initialize()
-manager.register_agent(cfo_agent)
-
-# Agents now run perpetually
+# Agent now runs perpetually
 ```
 
 ## Testing Patterns
@@ -165,148 +164,73 @@ manager.register_agent(cfo_agent)
 ### Testing Perpetual Agents
 ```python
 import pytest
-from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
+from AgentOperatingSystem.agents import PurposeDrivenAgent
 
 @pytest.mark.asyncio
 async def test_perpetual_agent_lifecycle():
     """Test agent creation and initialization."""
-    agent = GenericPurposeDrivenAgent(
+    agent = PurposeDrivenAgent(
         agent_id="test_agent",
         purpose="Testing",
         adapter_name="test"
     )
     
     # Initialize
-    await agent.initialize()
-    assert agent.context_server is not None  # ContextMCPServer created
+    success = await agent.initialize()
+    assert success
+    assert agent.mcp_context_server is not None
     
-    # Test state persistence
-    await agent.update_state("test_key", "test_value")
-    state = await agent.get_state("test_key")
-    assert state == "test_value"
+    # Test purpose in context
+    ctx = agent.get_layer_contexts()
+    assert ctx["purpose"] == "Testing"
     
     # Cleanup
-    await agent.cleanup()
-
-@pytest.mark.asyncio
-async def test_purpose_alignment():
-    """Test purpose-driven decision making."""
-    agent = GenericPurposeDrivenAgent(
-        agent_id="ceo",
-        purpose="Strategic growth",
-        purpose_scope="Major decisions",
-        adapter_name="ceo"
-    )
-    await agent.initialize()
-    
-    # Test purpose alignment
-    action = {"type": "hire", "role": "engineer"}
-    alignment = await agent.evaluate_purpose_alignment(action)
-    assert isinstance(alignment, float)
-    assert 0.0 <= alignment <= 1.0
-    
-    await agent.cleanup()
-
-@pytest.mark.asyncio
-async def test_event_handling():
-    """Test agent event processing."""
-    agent = GenericPurposeDrivenAgent(
-        agent_id="test",
-        purpose="Event processing",
-        adapter_name="test"
-    )
-    await agent.initialize()
-    
-    event = {"type": "test_event", "data": "test"}
-    result = await agent.handle_event(event)
-    
-    # Verify state was updated
-    last_event = await agent.get_state("last_event")
-    assert last_event is not None
-    
-    await agent.cleanup()
+    await agent.stop()
 ```
 
 ### Mocking Azure Services
 ```python
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 @pytest.mark.asyncio
 async def test_agent_with_mocked_services():
-    """Test agent with mocked Azure services."""
-    agent = GenericPurposeDrivenAgent(
-        agent_id="test",
-        purpose="Testing",
-        adapter_name="test"
-    )
-    
-    # Mock ContextMCPServer
-    agent.context_server = AsyncMock()
-    agent.context_server.save_state = AsyncMock(return_value=True)
-    agent.context_server.load_state = AsyncMock(return_value={})
-    
+    agent = PurposeDrivenAgent(agent_id="test", purpose="Testing", adapter_name="test")
+    agent.mcp_context_server = AsyncMock()
+    agent.mcp_context_server.initialize = AsyncMock()
+    agent.mcp_context_server.set_context = AsyncMock()
+    agent.mcp_context_server.get_context = AsyncMock(return_value=None)
+    agent.mcp_context_server.get_all_context = AsyncMock(return_value={})
     await agent.initialize()
-    await agent.update_state("key", "value")
-    
-    # Verify mock was called
-    agent.context_server.save_state.assert_called()
 ```
 
 ## Common Issues and Solutions
 
 ### Issue: Agent Not Receiving Events
-**Problem**: Agent is registered but not responding to events.
-
-**Solution**: 
-1. Verify agent is initialized: `await agent.initialize()`
-2. Check agent is registered: `manager.register_agent(agent)`
-3. Ensure event routing is configured correctly
-4. Verify agent's event handler is implemented
+**Solution**: Verify agent is initialized and registered; check event routing.
 
 ### Issue: State Not Persisting
-**Problem**: Agent state is lost between events.
+**Solution**: Ensure ContextMCPServer is initialized; call `_save_context_to_mcp()` after updates.
 
-**Solution**:
-1. Ensure ContextMCPServer is initialized during `agent.initialize()`
-2. Call `await agent.save_state()` after state updates
-3. Verify Azure Storage connection is configured
-4. Check for errors in state persistence logs
-
-### Issue: Memory Leaks with Perpetual Agents
-**Problem**: Agent memory usage grows over time.
-
-**Solution**:
-1. Clean up old events/state periodically
-2. Implement state rotation/archival
-3. Use weak references for cached data
-4. Monitor memory usage with observability tools
-
-### Issue: Agent Initialization Fails
-**Problem**: `await agent.initialize()` throws error.
-
-**Solution**:
-1. Check Azure credentials in environment/config
-2. Verify adapter_name is valid
-3. Ensure all required dependencies are installed
-4. Check logs for specific error messages
+### Issue: Deployment Fails
+**Solution**: Check Azure credentials; verify `deployment/deploy.py` exists in the repository root.
 
 ## File Locations
 
 ### Core Agent Files
-- `src/AgentOperatingSystem/agents/` - Agent implementations
-  - `perpetual_agent.py` - Base perpetual agent
-  - `purpose_driven_agent.py` - Purpose-driven agent
-  - `base_agent.py` - Core agent interface
+- `src/AgentOperatingSystem/agents/purpose_driven.py` — PurposeDrivenAgent (and GenericPurposeDrivenAgent alias)
+- `src/AgentOperatingSystem/agents/leadership_agent.py` — LeadershipAgent
+- `src/AgentOperatingSystem/agents/cmo_agent.py` — CMOAgent
 
 ### Related Components
-- `src/AgentOperatingSystem/mcp/context_server.py` - ContextMCPServer for state
-- `src/AgentOperatingSystem/orchestration/agent_manager.py` - Agent registration
-- `src/AgentOperatingSystem/messaging/` - Inter-agent communication
+- `src/AgentOperatingSystem/mcp/context_server.py` — ContextMCPServer for state
+- `src/AgentOperatingSystem/orchestration/agent_manager.py` — Agent registration
+- `deployment/deploy.py` — Python Azure deployment orchestrator
 
 ### Tests
-- `tests/test_perpetual_agents.py` - Perpetual agent tests
-- `tests/test_purpose_driven_integration.py` - Purpose-driven tests
-- `examples/perpetual_agents_example.py` - Usage examples
+- `tests/test_perpetual_agents.py` — Perpetual agent tests
+- `tests/test_purpose_driven_integration.py` — Purpose-driven tests
+- `tests/test_agent_personas.py` — Layer stacking tests
+- `examples/perpetual_agents_example.py` — Usage examples
 
 ## Key Differences from Traditional Agents
 
@@ -319,27 +243,10 @@ async def test_agent_with_mocked_services():
 | Resource Use | Constant while running | Sleep when idle |
 | Purpose | Short-term task | Long-term assigned purpose |
 
-## Best Practices
-
-1. **Always initialize**: Call `await agent.initialize()` before use
-2. **Purpose-driven design**: Use PurposeDrivenAgent for better alignment
-3. **Save state regularly**: Call `await agent.save_state()` after updates
-4. **Clean up in tests**: Call `await agent.cleanup()` to prevent resource leaks
-5. **Use meaningful IDs**: Agent IDs should be unique and descriptive
-6. **Handle errors**: Wrap event handling in try/except blocks
-7. **Log extensively**: Use structured logging for debugging
-8. **Monitor state size**: Prevent unbounded state growth
-9. **Test perpetual behavior**: Test long-running scenarios, not just single operations
-10. **Leverage ContextMCPServer**: Use it for all state persistence needs
-
 ## Related Skills
-- `azure-functions` - Deploying agents to Azure Functions
-- `async-python` - Async/await patterns in Python
-- `testing-aos` - Testing AOS components
-- `mcp-integration` - Model Context Protocol usage
+- `azure-functions` — Deploying agents to Azure Functions
+- `async-python-testing` — Async/await patterns in Python testing
+- `aos-architecture` — Agent Operating System architecture
+- `leadership-agent` — LeadershipAgent-specific patterns
+- `cmo-agent` — CMOAgent-specific patterns
 
-## Additional Resources
-- README.md - Core concepts and perpetual vs task-based comparison
-- docs/architecture/ARCHITECTURE.md - System architecture and agent layer
-- examples/perpetual_agents_example.py - Complete examples
-- docs/summaries/PERPETUAL_AGENTS_SUMMARY.md - Detailed perpetual agent documentation
