@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aos-deployment"
+version = "1.0.0"
+description = "Infrastructure deployment for the Agent Operating System — Bicep templates, Python orchestrator, and regional validation."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "ASISaga", email = "opensource@asisaga.com" }]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ASISaga/aos-deployment"
+Repository = "https://github.com/ASISaga/aos-deployment"
+
+[tool.pytest.ini_options]
+testpaths = ["deployment/tests"]

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aos-realm-of-agents"
+version = "1.0.0"
+description = "Config-driven agent deployment for the Agent Operating System — deploy agents via JSON registry."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "ASISaga", email = "opensource@asisaga.com" }]
+requires-python = ">=3.10"
+dependencies = [
+    "aos-kernel[azure]>=3.0.0",
+    "azure-functions>=1.21.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ASISaga/aos-realm-of-agents"
+Repository = "https://github.com/ASISaga/aos-realm-of-agents"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
