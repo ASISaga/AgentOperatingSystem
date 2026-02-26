@@ -1,10 +1,10 @@
 # Repository Split Plan: AgentOperatingSystem → Multi-Repository Architecture
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Date:** February 2026  
 **Status:** Proposed  
 **Author:** Architecture Analysis  
-**Last Updated:** February 26, 2026 (agent repositories extracted; aos-core renamed to aos-kernel)
+**Last Updated:** February 26, 2026 (agent repositories extracted; aos-core renamed to aos-kernel; aos-intelligence extracted)
 
 ---
 
@@ -488,6 +488,8 @@ docs/getting-started/
 ### 6. aos-intelligence
 
 **Purpose:** Machine learning pipelines, LoRA/LoRAx adapter management, DPO training, self-learning systems, knowledge management, and RAG engine.
+
+**Cut-paste-ready directory structure:** `docs/agent-repositories/aos-intelligence/` in this monorepo.
 
 **What moves here:**
 
