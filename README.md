@@ -1,321 +1,91 @@
-# Agent Operating System (AOS)
-## A Complete Operating System for AI Agents
+# Agent Operating System
 
-**Version:** 3.0.0  
-**Status:** Production Ready  
-**Platform:** Microsoft Azure  
-**Python:** 3.10+  
-**Agent Framework:** Microsoft Agent Framework 1.0.0rc1
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Azure](https://img.shields.io/badge/platform-Azure-blue.svg)](https://azure.microsoft.com/)
+**A production-grade operating system for perpetual, purpose-driven AI agents.**
+
+This meta-repository coordinates the Agent Operating System across multiple focused repositories.
+Each sub-repository is independently versioned, tested, and deployed.
 
 ---
 
-## 🎯 Overview
+## Repository Map
 
-The **Agent Operating System (AOS)** is a complete, production-grade operating system designed from the ground up for AI agents. Just as Linux, Windows, or macOS provide foundational infrastructure for applications, AOS provides the **kernel, system services, runtime environment, and application framework** for autonomous AI agents.
+| Repository | Description | Package |
+|---|---|---|
+| [purpose-driven-agent](https://github.com/ASISaga/purpose-driven-agent) | The fundamental agent building block | `pip install purpose-driven-agent` |
+| [leadership-agent](https://github.com/ASISaga/leadership-agent) | Leadership + decision-making agent | `pip install leadership-agent` |
+| [cmo-agent](https://github.com/ASISaga/cmo-agent) | Chief Marketing Officer agent | `pip install cmo-agent` |
+| [aos-kernel](https://github.com/ASISaga/aos-kernel) | OS kernel: orchestration, messaging, storage, auth | `pip install aos-kernel` |
+| [aos-deployment](https://github.com/ASISaga/aos-deployment) | Infrastructure: Bicep, orchestrator, CI/CD | — |
+| [aos-intelligence](https://github.com/ASISaga/aos-intelligence) | ML/AI: LoRA, DPO, self-learning, knowledge | `pip install aos-intelligence` |
+| [aos-function-app](https://github.com/ASISaga/aos-function-app) | Main Azure Functions host | — |
+| [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) | Config-driven agent deployment | — |
+| [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) | Config-driven MCP server deployment | — |
 
-### Key Differentiator: Perpetual Agents
+## Architecture
 
-**The key difference between AOS and traditional AI orchestration frameworks is PERSISTENCE.**
+```
+                    ┌──────────────────┐
+                    │  agent_framework │  (Microsoft Agent Framework)
+                    └────────┬─────────┘
+                             │
+                ┌────────────▼────────────┐
+                │  purpose-driven-agent   │  (Foundational agent base class)
+                └────────┬───────────────┘
+                         │
+            ┌────────────┴────────────┐
+            │                         │
+   ┌────────▼────────┐    ┌──────────▼──────────┐
+   │ leadership-agent │    │     aos-kernel      │
+   └────────┬─────────┘    └──────┬──────────────┘
+            │                     │
+   ┌────────▼────────┐    ┌──────┴───────────────┐
+   │    cmo-agent    │    │                       │
+   └─────────────────┘    ▼                       ▼
+                   ┌──────────────┐    ┌────────────────────┐
+                   │aos-intelligence│   │ aos-function-app   │
+                   └──────────────┘    │ aos-realm-of-agents│
+                                       │ aos-mcp-servers    │
+                                       └────────────────────┘
 
-| Traditional (Task-Based) | AOS (Perpetual + Purpose-Driven) |
-|-------------------------|----------------------------------|
-| Temporary session | Permanent entity |
-| Manual start/stop | Event-driven awakening |
-| Lost after completion | Persists via ContextMCPServer indefinitely |
-| Current task only | Full history via ContextMCPServer |
-| Short-term tasks | Long-term assigned purpose |
+              ┌──────────────────┐
+              │  aos-deployment  │  (standalone — Bicep + orchestrator)
+              └──────────────────┘
+```
 
-📖 **[Learn more about Perpetual Agents](docs/overview/perpetual-agents.md)**
-
----
-
-## 🚀 Quick Start
-
-### Installation
+## Getting Started
 
 ```bash
-pip install git+https://github.com/ASISaga/AgentOperatingSystem.git
+# Clone with submodules
+git clone --recurse-submodules https://github.com/ASISaga/AgentOperatingSystem.git
+
+# Or update submodules after clone
+git submodule update --init --recursive
 ```
 
-### Basic Example
+## Cut-Paste Ready Repositories
 
-```python
-from AgentOperatingSystem import AgentOperatingSystem
-from AgentOperatingSystem.agents import LeadershipAgent
-
-# Create a purpose-driven perpetual agent (using concrete subclass)
-agent = LeadershipAgent(
-    agent_id="ceo",
-    purpose="Strategic oversight and company growth",
-    purpose_scope="Strategic planning, major decisions",
-    adapter_name="ceo"
-)
-
-await agent.initialize()  # ContextMCPServer automatically created
-await agent.start()       # Runs perpetually
-
-# Purpose-driven operations
-alignment = await agent.evaluate_purpose_alignment(action)
-decision = await agent.make_purpose_driven_decision(context)
-```
-
-📖 **[Full Quick Start Guide](docs/getting-started/quickstart.md)**
-
----
-
-## 🏗️ Architecture
-
-AOS provides a complete operating system architecture:
+Each sub-repository has a cut-paste-ready structure in [`docs/agent-repositories/`](docs/agent-repositories/):
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│              APPLICATION LAYER (USER SPACE)                │
-│        Business Applications, Domain-Specific Agents       │
-└────────────────────────────────────────────────────────────┘
-                    ↕ System Calls & APIs
-┌────────────────────────────────────────────────────────────┐
-│        AGENT OPERATING SYSTEM (AOS) - KERNEL               │
-├────────────────────────────────────────────────────────────┤
-│  Core Services: Orchestration • Lifecycle • Messaging     │
-│  System Services: Storage • Auth • ML • MCP • Governance  │
-│  Hardware Abstraction: Azure Services Integration         │
-└────────────────────────────────────────────────────────────┘
-                    ↕ Cloud APIs
-┌────────────────────────────────────────────────────────────┐
-│              MICROSOFT AZURE PLATFORM                      │
-└────────────────────────────────────────────────────────────┘
+docs/agent-repositories/
+├── purpose-driven-agent/    # → github.com/ASISaga/purpose-driven-agent
+├── leadership-agent/        # → github.com/ASISaga/leadership-agent
+├── cmo-agent/               # → github.com/ASISaga/cmo-agent
+├── aos-kernel/              # → github.com/ASISaga/aos-kernel
+├── aos-deployment/          # → github.com/ASISaga/aos-deployment
+├── aos-intelligence/        # → github.com/ASISaga/aos-intelligence
+├── aos-function-app/        # → github.com/ASISaga/aos-function-app
+├── aos-realm-of-agents/     # → github.com/ASISaga/aos-realm-of-agents
+└── aos-mcp-servers/         # → github.com/ASISaga/aos-mcp-servers
 ```
 
-📖 **[Architecture Documentation](docs/architecture/ARCHITECTURE.md)**  
-📖 **[Vision & Principles](docs/overview/vision.md)**  
-📖 **[Core Services](docs/overview/services.md)**
+## Split Plan
 
----
+See [docs/development/REPOSITORY_SPLIT_PLAN.md](docs/development/REPOSITORY_SPLIT_PLAN.md) for the
+complete migration strategy, dependency graph, and phase-by-phase plan.
 
-## ✨ Core Features
+## License
 
-### 🔧 Operating System Services
-- **Orchestration Engine** - Agent lifecycle management and workflow execution
-- **Agent Lifecycle Manager** - Process management for agents
-- **Message Bus** - Inter-agent communication (IPC for agents)
-- **State Machine Manager** - Deterministic state transitions
-
-### 💾 System Service Layer
-- **Storage Service** - Unified storage abstraction (Blob, Table, Queue, Cosmos DB)
-- **Authentication & Authorization** - Multi-provider auth and RBAC
-- **ML Pipeline Service** - Azure ML integration with LoRA adapters
-- **MCP Integration** - Model Context Protocol for tool access
-- **Governance** - Compliance, audit logging, and policy enforcement
-- **Observability** - Monitoring, tracing, and alerting
-- **Knowledge Service** - RAG and information retrieval
-- **Extensibility Framework** - Plugin system for extending AOS
-
-📖 **[Complete Features List](docs/features/features-overview.md)**  
-📖 **[Advanced Features](docs/features/advanced-features.md)**
-
----
-
-## 🔌 Plug-and-Play Infrastructure
-
-### RealmOfAgents - Configuration-Driven Agent Deployment
-
-Deploy agents with **zero code** - just configuration:
-
-```json
-{
-  "agent_id": "cfo",
-  "purpose": "Financial oversight and strategic planning",
-  "mcp_tools": [{"server_name": "erpnext", "tool_name": "get_financial_reports"}],
-  "enabled": true
-}
-```
-
-### MCPServers - Configuration-Driven MCP Server Deployment
-
-Add MCP servers with **zero code** - just configuration:
-
-```json
-{
-  "server_id": "github",
-  "command": "npx",
-  "args": ["-y", "@modelcontextprotocol/server-github"],
-  "enabled": true
-}
-```
-
-📖 **[Azure Functions Infrastructure](docs/getting-started/azure-functions.md)**
-
----
-
-## 📚 Documentation
-
-### Getting Started
-- **[Quick Start Guide](docs/getting-started/quickstart.md)** - Get up and running quickly
-- **[Installation Guide](docs/getting-started/installation.md)** - Detailed installation instructions
-- **[Configuration Guide](docs/configuration.md)** - System configuration
-- **[Deployment Guide](docs/getting-started/deployment.md)** - Production deployment overview
-
-### Deployment & Operations
-- **[GitHub Agentic Deployment Workflow](.github/workflows/infrastructure-deploy.yml)** - Automated deployment agent with self-healing
-- **[Workflow Quick Reference](.github/workflows/QUICKREF.md)** - Fast reference for deployment commands
-- **[Workflow Usage Examples](.github/workflows/USAGE_EXAMPLES.md)** - Detailed usage scenarios and troubleshooting
-- **[Deployment Plan](docs/development/DEPLOYMENT_PLAN.md)** - Comprehensive deployment strategy and procedures
-- **[Deployment Task List](docs/development/DEPLOYMENT_TASKS.md)** - Detailed task checklists for all phases
-- **[Deployment Infrastructure](deployment/README.md)** - Infrastructure deployment documentation
-- **[Orchestrator Guide](deployment/ORCHESTRATOR_USER_GUIDE.md)** - Python deployment orchestrator
-- **[Regional Requirements](deployment/REGIONAL_REQUIREMENTS.md)** - Azure region capabilities
-- **[Quick Start Deployment](deployment/QUICKSTART.md)** - Fast deployment reference
-
-### Core Concepts
-- **[Architecture Overview](docs/architecture/ARCHITECTURE.md)** - System architecture and design
-- **[Vision & Why "Operating System"](docs/overview/vision.md)** - The OS for AI agents
-- **[Core Principles](docs/overview/principles.md)** - Design principles and philosophy
-- **[Perpetual vs Task-Based Agents](docs/overview/perpetual-agents.md)** - Key architectural difference
-- **[Operating System Services](docs/overview/services.md)** - Core OS services
-
-### Development & Integration
-- **[System APIs Reference](docs/reference/system-apis.md)** - API documentation
-- **[Development Guide](docs/development.md)** - Developer documentation
-- **[Contributing Guidelines](docs/development/CONTRIBUTING.md)** - How to contribute
-- **[Testing Guide](docs/testing.md)** - Testing infrastructure
-
-### Technical Specifications
-- **[LLM Architecture](docs/llm_architecture.md)** - Language model integration
-- **[Agent-to-Agent Communication](docs/a2a_communication.md)** - A2A messaging
-- **[Extensibility](docs/extensibility.md)** - Extending the system
-- **[REST API](docs/rest_api.md)** - REST API documentation
-
-### Release Information
-- **[Changelog](docs/releases/CHANGELOG.md)** - Version history
-- **[Release Notes](docs/releases/RELEASE_NOTES.md)** - Release announcements
-- **[Breaking Changes](docs/releases/BREAKING_CHANGES.md)** - Breaking changes by version
-- **[Migration Guide](docs/development/MIGRATION.md)** - Migration from older versions
-
-📖 **[Complete Documentation Index](docs/README.md)**
-
----
-
-## 🛠️ Development
-
-### Building a Custom Agent
-
-```python
-from AgentOperatingSystem.agents import LeadershipAgent
-
-class CFOAgent(LeadershipAgent):
-    def __init__(self):
-        super().__init__(agent_id="cfo", name="CFO", role="CFO")
-    
-    async def make_decision(self, context):
-        # Use AOS system services
-        precedents = await self.knowledge.find_similar(context)
-        risks = await self.governance.assess_risks(context)
-        
-        # Make decision
-        decision = await self.analyze(context, precedents, risks)
-        
-        # Audit and broadcast
-        await self.governance.audit(decision)
-        await self.messaging.broadcast("decision_made", decision)
-        
-        return decision
-```
-
-📖 **[Development Guide](docs/development.md)**
-📖 **[Contributing Guidelines](docs/development/CONTRIBUTING.md)**
-
-### Code Quality
-
-AOS maintains high code quality standards using Pylint:
-
-```bash
-# Install development dependencies
-pip install -e ".[dev]"
-
-# Run Pylint checks
-pylint src/AgentOperatingSystem
-
-# Check specific module
-pylint src/AgentOperatingSystem/agents
-```
-
-**Current Pylint Score:** 8.52/10 ✅
-
-- ✅ Automated quality checks via GitHub Actions
-- ✅ Comprehensive Pylint configuration for async Python and Azure
-- ✅ Integration with GitHub Copilot for quality assistance
-- ✅ Pre-commit quality standards
-
-📖 **[Code Quality Guide](.github/instructions/code-quality.instructions.md)**
-📖 **[Pylint Quick Reference](.github/PYLINT_QUICKREF.md)**
-
----
-
-## 🔐 Security & Compliance
-
-- Multi-provider authentication (Azure B2C, OAuth, JWT)
-- Role-based access control (RBAC)
-- Encrypted storage and secure communication
-- Tamper-evident audit logging
-- Policy enforcement and compliance tracking
-
-📖 **[Security Documentation](docs/overview/services.md#authentication--authorization)**
-
----
-
-## 📊 Production Ready
-
-### Performance & Scale
-- Built for enterprise scale
-- Optimized for cost efficiency
-- Auto-scaling and redundancy
-- Circuit breakers and retry logic
-
-### Monitoring & Observability
-- Distributed tracing
-- Real-time metrics and alerting
-- Structured logging
-- Azure Application Insights integration
-
-📖 **[Deployment Guide](docs/getting-started/deployment.md)**
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! See our [Contributing Guidelines](docs/development/CONTRIBUTING.md) for details.
-
-### Contribution Areas
-- Core infrastructure improvements
-- New service implementations
-- Documentation enhancements
-- Test coverage expansion
-- Bug fixes and performance optimization
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🌟 Acknowledgments
-
-Built with ❤️ using Microsoft Azure, Microsoft Agent Framework, and the Model Context Protocol (MCP).
-
----
-
-## 📞 Support
-
-- **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/ASISaga/AgentOperatingSystem/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/ASISaga/AgentOperatingSystem/discussions)
-
----
-
-**Ready to build the next generation of AI agents?** [Get Started](docs/getting-started/quickstart.md) →
+[MIT License](LICENSE) — © 2025 ASI Saga

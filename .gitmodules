@@ -1,0 +1,35 @@
+[submodule "purpose-driven-agent"]
+	path = purpose-driven-agent
+	url = https://github.com/ASISaga/purpose-driven-agent.git
+
+[submodule "leadership-agent"]
+	path = leadership-agent
+	url = https://github.com/ASISaga/leadership-agent.git
+
+[submodule "cmo-agent"]
+	path = cmo-agent
+	url = https://github.com/ASISaga/cmo-agent.git
+
+[submodule "aos-kernel"]
+	path = aos-kernel
+	url = https://github.com/ASISaga/aos-kernel.git
+
+[submodule "aos-deployment"]
+	path = aos-deployment
+	url = https://github.com/ASISaga/aos-deployment.git
+
+[submodule "aos-intelligence"]
+	path = aos-intelligence
+	url = https://github.com/ASISaga/aos-intelligence.git
+
+[submodule "aos-function-app"]
+	path = aos-function-app
+	url = https://github.com/ASISaga/aos-function-app.git
+
+[submodule "aos-realm-of-agents"]
+	path = aos-realm-of-agents
+	url = https://github.com/ASISaga/aos-realm-of-agents.git
+
+[submodule "aos-mcp-servers"]
+	path = aos-mcp-servers
+	url = https://github.com/ASISaga/aos-mcp-servers.git
