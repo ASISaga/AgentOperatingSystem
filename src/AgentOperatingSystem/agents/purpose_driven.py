@@ -10,14 +10,28 @@ Purpose-Driven, Perpetual Agents.
 
 Architecture Components:
 - LoRA Adapters: Provide domain-specific knowledge (language, vocabulary, concepts,
-  and agent persona) to PurposeDrivenAgents
+  and agent persona) to PurposeDrivenAgents.  Each class in the inheritance chain
+  contributes exactly one adapter via _add_layer().
 - Core Purposes: Added to the primary LLM context to guide agent behavior
 - MCP: Provides context management, domain-specific tools, and access to contemporary
   software systems
 
-PurposeDrivenAgent inherits from agent_framework.Agent (Microsoft Agent Framework)
-when the package is available, establishing it as the foundational AOS building block
-on top of the agent-framework runtime.
+Layer Stacking:
+  Each concrete class in the inheritance chain (PurposeDrivenAgent, LeadershipAgent,
+  CMOAgent, …) adds one entry to self._layers by calling self._add_layer().  Each
+  layer specifies its LoRA adapter, a domain context dict, and a list of skill names.
+  The full capability of an agent is the union of all layers.
+
+  Example for CMOAgent:
+      Layer 0 (LeadershipAgent): adapter="leadership", context={domain, capabilities…}
+      Layer 1 (CMOAgent):        adapter="marketing",  context={domain, capabilities…}
+
+  get_adapters()       → ["leadership", "marketing"]
+  get_all_skills()     → all skills from all layers
+  get_layer_contexts() → merged context dict from all layers
+
+agent_framework.Agent (Microsoft Agent Framework >= 1.0.0rc1) is a MANDATORY runtime
+dependency.  PurposeDrivenAgent directly inherits from it.
 """
 
 from typing import Dict, Any, List, Optional, Callable
@@ -25,22 +39,13 @@ from datetime import datetime
 import logging
 import asyncio
 import uuid
-from abc import ABC, abstractmethod
+from abc import ABC
+from agent_framework import Agent
 from ..ml.pipeline_ops import trigger_lora_training, run_azure_ml_pipeline, aml_infer
 from ..mcp.context_server import ContextMCPServer
 
-try:
-    from agent_framework import Agent as _AgentFrameworkBase
-    _AGENT_FRAMEWORK_AVAILABLE = True
-except ImportError:
-    # Stub base class when agent_framework package is not installed.
-    # Install via: pip install agent-framework>=1.0.0rc1
-    class _AgentFrameworkBase:  # pylint: disable=too-few-public-methods
-        """Stub for agent_framework.Agent when the package is not available."""
-    _AGENT_FRAMEWORK_AVAILABLE = False
 
-
-class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
+class PurposeDrivenAgent(Agent, ABC):
     """
     Purpose-Driven Perpetual Agent - The fundamental building block of AOS.
 
@@ -51,54 +56,29 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
 
     NOTE: This is an abstract base class (ABC). You cannot directly instantiate
     PurposeDrivenAgent. Instead, create a concrete subclass (like LeadershipAgent,
-    CMOAgent, or create your own custom agent) that implements the required abstract
-    methods.
+    CMOAgent, or create your own custom agent).
 
     Unlike task-based agents that execute and terminate, PurposeDrivenAgent
     works continuously against an assigned, long-term purpose.
 
-    Architecture:
-    - LoRA Adapters: Provide domain-specific knowledge (language, vocabulary,
-      concepts, and importantly agent persona) to specialize the agent
-    - Core Purposes: Incorporated into the primary LLM context to guide all
-      agent decisions and behaviors
-    - MCP Integration: ContextMCPServer provides context management, domain-specific
-      tools, and access to external software systems
+    Layer Stacking Architecture:
+    Each concrete class in the inheritance chain calls self._add_layer() once in
+    its __init__ to register its contribution:
+      - adapter_name: the LoRA adapter that provides domain knowledge & persona
+      - context:      a dict of domain-specific context entries stored in MCP
+      - skills:       a list of skill/capability names this layer introduces
 
-    Key characteristics:
+    get_adapters()       returns the ordered list of all LoRA adapters
+    get_all_skills()     returns the union of all skill names
+    get_layer_contexts() returns the merged context dict from all layers
+    get_agent_type()     returns get_adapters() - no subclass override needed
+
+    Other characteristics:
     - Persistent: Remains registered and active indefinitely
     - Event-driven: Awakens in response to events
     - Stateful: Maintains context across all interactions via MCP
     - Resource-efficient: Sleeps when idle, awakens on events
-    - Purpose-driven: Works toward a defined, long-term purpose
-    - Context-aware: Uses ContextMCPServer for state preservation
-    - Event-responsive: Awakens on events relevant to its purpose
     - Autonomous: Makes decisions aligned with its purpose
-    - Adapter-mapped: Purpose mapped to LoRA adapter for domain expertise
-
-    Example:
-        >>> # Cannot directly instantiate - this will raise TypeError
-        >>> # agent = PurposeDrivenAgent(...)  # ERROR!
-        >>> 
-        >>> # Instead, use a concrete subclass like LeadershipAgent:
-        >>> from AgentOperatingSystem.agents import LeadershipAgent
-        >>> agent = LeadershipAgent(
-        ...     agent_id="ceo",
-        ...     purpose="Strategic oversight and decision-making for company growth",
-        ...     purpose_scope="Strategic planning, major decisions, alignment",
-        ...     adapter_name="ceo"  # Maps to LoRA adapter providing CEO domain knowledge & persona
-        ... )
-        >>> await agent.initialize()  # Sets up MCP context server
-        >>> await agent.start()
-        >>> # Agent now runs perpetually, working toward its purpose
-        >>> 
-        >>> # Or use GenericPurposeDrivenAgent for general-purpose agents:
-        >>> from AgentOperatingSystem.agents import GenericPurposeDrivenAgent
-        >>> generic_agent = GenericPurposeDrivenAgent(
-        ...     agent_id="assistant",
-        ...     purpose="General task execution",
-        ...     adapter_name="general"
-        ... )
     """
 
     def __init__(
@@ -129,31 +109,36 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             success_criteria: List of criteria that define success (optional)
             tools: Tools available to the agent (optional, via MCP)
             system_message: System message for the agent (optional)
-            adapter_name: Name for LoRA adapter providing domain knowledge & persona (e.g., 'ceo', 'cfo')
+            adapter_name: LoRA adapter for THIS base layer (e.g., 'generic', 'ceo').
+                Subclasses that manage their own layers should pass None here and
+                call self._add_layer() explicitly after super().__init__().
             config: Optional configuration dictionary
             aos: Optional reference to AgentOperatingSystem instance for querying available personas
 
         Architecture:
             - The purpose is added to the primary LLM context to guide behavior
-            - The adapter_name maps to a LoRA adapter that provides domain-specific
-              knowledge, vocabulary, concepts, and agent persona
+            - Each class in the inheritance chain calls _add_layer() to register
+              its LoRA adapter, domain context, and skill names.
             - MCP (via ContextMCPServer) provides context management and domain tools
         """
-        # Initialise agent_framework.Agent base class when the package is available.
-        # Maps PurposeDrivenAgent parameters to the agent_framework.Agent interface:
-        #   client       → LLM client (None defers client wiring to the AOS runtime)
-        #   name         → agent identity in the framework
-        #   instructions → combined system message and purpose, used as LLM context
-        if _AGENT_FRAMEWORK_AVAILABLE:
-            try:
-                super().__init__(
-                    client=None,
-                    name=name or agent_id,
-                    instructions=system_message or purpose,
-                )
-            except TypeError:
-                # Agent signature may vary across rc versions; fall back silently.
-                pass
+        # Guard: PurposeDrivenAgent is abstract by convention — direct instantiation
+        # is not permitted.  Use GenericPurposeDrivenAgent or a concrete subclass.
+        if type(self) is PurposeDrivenAgent:
+            raise TypeError(
+                "Cannot directly instantiate abstract class PurposeDrivenAgent. "
+                "Use GenericPurposeDrivenAgent or a concrete subclass that calls "
+                "self._add_layer() to register its adapter, context, and skills."
+            )
+
+        # Initialise agent_framework.Agent (mandatory runtime dependency).
+        # client=None defers LLM client wiring to the AOS runtime layer.
+        # instructions receives the combined system message + purpose statement
+        # so the agent's purpose is visible to the LLM from the start.
+        super().__init__(
+            client=None,
+            name=name or agent_id,
+            instructions=system_message or purpose,
+        )
 
         # BaseAgent attributes
         self.agent_id = agent_id
@@ -166,12 +151,13 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             "version": "1.0.0"
         }
         self.state = "initialized"
-        self.logger = logging.getLogger(f"aos.agent.{agent_id}")
 
-        # PerpetualAgent attributes
+        # PurposeDrivenAgent attributes — perpetual operation
         self.tools = tools or []
         self.system_message = system_message or ""
-        self.adapter_name = adapter_name  # e.g., 'ceo', 'cfo', 'coo', etc.
+        # adapter_name always reflects the LAST layer added (most specific).
+        # Initialised to None; _add_layer() updates it on every call.
+        self.adapter_name: Optional[str] = None
 
         # Perpetual operation state
         self.is_running = False
@@ -205,11 +191,111 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         # Reference to AgentOperatingSystem for querying available personas
         self.aos = aos
 
+        # Layer registry: each class in the inheritance chain calls _add_layer()
+        # once to contribute its LoRA adapter, domain context, and skill names.
+        self._layers: List[Dict[str, Any]] = []
+
         self.logger = logging.getLogger(f"aos.purpose_driven.{self.agent_id}")
+
+        # Register base layer when an adapter is supplied at this level.
+        # Direct subclasses (LeadershipAgent, CMOAgent, …) pass adapter_name=None
+        # and call _add_layer() themselves after super().__init__() returns.
+        if adapter_name is not None:
+            self._add_layer(
+                adapter_name=adapter_name,
+                context={
+                    "purpose": self.purpose,
+                    "purpose_scope": self.purpose_scope,
+                },
+                skills=[],
+            )
+
         self.logger.info(
             f"PurposeDrivenAgent {self.agent_id} created with purpose: {self.purpose}, "
-            f"adapter: {self.adapter_name}"
+            f"adapters: {self.get_adapters()}"
         )
+
+    # ------------------------------------------------------------------
+    # Layer stacking API
+    # ------------------------------------------------------------------
+
+    def _add_layer(
+        self,
+        adapter_name: str,
+        context: Dict[str, Any],
+        skills: List[str],
+    ) -> None:
+        """
+        Register a capability layer contributed by the calling class.
+
+        Called once per class in the inheritance chain during __init__. Each call:
+        - Appends an entry to self._layers with the adapter, context, and skills.
+        - Updates self.adapter_name to the newly added adapter so that ML
+          operations always target the most recently added (most specific) adapter.
+
+        Args:
+            adapter_name: Name of the LoRA adapter for this layer (e.g. "leadership").
+            context:      Domain-specific key-value context entries for this layer.
+                          Stored in MCP during initialize(); visible to the LLM.
+            skills:       List of skill/capability names introduced by this layer.
+        """
+        self._layers.append({
+            "adapter": adapter_name,
+            "context": context,
+            "skills": list(skills),
+        })
+        self.adapter_name = adapter_name
+        self.logger.info(
+            f"Agent {self.agent_id}: layer '{adapter_name}' registered "
+            f"({len(skills)} skills, {len(context)} context keys)"
+        )
+
+    def get_adapters(self) -> List[str]:
+        """
+        Return all LoRA adapters accumulated across the inheritance chain.
+
+        The list is ordered from most-base (first registered) to most-specific
+        (last registered), matching the LoRAx superimposition order.
+
+        Returns:
+            Ordered list of LoRA adapter names, one per layer.
+        """
+        return [layer["adapter"] for layer in self._layers]
+
+    def get_all_skills(self) -> List[str]:
+        """
+        Return all skill names accumulated across the inheritance chain.
+
+        Returns:
+            Flat list of skill names from all layers, in registration order.
+        """
+        return [skill for layer in self._layers for skill in layer["skills"]]
+
+    def get_layer_contexts(self) -> Dict[str, Any]:
+        """
+        Return the merged context dict from all layers in the inheritance chain.
+
+        Later layers override earlier layers on key collision.
+
+        Returns:
+            Merged dict of all layer context entries.
+        """
+        merged: Dict[str, Any] = {}
+        for layer in self._layers:
+            merged.update(layer["context"])
+        return merged
+
+    def get_agent_type(self) -> List[str]:
+        """
+        Return the ordered list of LoRA adapters (personas) for this agent.
+
+        This is the direct result of the layer stacking performed during __init__.
+        Subclasses should call _add_layer() instead of overriding this method.
+
+        Returns:
+            Ordered list of adapter/persona names from all layers.
+        """
+        return self.get_adapters()
 
     def get_available_personas(self) -> List[str]:
         """
@@ -242,39 +328,6 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             # If AOS not available, allow any personas
             return True
 
-    @abstractmethod
-    def get_agent_type(self) -> List[str]:
-        """
-        Get the personas/skills that compose this agent.
-        
-        Subclasses must implement this method to select personas from those
-        available in AgentOperatingSystem. Each persona corresponds to a LoRA
-        adapter that provides domain-specific knowledge.
-        
-        Implementation pattern:
-        1. Query available personas via get_available_personas()
-        2. Select the combination needed for this agent type
-        3. Return the list of selected personas
-        
-        An agent can have multiple personas/skills that define its capabilities.
-        For example, a Chief Marketing Officer selects both "marketing" and "leadership" personas.
-        
-        Each persona:
-        - Maps to a LoRA adapter in AgentOperatingSystem
-        - Provides domain-specific knowledge, vocabulary, and capabilities
-        - Can be combined with other personas for multi-skilled agents
-        - Examples: ["generic"], ["leadership"], ["marketing", "leadership"]
-        
-        Runtime behavior:
-        - AgentOperatingSystem uses LoRAx to superimpose selected LoRA adapters
-        - Multiple personas are loaded concurrently for the agent
-        - Personas are shared across agents for efficient memory usage
-        
-        Returns:
-            List of persona names selected from available personas in AOS
-        """
-        pass
-
     async def initialize(self) -> bool:
         """
         Initialize agent resources and MCP context server.
@@ -284,7 +337,8 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
 
         Then extends with purpose-specific setup:
         - Stores purpose in context (added to primary LLM context)
-        - LoRA adapter (specified by adapter_name) provides domain knowledge & persona
+        - Stores all layer contexts (adapters, domain contexts, skills) in MCP
+        - LoRA adapters (registered via _add_layer) provide domain knowledge & persona
 
         Returns:
             True if initialization successful
@@ -315,9 +369,18 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
                     await self.mcp_context_server.set_context("purpose_scope", self.purpose_scope)
                     await self.mcp_context_server.set_context("success_criteria", self.success_criteria)
 
+                    # Store all accumulated layer contexts so every layer's domain
+                    # knowledge is available to the LLM context
+                    for key, value in self.get_layer_contexts().items():
+                        await self.mcp_context_server.set_context(key, value)
+
+                    # Store the full adapter and skill stacks for introspection
+                    await self.mcp_context_server.set_context("adapters", self.get_adapters())
+                    await self.mcp_context_server.set_context("skills", self.get_all_skills())
+
                 self.logger.info(
                     f"PurposeDrivenAgent {self.agent_id} initialized - "
-                    f"purpose added to LLM context, adapter '{self.adapter_name}' provides domain expertise"
+                    f"purpose added to LLM context, adapters {self.get_adapters()} provide domain expertise"
                 )
                 return True
 
@@ -569,11 +632,14 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         Get current perpetual state.
 
         Returns:
-            Current state dictionary including MCP context status
+            Current state dictionary including MCP context status and layer stack.
         """
         return {
             "agent_id": self.agent_id,
             "adapter_name": self.adapter_name,
+            "adapters": self.get_adapters(),
+            "skills": self.get_all_skills(),
+            "layers": len(self._layers),
             "is_running": self.is_running,
             "sleep_mode": self.sleep_mode,
             "wake_count": self.wake_count,
@@ -854,6 +920,9 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             await self.mcp_context_server.set_context("wake_count", self.wake_count)
             await self.mcp_context_server.set_context("total_events_processed", self.total_events_processed)
             await self.mcp_context_server.set_context("last_active", datetime.utcnow().isoformat())
+            # Persist the accumulated layer stack for restart recovery
+            await self.mcp_context_server.set_context("adapters", self.get_adapters())
+            await self.mcp_context_server.set_context("skills", self.get_all_skills())
             self.logger.debug(f"Saved context to ContextMCPServer")
 
     async def _load_purpose_context(self) -> None:
@@ -882,14 +951,14 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
 class GenericPurposeDrivenAgent(PurposeDrivenAgent):
     """
     Concrete implementation of PurposeDrivenAgent for general-purpose use.
-    
-    This is a simple, concrete implementation that can be used when you need
-    a basic purpose-driven agent without specialized functionality. For more
-    specific use cases, consider using or creating specialized subclasses like:
-    - LeadershipAgent: For leadership and decision-making
-    - CMOAgent: For marketing and leadership
-    - Or create your own custom agent with domain-specific capabilities
-    
+
+    Passes adapter_name directly to PurposeDrivenAgent.__init__(), which
+    registers it as the single base layer.  get_agent_type() is inherited and
+    returns [adapter_name] automatically via the layer stack.
+
+    For more specialised use cases consider LeadershipAgent, CMOAgent, or a
+    custom subclass that calls self._add_layer() in its own __init__.
+
     Example:
         >>> agent = GenericPurposeDrivenAgent(
         ...     agent_id="assistant",
@@ -899,23 +968,4 @@ class GenericPurposeDrivenAgent(PurposeDrivenAgent):
         >>> await agent.initialize()
         >>> await agent.start()
     """
-    
-    def get_agent_type(self) -> List[str]:
-        """
-        Get the agent's personas/skills.
-        
-        Queries AgentOperatingSystem for available personas and selects "generic".
-        
-        Returns:
-            ["generic"] - if available in AOS, otherwise defaults to ["generic"]
-        """
-        available = self.get_available_personas()
-        
-        # Select "generic" persona if available
-        if "generic" in available:
-            return ["generic"]
-        else:
-            # Fallback if generic not available
-            self.logger.warning("'generic' persona not in AOS registry, using default")
-            return ["generic"]
 

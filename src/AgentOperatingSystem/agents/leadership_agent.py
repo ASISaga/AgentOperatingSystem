@@ -1,10 +1,15 @@
 """
 LeadershipAgent - Leadership and decision-making capabilities.
-Extends PurposeDrivenAgent with leadership-specific functionality.
+Extends PurposeDrivenAgent with a leadership layer.
 
-The Leadership purpose is mapped to the "leadership" LoRA adapter, which provides
-leadership-specific domain knowledge and agent persona. The core purpose is added
-to the primary LLM context to guide agent behavior.
+Layer stacking architecture:
+  - PurposeDrivenAgent.__init__(adapter_name=None) sets up the base layer
+    (no adapter at this level since leadership owns its layer).
+  - LeadershipAgent.__init__() calls self._add_layer("leadership", context, skills)
+    to register the leadership LoRA adapter, domain context, and skill names.
+
+The "leadership" LoRA adapter provides leadership-specific domain knowledge and
+agent persona.  The purpose is added to the primary LLM context to guide behavior.
 """
 
 from typing import Dict, Any, List, Optional
@@ -22,9 +27,9 @@ class LeadershipAgent(PurposeDrivenAgent):
     - Delegation patterns
     - Decision provenance
 
-    The Leadership purpose is mapped to the "leadership" LoRA adapter, which provides
-    leadership-specific domain knowledge and agent persona. The core purpose is added
-    to the primary LLM context to guide agent behavior.
+    LeadershipAgent adds exactly one layer (adapter="leadership") to the
+    inherited PurposeDrivenAgent layer stack.  Subclasses (e.g., CMOAgent)
+    build on top by calling _add_layer() in their own __init__.
     """
 
     def __init__(
@@ -40,15 +45,13 @@ class LeadershipAgent(PurposeDrivenAgent):
         adapter_name: Optional[str] = None,
         config: Optional[Dict[str, Any]] = None
     ):
-        # Default leadership purpose and adapter if not provided
         if purpose is None:
             purpose = "Leadership: Strategic decision-making, team coordination, and organizational guidance"
-        if adapter_name is None:
-            adapter_name = "leadership"
         if purpose_scope is None:
             purpose_scope = "Leadership and decision-making domain"
 
-        # Pass all parameters to parent, including legacy compatibility attributes
+        # Initialise PurposeDrivenAgent without passing adapter_name so the
+        # base layer has no adapter entry.  LeadershipAgent owns its adapter.
         super().__init__(
             agent_id=agent_id,
             purpose=purpose,
@@ -56,7 +59,7 @@ class LeadershipAgent(PurposeDrivenAgent):
             success_criteria=success_criteria,
             tools=tools,
             system_message=system_message,
-            adapter_name=adapter_name,
+            adapter_name=None,   # leadership layer is registered below
             name=name,
             role=role or "leader",
             config=config
@@ -65,24 +68,23 @@ class LeadershipAgent(PurposeDrivenAgent):
         self.decisions_made = []
         self.stakeholders = []
 
-    def get_agent_type(self) -> List[str]:
-        """
-        Get the agent's personas/skills.
-        
-        Queries AgentOperatingSystem for available personas and selects "leadership".
-        
-        Returns:
-            ["leadership"] - if available in AOS, otherwise defaults to ["leadership"]
-        """
-        available = self.get_available_personas()
-        
-        # Select "leadership" persona if available
-        if "leadership" in available:
-            return ["leadership"]
-        else:
-            # Fallback if leadership not available
-            self.logger.warning("'leadership' persona not in AOS registry, using default")
-            return ["leadership"]
+        # Register this class's layer: the "leadership" LoRA adapter together
+        # with domain context and the skills introduced at this level.
+        leadership_adapter = adapter_name or "leadership"
+        self._add_layer(
+            adapter_name=leadership_adapter,
+            context={
+                "domain": "leadership",
+                "purpose": self.purpose,
+                "capabilities": [
+                    "decision_making",
+                    "stakeholder_coordination",
+                    "consensus_building",
+                    "delegation",
+                ],
+            },
+            skills=["make_decision", "consult_stakeholders"],
+        )
 
     async def make_decision(
         self,
