@@ -26,6 +26,7 @@ from aos_client import (
     workflow_template,
 )
 from aos_client.observability import ObservabilityConfig
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ async def select_c_suite_agents(client: AOSClient) -> List[AgentDescriptor]:
 @workflow_template
 async def c_suite_orchestration(
     request: WorkflowRequest,
-    agent_filter,
+    agent_filter: Callable[[AgentDescriptor], bool],
     purpose: str,
     purpose_scope: str,
 ) -> Dict[str, Any]:

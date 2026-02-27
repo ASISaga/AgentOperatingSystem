@@ -149,6 +149,25 @@ class RiskSeverity(str, Enum):
     INFO = "info"
 
 
+def calculate_risk_severity(likelihood: float, impact: float) -> str:
+    """Calculate risk severity from likelihood × impact score.
+
+    Returns:
+        Severity string: ``"critical"``, ``"high"``, ``"medium"``,
+        ``"low"``, or ``"info"``.
+    """
+    score = likelihood * impact
+    if score >= 0.8:
+        return RiskSeverity.CRITICAL.value
+    if score >= 0.6:
+        return RiskSeverity.HIGH.value
+    if score >= 0.3:
+        return RiskSeverity.MEDIUM.value
+    if score >= 0.1:
+        return RiskSeverity.LOW.value
+    return RiskSeverity.INFO.value
+
+
 class RiskStatus(str, Enum):
     """Lifecycle status of a risk entry."""
 

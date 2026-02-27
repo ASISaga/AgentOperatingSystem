@@ -53,6 +53,7 @@ from aos_client.models import (
     RiskCategory,
     RiskSeverity,
     RiskStatus,
+    calculate_risk_severity,
 )
 
 logger = logging.getLogger(__name__)
@@ -224,17 +225,7 @@ class MockAOSClient:
         if risk_id not in self._risks:
             raise KeyError(f"Risk {risk_id} not found")
         risk = self._risks[risk_id]
-        score = likelihood * impact
-        if score >= 0.8:
-            severity = "critical"
-        elif score >= 0.6:
-            severity = "high"
-        elif score >= 0.3:
-            severity = "medium"
-        elif score >= 0.1:
-            severity = "low"
-        else:
-            severity = "info"
+        severity = calculate_risk_severity(likelihood, impact)
         risk.assessment = RiskAssessment(
             likelihood=likelihood,
             impact=impact,
