@@ -50,15 +50,21 @@ class TestInstantiation:
             name="Full Agent",
             role="tester",
             purpose_scope="Testing",
-            success_criteria=["All tests pass"],
             adapter_name="test",
         )
         assert agent.agent_id == "full-agent"
         assert agent.name == "Full Agent"
         assert agent.role == "tester"
         assert agent.purpose_scope == "Testing"
-        assert agent.success_criteria == ["All tests pass"]
         assert agent.adapter_name == "test"
+
+    def test_no_success_criteria_attribute(self) -> None:
+        """Perpetual agents do not have success criteria."""
+        agent = GenericPurposeDrivenAgent(
+            agent_id="perpetual-agent",
+            purpose="Perpetual purpose",
+        )
+        assert not hasattr(agent, "success_criteria")
 
     def test_generic_agent_name_defaults_to_agent_id(self) -> None:
         agent = GenericPurposeDrivenAgent(agent_id="my-id", purpose="p")
@@ -209,7 +215,6 @@ class TestGetPurposeStatus:
             "agent_id",
             "purpose",
             "purpose_scope",
-            "success_criteria",
             "metrics",
             "active_goals",
             "completed_goals",
@@ -404,19 +409,15 @@ class TestAlignPurposeToOrchestration:
         assert "Evaluate market expansion" in initialised_agent.purpose
 
     @pytest.mark.asyncio
-    async def test_alignment_merges_success_criteria(
+    async def test_alignment_has_no_criteria_parameter(
         self, initialised_agent: GenericPurposeDrivenAgent
     ) -> None:
+        """Perpetual orchestrations do not merge success criteria."""
         await initialised_agent.align_purpose_to_orchestration(
             orchestration_purpose="Review budget",
-            orchestration_criteria=["Budget approved", "Timeline set"],
         )
-        # Should contain both orchestration and agent criteria
-        assert "Budget approved" in initialised_agent.success_criteria
-        assert "Timeline set" in initialised_agent.success_criteria
-        # Agent's original criteria should also be present
-        for c in ["Tests pass", "Coverage >= 80%"]:
-            assert c in initialised_agent.success_criteria
+        # Agent should not have success_criteria attribute
+        assert not hasattr(initialised_agent, "success_criteria")
 
     @pytest.mark.asyncio
     async def test_alignment_stores_in_mcp(
