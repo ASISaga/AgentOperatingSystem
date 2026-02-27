@@ -98,6 +98,7 @@ class _WorkflowRegistration:
     method: str = "POST"
     auth_required: bool = True
     description: str = ""
+    version: str = "1.0"
 
 
 class AOSApp:
@@ -151,6 +152,10 @@ class AOSApp:
         self._workflows: Dict[str, _WorkflowRegistration] = {}
         self._update_handlers: Dict[str, Callable] = {}
         self._mcp_tools: Dict[str, Callable] = {}
+        self._covenant_event_handlers: Dict[str, Callable] = {}
+        self._mcp_event_handlers: Dict[str, Callable] = {}
+        self._webhook_handlers: Dict[str, Callable] = {}
+        self._traffic_splits: Dict[str, Dict[str, int]] = {}
         self._functions_app: Optional[Any] = None  # azure.functions.FunctionApp
 
     # ------------------------------------------------------------------
@@ -164,6 +169,7 @@ class AOSApp:
         method: str = "POST",
         auth_required: bool = True,
         description: str = "",
+        version: str = "1.0",
     ) -> Callable[[WorkflowHandler], WorkflowHandler]:
         """Register a business workflow.
 
@@ -181,21 +187,24 @@ class AOSApp:
             method: HTTP method (default ``"POST"``).
             auth_required: Whether authentication is required.
             description: Human-readable description.
+            version: Workflow version (default ``"1.0"``).
 
         Example::
 
-            @app.workflow("strategic-review")
-            async def strategic_review(request: WorkflowRequest):
+            @app.workflow("strategic-review", version="2.0")
+            async def strategic_review_v2(request: WorkflowRequest):
                 ...
         """
+        reg_key = f"{name}@{version}" if version != "1.0" else name
 
         def decorator(func: WorkflowHandler) -> WorkflowHandler:
-            self._workflows[name] = _WorkflowRegistration(
+            self._workflows[reg_key] = _WorkflowRegistration(
                 name=name,
                 handler=func,
                 method=method,
                 auth_required=auth_required,
                 description=func.__doc__ or description,
+                version=version,
             )
             return func
 
@@ -238,6 +247,82 @@ class AOSApp:
             return func
 
         return decorator
+
+    def on_covenant_event(
+        self,
+        event_type: str,
+    ) -> Callable:
+        """Register a handler for covenant lifecycle events.
+
+        Example::
+
+            @app.on_covenant_event("violated")
+            async def handle_violation(event):
+                logger.warning("Covenant %s violated", event.covenant_id)
+        """
+
+        def decorator(func: Callable) -> Callable:
+            self._covenant_event_handlers[event_type] = func
+            return func
+
+        return decorator
+
+    def on_mcp_event(
+        self,
+        server: str,
+        event_type: str,
+    ) -> Callable:
+        """Register a handler for MCP server push events.
+
+        Example::
+
+            @app.on_mcp_event("erpnext", "order_created")
+            async def handle_order(event):
+                ...
+        """
+        key = f"{server}:{event_type}"
+
+        def decorator(func: Callable) -> Callable:
+            self._mcp_event_handlers[key] = func
+            return func
+
+        return decorator
+
+    def webhook(
+        self,
+        name: str,
+    ) -> Callable:
+        """Register a webhook handler for outbound notifications.
+
+        Example::
+
+            @app.webhook("slack-notifications")
+            async def notify_slack(event):
+                ...
+        """
+
+        def decorator(func: Callable) -> Callable:
+            self._webhook_handlers[name] = func
+            return func
+
+        return decorator
+
+    def set_traffic_split(
+        self,
+        workflow_name: str,
+        split: Dict[str, int],
+    ) -> None:
+        """Configure traffic splitting between workflow versions.
+
+        Args:
+            workflow_name: Workflow to split traffic for.
+            split: Mapping of version → percentage (must sum to 100).
+
+        Example::
+
+            app.set_traffic_split("strategic-review", {"1.0": 50, "2.0": 50})
+        """
+        self._traffic_splits[workflow_name] = split
 
     # ------------------------------------------------------------------
     # Azure Functions app generation
@@ -436,6 +521,22 @@ class AOSApp:
     def get_mcp_tool_names(self) -> List[str]:
         """Return the names of all registered MCP tools."""
         return list(self._mcp_tools.keys())
+
+    def get_covenant_event_handler_names(self) -> List[str]:
+        """Return the event types with registered covenant event handlers."""
+        return list(self._covenant_event_handlers.keys())
+
+    def get_mcp_event_handler_names(self) -> List[str]:
+        """Return the keys of registered MCP event handlers."""
+        return list(self._mcp_event_handlers.keys())
+
+    def get_webhook_names(self) -> List[str]:
+        """Return the names of registered webhook handlers."""
+        return list(self._webhook_handlers.keys())
+
+    def get_traffic_splits(self) -> Dict[str, Dict[str, int]]:
+        """Return configured traffic splits."""
+        return dict(self._traffic_splits)
 
     @staticmethod
     def _default_auth() -> AOSAuth:
