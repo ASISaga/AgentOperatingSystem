@@ -5,11 +5,28 @@ to browse agents, compose orchestrations, and retrieve results — without
 any agent or infrastructure code.
 
 Prerequisites:
-    pip install aos-client-sdk
+    pip install aos-client-sdk[azure]
 
     AOS must be running:
     - aos-function-app at AOS_ENDPOINT (default: http://localhost:7071)
     - aos-realm-of-agents at REALM_ENDPOINT (default: same as AOS_ENDPOINT)
+
+Option A: Use AOSApp framework (recommended for Azure Functions)
+
+    from aos_client import AOSApp, WorkflowRequest
+
+    app = AOSApp(name="my-app")
+
+    @app.workflow("strategic-review")
+    async def strategic_review(request: WorkflowRequest):
+        agents = await request.client.list_agents()
+        c_suite = [a.agent_id for a in agents]
+        return await request.client.run_orchestration(
+            agent_ids=c_suite,
+            task={"type": "strategic_review", "data": request.body},
+        )
+
+Option B: Use AOSClient directly (for scripts and non-Functions apps)
 """
 
 import asyncio

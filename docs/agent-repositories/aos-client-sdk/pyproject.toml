@@ -4,8 +4,8 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "aos-client-sdk"
-version = "1.0.0"
-description = "Lightweight client SDK for interacting with the Agent Operating System as an infrastructure service"
+version = "2.0.0"
+description = "Application framework and client SDK for building Azure Functions apps powered by the Agent Operating System"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
@@ -19,6 +19,7 @@ dependencies = [
 azure = [
     "azure-identity>=1.15.0",
     "azure-servicebus>=7.12.0",
+    "azure-functions>=1.21.0",
 ]
 dev = [
     "pytest>=8.0.0",
