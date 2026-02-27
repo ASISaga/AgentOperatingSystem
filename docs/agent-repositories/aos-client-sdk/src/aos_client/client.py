@@ -49,6 +49,7 @@ class AOSClient:
             anonymous access is used (suitable for local development).
         service_bus_connection_string: Optional connection string for
             event-driven orchestration submission via Azure Service Bus.
+        app_name: Client application name (used for Service Bus routing).
     """
 
     def __init__(
@@ -57,12 +58,15 @@ class AOSClient:
         realm_endpoint: Optional[str] = None,
         credential: Optional[Any] = None,
         service_bus_connection_string: Optional[str] = None,
+        app_name: Optional[str] = None,
     ) -> None:
         self.endpoint = endpoint.rstrip("/")
         self.realm_endpoint = (realm_endpoint or endpoint).rstrip("/")
         self.credential = credential
         self.service_bus_connection_string = service_bus_connection_string
+        self.app_name = app_name
         self._session: Optional[Any] = None  # aiohttp.ClientSession placeholder
+        self._service_bus: Optional[Any] = None  # AOSServiceBus placeholder
 
     # ------------------------------------------------------------------
     # Context manager
@@ -74,9 +78,22 @@ class AOSClient:
             self._session = aiohttp.ClientSession()
         except ImportError:
             logger.warning("aiohttp not installed — HTTP calls will not work")
+
+        if self.service_bus_connection_string:
+            from aos_client.service_bus import AOSServiceBus
+
+            self._service_bus = AOSServiceBus(
+                connection_string=self.service_bus_connection_string,
+                app_name=self.app_name,
+            )
+            await self._service_bus.__aenter__()
+
         return self
 
     async def __aexit__(self, *exc: Any) -> None:
+        if self._service_bus is not None:
+            await self._service_bus.__aexit__(*exc)
+            self._service_bus = None
         if self._session is not None:
             await self._session.close()
             self._session = None
@@ -121,19 +138,32 @@ class AOSClient:
     # ------------------------------------------------------------------
 
     async def submit_orchestration(
-        self, request: OrchestrationRequest
+        self,
+        request: OrchestrationRequest,
+        *,
+        via_service_bus: bool = False,
     ) -> OrchestrationStatus:
         """Submit an orchestration request to AOS.
 
         Args:
             request: Orchestration request describing which agents to use
                 and the task to execute.
+            via_service_bus: When ``True``, submit via Azure Service Bus
+                instead of HTTP.  Requires a Service Bus connection string.
 
         Returns:
             Initial :class:`OrchestrationStatus` (typically ``PENDING``).
         """
         if request.orchestration_id is None:
             request.orchestration_id = str(uuid.uuid4())
+
+        if via_service_bus and self._service_bus is not None:
+            await self._service_bus.send_orchestration_request(request)
+            return OrchestrationStatus(
+                orchestration_id=request.orchestration_id,
+                status=OrchestrationStatusEnum.PENDING,
+                agent_ids=request.agent_ids,
+            )
 
         data = await self._post(
             f"{self.endpoint}/api/orchestrations",

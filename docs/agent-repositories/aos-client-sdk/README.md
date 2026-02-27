@@ -1,98 +1,202 @@
 # aos-client-sdk
 
-Lightweight Python SDK for interacting with the **Agent Operating System** as an infrastructure service. Client applications use this SDK to browse available agents, compose orchestrations, and retrieve results — without managing agent lifecycles or infrastructure.
+Application framework and Python SDK for building **Azure Functions apps** powered by the **Agent Operating System**. Client applications use this SDK to define business workflows, communicate with AOS via HTTP and Azure Service Bus, handle authentication, register with AOS for infrastructure provisioning, and deploy to Azure — all while staying focused on business logic.
 
 ## Overview
 
-The AOS Client SDK enables lean client applications (like [BusinessInfinity](https://github.com/ASISaga/business-infinity)) to:
+The AOS Client SDK provides:
 
-- **Browse agents** — Query the RealmOfAgents catalog for available agents and their capabilities
-- **Compose orchestrations** — Select agents and define workflows (collaborative, sequential, hierarchical)
-- **Submit & monitor** — Submit orchestration requests to AOS and poll for status/results
-- **Stay lean** — Client apps contain only business logic; AOS handles agent lifecycle, orchestration, messaging, storage, and monitoring
+- **`AOSApp`** — Azure Functions application framework with `@workflow` decorators.  Generates HTTP triggers, Service Bus triggers, health endpoints, and auth middleware automatically.
+- **`AOSClient`** — Async HTTP/Service Bus client for agent discovery and orchestration.
+- **`AOSAuth`** — Azure IAM authentication and role-based access control.
+- **`AOSServiceBus`** — Bidirectional async communication via Azure Service Bus (scale-to-zero).
+- **`AOSRegistration`** — Client app registration with AOS (triggers infrastructure provisioning).
+- **`AOSDeployer`** — Code deployment to Azure Functions.
 
 ## Quick Start
 
 ```bash
-pip install aos-client-sdk
+pip install aos-client-sdk[azure]
 ```
 
+### Define Workflows (business logic only)
+
 ```python
-from aos_client import AOSClient
+# workflows.py
+from aos_client import AOSApp, WorkflowRequest
 
-async with AOSClient(endpoint="https://my-aos.azurewebsites.net") as client:
-    # Browse the RealmOfAgents catalog
-    agents = await client.list_agents()
-    for agent in agents:
-        print(f"{agent.agent_id}: {agent.purpose} ({agent.agent_type})")
+app = AOSApp(name="my-app")
 
-    # Select C-suite agents and run an orchestration
+@app.workflow("strategic-review")
+async def strategic_review(request: WorkflowRequest):
+    agents = await request.client.list_agents()
     c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
-    result = await client.run_orchestration(
+    return await request.client.run_orchestration(
         agent_ids=c_suite,
-        task={"type": "strategic_review", "data": {"quarter": "Q1-2026"}},
+        task={"type": "strategic_review", "data": request.body},
     )
-    print(result.summary)
+```
+
+### Azure Functions entry point (zero boilerplate)
+
+```python
+# function_app.py
+from my_app.workflows import app
+
+functions = app.get_functions()
+```
+
+That's it.  The SDK creates all HTTP triggers, Service Bus triggers, health
+endpoints, and authentication middleware.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Client Application (e.g. BusinessInfinity)         │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  workflows.py       @app.workflow decorators  │  │
+│  │  function_app.py    app.get_functions()       │  │
+│  │    └─ aos-client-sdk handles everything else  │  │
+│  └───────────────────────────────────────────────┘  │
+│  Zero Azure Functions boilerplate.                  │
+│  Zero agent code. Zero infrastructure code.         │
+└──────────────┬───────────────────┬──────────────────┘
+               │ HTTPS             │ Azure Service Bus
+               ▼                   ▼
+┌─────────────────────────────────────────────────────┐
+│  Agent Operating System (infrastructure)            │
+│  ┌──────────────────┐  ┌─────────────────────────┐  │
+│  │ aos-function-app  │  │ aos-realm-of-agents     │  │
+│  │ POST /api/        │  │ GET /api/realm/agents   │  │
+│  │  orchestrations   │  │ Agent catalog           │  │
+│  │ Service Bus       │  └─────────────────────────┘  │
+│  │  trigger          │                               │
+│  └────────┬──────────┘                               │
+│  ┌────────▼──────────────────────────────────────┐   │
+│  │ aos-kernel                                     │  │
+│  │ Orchestration · Messaging · Storage · Auth     │  │
+│  └────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
 ```
 
 ## API Reference
 
-### `AOSClient`
+### `AOSApp` — Application Framework
+
+| Method | Description |
+|--------|-------------|
+| `@app.workflow(name)` | Register a business workflow (creates HTTP + Service Bus triggers) |
+| `app.get_functions()` | Build Azure Functions app with all registered triggers |
+| `app.get_workflow_names()` | List registered workflow names |
+
+### `AOSClient` — AOS Communication
 
 | Method | Description |
 |--------|-------------|
 | `list_agents(agent_type=)` | List agents from the RealmOfAgents catalog |
 | `get_agent(agent_id)` | Get a single agent descriptor |
-| `submit_orchestration(request)` | Submit an orchestration request |
+| `submit_orchestration(request, via_service_bus=)` | Submit via HTTP or Service Bus |
 | `get_orchestration_status(id)` | Poll orchestration status |
 | `get_orchestration_result(id)` | Get final orchestration result |
 | `cancel_orchestration(id)` | Cancel a running orchestration |
 | `run_orchestration(...)` | Convenience: submit + poll + return result |
 | `health_check()` | Check AOS health |
 
+### `AOSAuth` — Authentication & Access Control
+
+| Method | Description |
+|--------|-------------|
+| `validate_token(token)` | Validate Azure AD bearer token |
+| `require_role(claims, role)` | Assert token has a specific role |
+| `require_any_allowed_role(claims)` | Assert token has any allowed role |
+| `get_credential()` | Get Azure credential for outbound calls |
+
+### `AOSServiceBus` — Async Communication
+
+| Method | Description |
+|--------|-------------|
+| `send_orchestration_request(request)` | Send orchestration via Service Bus |
+| `parse_orchestration_result(body)` | Parse result from Service Bus message |
+| `parse_orchestration_status(body)` | Parse status from Service Bus message |
+
+### `AOSRegistration` — App Registration & Provisioning
+
+| Method | Description |
+|--------|-------------|
+| `register_app(name, workflows)` | Register with AOS (provisions infrastructure) |
+| `get_app_status(name)` | Check registration/provisioning status |
+| `deregister_app(name)` | Remove registration |
+
+### `AOSDeployer` — Deployment
+
+| Method | Description |
+|--------|-------------|
+| `deploy(slot=)` | Deploy to Azure Functions |
+| `ensure_host_json()` | Create host.json if missing |
+| `ensure_local_settings(...)` | Create local.settings.json if missing |
+
 ### Models
 
 | Model | Description |
 |-------|-------------|
+| `WorkflowRequest` | Request passed to workflow handlers |
 | `AgentDescriptor` | Agent metadata from the RealmOfAgents catalog |
 | `OrchestrationRequest` | Request to run an agent orchestration |
 | `OrchestrationStatus` | Current status of an orchestration |
 | `OrchestrationResult` | Final result with per-agent outputs and summary |
-
-## Architecture
-
-```
-┌───────────────────────────┐
-│  Client Application       │  ← Your app (e.g. BusinessInfinity)
-│  (business logic only)    │
-│  pip install aos-client-sdk
-└────────────┬──────────────┘
-             │ HTTPS / Service Bus
-             ▼
-┌───────────────────────────┐
-│  Agent Operating System   │  ← AOS infrastructure service
-│  ┌─────────────────────┐  │
-│  │ aos-function-app     │  │  Orchestration API
-│  │ aos-realm-of-agents  │  │  Agent catalog
-│  │ aos-kernel           │  │  Orchestration, messaging, storage
-│  └─────────────────────┘  │
-└───────────────────────────┘
-```
+| `AppRegistration` | Client app registration record |
+| `DeploymentResult` | Deployment operation result |
+| `TokenClaims` | Parsed Azure AD token claims |
 
 ## Authentication
 
-For Azure-hosted deployments, pass an Azure credential:
+The SDK integrates Azure IAM for authentication and access control:
 
 ```python
-from azure.identity import DefaultAzureCredential
+from aos_client import AOSApp, AOSAuth
 
-client = AOSClient(
-    endpoint="https://my-aos.azurewebsites.net",
-    credential=DefaultAzureCredential(),
+auth = AOSAuth(
+    tenant_id="your-tenant-id",
+    client_id="your-client-id",
+    allowed_roles=["Workflows.Execute"],
 )
+
+app = AOSApp(name="my-app", auth=auth)
 ```
 
-For local development, omit the credential for anonymous access.
+For local development, omit the auth configuration for anonymous access.
+
+## Service Bus Communication
+
+Both AOS and client apps scale to zero and wake on Service Bus triggers:
+
+```python
+from aos_client import AOSClient
+
+async with AOSClient(
+    endpoint="https://my-aos.azurewebsites.net",
+    service_bus_connection_string="Endpoint=sb://...",
+    app_name="my-app",
+) as client:
+    # Submit via Service Bus (async, scale-to-zero friendly)
+    status = await client.submit_orchestration(request, via_service_bus=True)
+```
+
+## App Registration
+
+Register your app with AOS to provision infrastructure automatically:
+
+```python
+from aos_client import AOSRegistration
+
+async with AOSRegistration(aos_endpoint="https://my-aos.azurewebsites.net") as reg:
+    info = await reg.register_app(
+        app_name="my-app",
+        workflows=["strategic-review", "market-analysis"],
+    )
+    print(info.service_bus_connection_string)
+```
 
 ## Related Repositories
 
