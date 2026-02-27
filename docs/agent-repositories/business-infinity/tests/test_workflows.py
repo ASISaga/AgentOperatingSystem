@@ -38,7 +38,7 @@ class TestAOSAppWorkflows:
         assert "budget-approval" in names
 
     def test_workflow_count(self):
-        assert len(app.get_workflow_names()) == 9
+        assert len(app.get_workflow_names()) == 14
 
     def test_new_workflows_registered(self):
         names = app.get_workflow_names()
@@ -57,3 +57,24 @@ class TestAOSAppWorkflows:
 
     def test_observability_configured(self):
         assert app.observability is not None
+
+    def test_v5_workflows_registered(self):
+        names = app.get_workflow_names()
+        assert "risk-heatmap" in names
+        assert "risk-summary" in names
+        assert "compliance-report" in names
+        assert "create-alert" in names
+        assert "register-webhook" in names
+
+    def test_covenant_event_handlers(self):
+        handlers = app.get_covenant_event_handler_names()
+        assert "violated" in handlers
+        assert "expiring" in handlers
+
+    def test_mcp_event_handlers(self):
+        handlers = app.get_mcp_event_handler_names()
+        assert "erpnext:order_created" in handlers
+
+    def test_webhook_handlers(self):
+        handlers = app.get_webhook_names()
+        assert "slack-notifications" in handlers
