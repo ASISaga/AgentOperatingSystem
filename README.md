@@ -54,7 +54,7 @@ async with AOSClient(endpoint="https://my-aos.azurewebsites.net") as client:
 
 ## Repository Structure
 
-This meta-repository coordinates **11 focused repositories** under the [ASISaga](https://github.com/ASISaga) organization. Each is independently versioned, tested, and deployed.
+This meta-repository coordinates **11 focused repositories** under the [ASISaga](https://github.com/ASISaga) organization. Each is independently versioned, tested, and deployed. After testing/review, these would be moved to their dedicated repositories.
 
 ### Agent Repositories (RealmOfAgents)
 
