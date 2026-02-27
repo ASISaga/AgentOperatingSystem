@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-02-27T04:21:06.282062+00:00",
+  "action": "plan",
+  "environment": "dev",
+  "resource_group": "rg-test",
+  "location": "eastus",
+  "status": "success"
+}

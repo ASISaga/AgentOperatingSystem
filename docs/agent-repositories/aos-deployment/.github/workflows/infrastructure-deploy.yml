@@ -237,9 +237,19 @@ jobs:
           PRIMARY_REGION="${{ steps.region_select.outputs.primary_region }}"
           ML_REGION="${{ steps.region_select.outputs.ml_region }}"
           PARAMETERS_FILE="${{ needs.setup.outputs.parameters_file }}"
+          IS_DRY_RUN="${{ needs.setup.outputs.is_dry_run }}"
+          
+          # Select subcommand based on dry-run flag
+          if [[ "$IS_DRY_RUN" == "true" ]]; then
+            echo "📋 Running in PLAN mode (dry-run)"
+            SUBCOMMAND="plan"
+          else
+            SUBCOMMAND="deploy"
+          fi
           
           # Build argument list without shell evaluation
           ARGS=(
+            $SUBCOMMAND
             --resource-group "${{ needs.setup.outputs.resource_group }}"
             --location "$PRIMARY_REGION"
             --location-ml "$ML_REGION"
@@ -255,11 +265,6 @@ jobs:
           
           if [[ "${{ github.event.inputs.skip_health_checks }}" == "true" ]]; then
             ARGS+=(--skip-health)
-          fi
-          
-          if [[ "${{ needs.setup.outputs.is_dry_run }}" == "true" ]]; then
-            echo "📋 Running in PLAN mode (dry-run)"
-            ARGS+=(--no-confirm-deletes)
           fi
           
           set +e
@@ -314,6 +319,7 @@ jobs:
             PARAMETERS_FILE="${{ needs.setup.outputs.parameters_file }}"
             
             ARGS=(
+              deploy
               --resource-group "${{ needs.setup.outputs.resource_group }}"
               --location "$PRIMARY_REGION"
               --location-ml "$ML_REGION"

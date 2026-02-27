@@ -180,7 +180,7 @@ def _retry(args: argparse.Namespace) -> None:
     """Retry the deployment up to ``--max-retries`` times."""
     max_retries = int(getattr(args, "max_retries", 3))
     deploy_args = [
-        "python3", "deployment/deploy.py",
+        "python3", "deployment/deploy.py", "deploy",
         "--resource-group", args.resource_group,
         "--location", args.location,
         "--location-ml", getattr(args, "location_ml", args.location),
