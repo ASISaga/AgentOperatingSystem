@@ -22,3 +22,7 @@ local.settings.json
 
 # Environment
 .env
+
+# Deployment audit logs (generated at runtime)
+deployment/audit/
+**/deployment/audit/
