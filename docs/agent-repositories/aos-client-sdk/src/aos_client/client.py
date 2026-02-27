@@ -23,14 +23,30 @@ from __future__ import annotations
 
 import uuid
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from aos_client.models import (
     AgentDescriptor,
+    AgentResponse,
+    AuditEntry,
+    Covenant,
+    CovenantValidation,
+    Dashboard,
+    DecisionRecord,
+    Document,
+    KPI,
+    MCPServer,
+    MCPServerStatus,
+    MetricsSeries,
+    Network,
+    NetworkMembership,
     OrchestrationPurpose,
     OrchestrationRequest,
     OrchestrationStatus,
     OrchestrationStatusEnum,
+    PeerApp,
+    Risk,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,12 +77,16 @@ class AOSClient:
         credential: Optional[Any] = None,
         service_bus_connection_string: Optional[str] = None,
         app_name: Optional[str] = None,
+        retry_policy: Optional[Any] = None,
+        circuit_breaker: Optional[Any] = None,
     ) -> None:
         self.endpoint = endpoint.rstrip("/")
         self.realm_endpoint = (realm_endpoint or endpoint).rstrip("/")
         self.credential = credential
         self.service_bus_connection_string = service_bus_connection_string
         self.app_name = app_name
+        self.retry_policy = retry_policy
+        self.circuit_breaker = circuit_breaker
         self._session: Optional[Any] = None  # aiohttp.ClientSession placeholder
         self._service_bus: Optional[Any] = None  # AOSServiceBus placeholder
 
@@ -302,6 +322,16 @@ class AOSClient:
             resp.raise_for_status()
             return await resp.json()
 
+    async def _delete(self, url: str) -> None:
+        if self._session is None:
+            raise RuntimeError(
+                "AOSClient must be used as an async context manager: "
+                "async with AOSClient(...) as client: ..."
+            )
+        headers = await self._auth_headers()
+        async with self._session.delete(url, headers=headers) as resp:
+            resp.raise_for_status()
+
     async def _auth_headers(self) -> Dict[str, str]:
         if self.credential is None:
             return {}
@@ -311,3 +341,302 @@ class AOSClient:
         except Exception as exc:
             logger.warning("Failed to obtain auth token: %s. Proceeding without authentication.", exc)
             return {}
+
+    # ------------------------------------------------------------------
+    # Knowledge Base API
+    # ------------------------------------------------------------------
+
+    async def create_document(
+        self, title: str, doc_type: str, content: dict, **kwargs: Any,
+    ) -> Document:
+        """Create a knowledge document.
+
+        Args:
+            title: Document title.
+            doc_type: Document type (e.g. ``"policy"``, ``"decision"``).
+            content: Arbitrary document content.
+            **kwargs: Extra fields forwarded to the API.
+
+        Returns:
+            Created :class:`Document`.
+        """
+        payload: Dict[str, Any] = {"title": title, "doc_type": doc_type, "content": content}
+        payload.update(kwargs)
+        data = await self._post(f"{self.endpoint}/api/knowledge/documents", json=payload)
+        return Document(**data)
+
+    async def get_document(self, document_id: str) -> Document:
+        """Get a knowledge document by ID."""
+        data = await self._get(f"{self.endpoint}/api/knowledge/documents/{document_id}")
+        return Document(**data)
+
+    async def search_documents(
+        self, query: str, doc_type: Optional[str] = None, limit: int = 10,
+    ) -> List[Document]:
+        """Search knowledge documents."""
+        params: Dict[str, str] = {"query": query, "limit": str(limit)}
+        if doc_type:
+            params["doc_type"] = doc_type
+        data = await self._get(f"{self.endpoint}/api/knowledge/documents", params=params)
+        return [Document(**d) for d in data.get("documents", [])]
+
+    async def update_document(self, document_id: str, content: dict) -> Document:
+        """Update document content."""
+        data = await self._post(
+            f"{self.endpoint}/api/knowledge/documents/{document_id}",
+            json={"content": content},
+        )
+        return Document(**data)
+
+    async def delete_document(self, document_id: str) -> None:
+        """Delete a knowledge document."""
+        await self._delete(f"{self.endpoint}/api/knowledge/documents/{document_id}")
+
+    # ------------------------------------------------------------------
+    # Risk Registry API
+    # ------------------------------------------------------------------
+
+    async def register_risk(self, risk_data: dict) -> Risk:
+        """Register a new risk.
+
+        Args:
+            risk_data: Risk information (title, description, category,
+                owner, etc.).
+
+        Returns:
+            Created :class:`Risk`.
+        """
+        data = await self._post(f"{self.endpoint}/api/risks", json=risk_data)
+        return Risk(**data)
+
+    async def assess_risk(
+        self, risk_id: str, likelihood: float, impact: float, **kwargs: Any,
+    ) -> Risk:
+        """Assess a risk with likelihood and impact scores.
+
+        Args:
+            risk_id: Risk identifier.
+            likelihood: Likelihood score (0.0–1.0).
+            impact: Impact score (0.0–1.0).
+
+        Returns:
+            Updated :class:`Risk`.
+        """
+        payload: Dict[str, Any] = {"likelihood": likelihood, "impact": impact}
+        payload.update(kwargs)
+        data = await self._post(f"{self.endpoint}/api/risks/{risk_id}/assess", json=payload)
+        return Risk(**data)
+
+    async def get_risks(
+        self, status: Optional[str] = None, category: Optional[str] = None,
+    ) -> List[Risk]:
+        """List risks with optional filters."""
+        params: Dict[str, str] = {}
+        if status:
+            params["status"] = status
+        if category:
+            params["category"] = category
+        data = await self._get(f"{self.endpoint}/api/risks", params=params)
+        return [Risk(**r) for r in data.get("risks", [])]
+
+    async def update_risk_status(self, risk_id: str, status: str) -> Risk:
+        """Update the status of a risk."""
+        data = await self._post(
+            f"{self.endpoint}/api/risks/{risk_id}/status", json={"status": status},
+        )
+        return Risk(**data)
+
+    async def add_mitigation_plan(self, risk_id: str, plan: str, **kwargs: Any) -> Risk:
+        """Add a mitigation plan to a risk."""
+        payload: Dict[str, Any] = {"plan": plan}
+        payload.update(kwargs)
+        data = await self._post(f"{self.endpoint}/api/risks/{risk_id}/mitigate", json=payload)
+        return Risk(**data)
+
+    # ------------------------------------------------------------------
+    # Audit Trail / Decision Ledger API
+    # ------------------------------------------------------------------
+
+    async def log_decision(self, decision: dict) -> DecisionRecord:
+        """Log a decision to the immutable ledger.
+
+        Args:
+            decision: Decision data (title, rationale, outcome, etc.).
+
+        Returns:
+            Created :class:`DecisionRecord`.
+        """
+        data = await self._post(f"{self.endpoint}/api/audit/decisions", json=decision)
+        return DecisionRecord(**data)
+
+    async def get_decision_history(
+        self,
+        orchestration_id: Optional[str] = None,
+        agent_id: Optional[str] = None,
+    ) -> List[DecisionRecord]:
+        """Get decision history with optional filters."""
+        params: Dict[str, str] = {}
+        if orchestration_id:
+            params["orchestration_id"] = orchestration_id
+        if agent_id:
+            params["agent_id"] = agent_id
+        data = await self._get(f"{self.endpoint}/api/audit/decisions", params=params)
+        return [DecisionRecord(**d) for d in data.get("decisions", [])]
+
+    async def get_audit_trail(
+        self,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+    ) -> List[AuditEntry]:
+        """Get the audit trail with optional time-range filter."""
+        params: Dict[str, str] = {}
+        if start_time:
+            params["start_time"] = start_time.isoformat()
+        if end_time:
+            params["end_time"] = end_time.isoformat()
+        data = await self._get(f"{self.endpoint}/api/audit/trail", params=params)
+        return [AuditEntry(**e) for e in data.get("entries", [])]
+
+    # ------------------------------------------------------------------
+    # Covenant Management API
+    # ------------------------------------------------------------------
+
+    async def create_covenant(self, covenant_data: dict) -> Covenant:
+        """Create a new covenant.
+
+        Args:
+            covenant_data: Covenant definition (title, parties, terms, etc.).
+
+        Returns:
+            Created :class:`Covenant`.
+        """
+        data = await self._post(f"{self.endpoint}/api/covenants", json=covenant_data)
+        return Covenant(**data)
+
+    async def validate_covenant(self, covenant_id: str) -> CovenantValidation:
+        """Validate a covenant against its terms."""
+        data = await self._get(f"{self.endpoint}/api/covenants/{covenant_id}/validate")
+        return CovenantValidation(**data)
+
+    async def list_covenants(self, status: Optional[str] = None) -> List[Covenant]:
+        """List covenants with optional status filter."""
+        params: Dict[str, str] = {}
+        if status:
+            params["status"] = status
+        data = await self._get(f"{self.endpoint}/api/covenants", params=params)
+        return [Covenant(**c) for c in data.get("covenants", [])]
+
+    async def sign_covenant(self, covenant_id: str, signer: str) -> Covenant:
+        """Sign a covenant."""
+        data = await self._post(
+            f"{self.endpoint}/api/covenants/{covenant_id}/sign",
+            json={"signer": signer},
+        )
+        return Covenant(**data)
+
+    # ------------------------------------------------------------------
+    # Analytics and Metrics API
+    # ------------------------------------------------------------------
+
+    async def record_metric(
+        self, name: str, value: float, tags: Optional[dict] = None,
+    ) -> None:
+        """Record a metric data point."""
+        await self._post(
+            f"{self.endpoint}/api/metrics",
+            json={"name": name, "value": value, "tags": tags or {}},
+        )
+
+    async def get_metrics(
+        self, name: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
+    ) -> MetricsSeries:
+        """Retrieve a metric time series."""
+        params: Dict[str, str] = {"name": name}
+        if start:
+            params["start"] = start.isoformat()
+        if end:
+            params["end"] = end.isoformat()
+        data = await self._get(f"{self.endpoint}/api/metrics", params=params)
+        return MetricsSeries(**data)
+
+    async def create_kpi(self, kpi_definition: dict) -> KPI:
+        """Create a KPI definition."""
+        data = await self._post(f"{self.endpoint}/api/kpis", json=kpi_definition)
+        return KPI(**data)
+
+    async def get_kpi_dashboard(self) -> Dashboard:
+        """Get the KPI dashboard."""
+        data = await self._get(f"{self.endpoint}/api/kpis/dashboard")
+        return Dashboard(**data)
+
+    # ------------------------------------------------------------------
+    # MCP Server Integration
+    # ------------------------------------------------------------------
+
+    async def list_mcp_servers(self) -> List[MCPServer]:
+        """List available MCP servers."""
+        data = await self._get(f"{self.endpoint}/api/mcp/servers")
+        return [MCPServer(**s) for s in data.get("servers", [])]
+
+    async def call_mcp_tool(self, server: str, tool: str, args: dict) -> Any:
+        """Invoke a tool on an MCP server."""
+        data = await self._post(
+            f"{self.endpoint}/api/mcp/servers/{server}/tools/{tool}",
+            json=args,
+        )
+        return data
+
+    async def get_mcp_server_status(self, server: str) -> MCPServerStatus:
+        """Get the status of an MCP server."""
+        data = await self._get(f"{self.endpoint}/api/mcp/servers/{server}/status")
+        return MCPServerStatus(**data)
+
+    # ------------------------------------------------------------------
+    # Agent Interaction API (Direct Messaging)
+    # ------------------------------------------------------------------
+
+    async def ask_agent(
+        self, agent_id: str, message: str, context: Optional[dict] = None,
+    ) -> AgentResponse:
+        """Send a direct message to an agent and get a response.
+
+        Args:
+            agent_id: Target agent identifier.
+            message: Message text.
+            context: Optional context data.
+
+        Returns:
+            :class:`AgentResponse` from the agent.
+        """
+        payload: Dict[str, Any] = {"message": message}
+        if context:
+            payload["context"] = context
+        data = await self._post(f"{self.endpoint}/api/agents/{agent_id}/ask", json=payload)
+        return AgentResponse(**data)
+
+    async def send_to_agent(self, agent_id: str, message: dict) -> None:
+        """Send a fire-and-forget message to an agent."""
+        await self._post(f"{self.endpoint}/api/agents/{agent_id}/send", json=message)
+
+    # ------------------------------------------------------------------
+    # Network Discovery API
+    # ------------------------------------------------------------------
+
+    async def discover_peers(self, criteria: Optional[dict] = None) -> List[PeerApp]:
+        """Discover peer applications in the AOS network."""
+        data = await self._post(
+            f"{self.endpoint}/api/network/discover", json=criteria or {},
+        )
+        return [PeerApp(**p) for p in data.get("peers", [])]
+
+    async def join_network(self, network_id: str) -> NetworkMembership:
+        """Join an AOS network."""
+        data = await self._post(
+            f"{self.endpoint}/api/network/{network_id}/join", json={},
+        )
+        return NetworkMembership(**data)
+
+    async def list_networks(self) -> List[Network]:
+        """List available networks."""
+        data = await self._get(f"{self.endpoint}/api/network")
+        return [Network(**n) for n in data.get("networks", [])]

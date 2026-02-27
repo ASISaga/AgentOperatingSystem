@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "aos-client-sdk"
-version = "2.0.0"
+version = "4.0.0"
 description = "Application framework and client SDK for building Azure Functions apps powered by the Agent Operating System"
 readme = "README.md"
 license = {text = "Apache-2.0"}

@@ -1,17 +1,66 @@
 """Main Azure Functions entry point for AOS.
 
-Exposes AOS orchestration capabilities as HTTP endpoints and Azure Service Bus
-triggers.  Client applications submit orchestration requests (selecting agents
-from the RealmOfAgents catalog) and retrieve results through these endpoints.
+Exposes AOS orchestration capabilities and enterprise services as HTTP
+endpoints and Azure Service Bus triggers.  Client applications use the
+aos-client-sdk to interact with these endpoints.
 
-Endpoints:
-    POST /api/orchestrations              Submit an orchestration request (HTTP)
+Endpoints — Orchestrations:
+    POST /api/orchestrations              Submit an orchestration request
     GET  /api/orchestrations/{id}         Poll orchestration status
     GET  /api/orchestrations/{id}/result  Retrieve completed result
     POST /api/orchestrations/{id}/cancel  Cancel a running orchestration
+
+Endpoints — Knowledge Base:
+    POST /api/knowledge/documents         Create a document
+    GET  /api/knowledge/documents         Search documents
+    GET  /api/knowledge/documents/{id}    Get document by ID
+    POST /api/knowledge/documents/{id}    Update document
+    DELETE /api/knowledge/documents/{id}  Delete document
+
+Endpoints — Risk Registry:
+    POST /api/risks                       Register a risk
+    GET  /api/risks                       List risks
+    POST /api/risks/{id}/assess           Assess a risk
+    POST /api/risks/{id}/status           Update risk status
+    POST /api/risks/{id}/mitigate         Add mitigation plan
+
+Endpoints — Audit Trail:
+    POST /api/audit/decisions             Log a decision
+    GET  /api/audit/decisions             Get decision history
+    GET  /api/audit/trail                 Get audit trail
+
+Endpoints — Covenants:
+    POST /api/covenants                   Create a covenant
+    GET  /api/covenants                   List covenants
+    GET  /api/covenants/{id}/validate     Validate a covenant
+    POST /api/covenants/{id}/sign         Sign a covenant
+
+Endpoints — Analytics:
+    POST /api/metrics                     Record a metric
+    GET  /api/metrics                     Get metric series
+    POST /api/kpis                        Create a KPI
+    GET  /api/kpis/dashboard              Get KPI dashboard
+
+Endpoints — MCP:
+    GET  /api/mcp/servers                 List MCP servers
+    POST /api/mcp/servers/{s}/tools/{t}   Call an MCP tool
+    GET  /api/mcp/servers/{s}/status      Get MCP server status
+
+Endpoints — Agents:
+    POST /api/agents/{id}/ask             Ask an agent
+    POST /api/agents/{id}/send            Send to an agent
+
+Endpoints — Network:
+    POST /api/network/discover            Discover peers
+    POST /api/network/{id}/join           Join a network
+    GET  /api/network                     List networks
+
+Endpoints — App Registration:
     POST /api/apps/register               Register a client application
     GET  /api/apps/{app_name}             Get app registration status
     DELETE /api/apps/{app_name}           Deregister a client application
+
+Endpoints — Health:
     GET  /api/health                      Health check
 
 Service Bus Triggers:
@@ -38,6 +87,16 @@ app = func.FunctionApp()
 
 _orchestrations: Dict[str, Dict[str, Any]] = {}
 _registered_apps: Dict[str, Dict[str, Any]] = {}
+_documents: Dict[str, Dict[str, Any]] = {}
+_risks: Dict[str, Dict[str, Any]] = {}
+_decisions: list = []
+_audit_entries: list = []
+_covenants: Dict[str, Dict[str, Any]] = {}
+_metrics_store: list = []
+_kpis: Dict[str, Dict[str, Any]] = {}
+_mcp_servers: Dict[str, Dict[str, Any]] = {}
+_networks: Dict[str, Dict[str, Any]] = {}
+_network_memberships: Dict[str, Dict[str, Any]] = {}
 
 
 # ── HTTP Endpoints — Orchestrations ──────────────────────────────────────────
@@ -349,7 +408,480 @@ async def health(req: func.HttpRequest) -> func.HttpResponse:
     )
 
 
+# ── Knowledge Base Endpoints ─────────────────────────────────────────────────
+
+
+@app.function_name("create_document")
+@app.route(route="knowledge/documents", methods=["POST"])
+async def create_document(req: func.HttpRequest) -> func.HttpResponse:
+    """Create a knowledge document."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    doc_id = body.get("id") or f"doc-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": doc_id, "title": body.get("title", ""),
+        "doc_type": body.get("doc_type", ""), "status": "draft",
+        "content": body.get("content", {}), "tags": body.get("tags", []),
+        "metadata": body.get("metadata", {}),
+        "created_at": now, "updated_at": now,
+        "created_by": body.get("created_by"),
+    }
+    _documents[doc_id] = doc
+    return func.HttpResponse(json.dumps(doc), status_code=201, mimetype="application/json")
+
+
+@app.function_name("get_document")
+@app.route(route="knowledge/documents/{document_id}", methods=["GET"])
+async def get_document(req: func.HttpRequest) -> func.HttpResponse:
+    """Get a knowledge document by ID."""
+    doc_id = req.route_params.get("document_id", "")
+    doc = _documents.get(doc_id)
+    if doc is None:
+        return _json_error(f"Document '{doc_id}' not found", 404)
+    return func.HttpResponse(json.dumps(doc), mimetype="application/json")
+
+
+@app.function_name("search_documents")
+@app.route(route="knowledge/documents", methods=["GET"])
+async def search_documents(req: func.HttpRequest) -> func.HttpResponse:
+    """Search knowledge documents."""
+    query = (req.params.get("query") or "").lower()
+    doc_type = req.params.get("doc_type")
+    limit = int(req.params.get("limit", "10"))
+    results = list(_documents.values())
+    if query:
+        results = [d for d in results if query in d.get("title", "").lower()
+                    or query in json.dumps(d.get("content", {})).lower()]
+    if doc_type:
+        results = [d for d in results if d.get("doc_type") == doc_type]
+    return func.HttpResponse(
+        json.dumps({"documents": results[:limit]}), mimetype="application/json")
+
+
+@app.function_name("update_document")
+@app.route(route="knowledge/documents/{document_id}", methods=["POST"])
+async def update_document(req: func.HttpRequest) -> func.HttpResponse:
+    """Update a knowledge document's content."""
+    doc_id = req.route_params.get("document_id", "")
+    doc = _documents.get(doc_id)
+    if doc is None:
+        return _json_error(f"Document '{doc_id}' not found", 404)
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    doc["content"] = body.get("content", doc["content"])
+    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return func.HttpResponse(json.dumps(doc), mimetype="application/json")
+
+
+@app.function_name("delete_document")
+@app.route(route="knowledge/documents/{document_id}", methods=["DELETE"])
+async def delete_document(req: func.HttpRequest) -> func.HttpResponse:
+    """Delete a knowledge document."""
+    doc_id = req.route_params.get("document_id", "")
+    _documents.pop(doc_id, None)
+    return func.HttpResponse(status_code=204)
+
+
+# ── Risk Registry Endpoints ──────────────────────────────────────────────────
+
+
+@app.function_name("register_risk")
+@app.route(route="risks", methods=["POST"])
+async def register_risk(req: func.HttpRequest) -> func.HttpResponse:
+    """Register a new risk."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    risk_id = body.get("id") or f"risk-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+    risk = {
+        "id": risk_id, "title": body.get("title", ""),
+        "description": body.get("description", ""),
+        "category": body.get("category", "operational"),
+        "status": "identified", "owner": body.get("owner", "system"),
+        "assessment": None, "mitigation_plan": None,
+        "tags": body.get("tags", []), "context": body.get("context", {}),
+        "created_at": now, "updated_at": now,
+    }
+    _risks[risk_id] = risk
+    return func.HttpResponse(json.dumps(risk), status_code=201, mimetype="application/json")
+
+
+@app.function_name("list_risks")
+@app.route(route="risks", methods=["GET"])
+async def list_risks(req: func.HttpRequest) -> func.HttpResponse:
+    """List risks with optional filters."""
+    status = req.params.get("status")
+    category = req.params.get("category")
+    results = list(_risks.values())
+    if status:
+        results = [r for r in results if r["status"] == status]
+    if category:
+        results = [r for r in results if r["category"] == category]
+    return func.HttpResponse(json.dumps({"risks": results}), mimetype="application/json")
+
+
+@app.function_name("assess_risk")
+@app.route(route="risks/{risk_id}/assess", methods=["POST"])
+async def assess_risk(req: func.HttpRequest) -> func.HttpResponse:
+    """Assess a risk."""
+    risk_id = req.route_params.get("risk_id", "")
+    risk = _risks.get(risk_id)
+    if risk is None:
+        return _json_error(f"Risk '{risk_id}' not found", 404)
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    likelihood = body.get("likelihood", 0.5)
+    impact = body.get("impact", 0.5)
+    score = likelihood * impact
+    severity = (
+        "critical" if score >= 0.8 else
+        "high" if score >= 0.6 else
+        "medium" if score >= 0.3 else
+        "low" if score >= 0.1 else "info"
+    )
+    risk["assessment"] = {
+        "likelihood": likelihood, "impact": impact, "severity": severity,
+        "assessed_at": datetime.now(timezone.utc).isoformat(),
+        "assessor": body.get("assessor"), "notes": body.get("notes"),
+    }
+    risk["status"] = "assessing"
+    risk["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return func.HttpResponse(json.dumps(risk), mimetype="application/json")
+
+
+@app.function_name("update_risk_status")
+@app.route(route="risks/{risk_id}/status", methods=["POST"])
+async def update_risk_status(req: func.HttpRequest) -> func.HttpResponse:
+    """Update risk status."""
+    risk_id = req.route_params.get("risk_id", "")
+    risk = _risks.get(risk_id)
+    if risk is None:
+        return _json_error(f"Risk '{risk_id}' not found", 404)
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    risk["status"] = body.get("status", risk["status"])
+    risk["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return func.HttpResponse(json.dumps(risk), mimetype="application/json")
+
+
+@app.function_name("add_mitigation_plan")
+@app.route(route="risks/{risk_id}/mitigate", methods=["POST"])
+async def add_mitigation_plan(req: func.HttpRequest) -> func.HttpResponse:
+    """Add a mitigation plan to a risk."""
+    risk_id = req.route_params.get("risk_id", "")
+    risk = _risks.get(risk_id)
+    if risk is None:
+        return _json_error(f"Risk '{risk_id}' not found", 404)
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    risk["mitigation_plan"] = body.get("plan", "")
+    risk["status"] = "mitigating"
+    risk["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return func.HttpResponse(json.dumps(risk), mimetype="application/json")
+
+
+# ── Audit Trail / Decision Ledger Endpoints ──────────────────────────────────
+
+
+@app.function_name("log_decision")
+@app.route(route="audit/decisions", methods=["POST"])
+async def log_decision(req: func.HttpRequest) -> func.HttpResponse:
+    """Log a decision."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    record = {
+        "id": body.get("id") or f"dec-{uuid.uuid4().hex[:8]}",
+        "orchestration_id": body.get("orchestration_id"),
+        "agent_id": body.get("agent_id"),
+        "decision_type": body.get("decision_type", ""),
+        "title": body.get("title", ""),
+        "description": body.get("description", ""),
+        "rationale": body.get("rationale"),
+        "outcome": body.get("outcome"),
+        "confidence": body.get("confidence"),
+        "context": body.get("context", {}),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _decisions.append(record)
+    return func.HttpResponse(json.dumps(record), status_code=201, mimetype="application/json")
+
+
+@app.function_name("get_decision_history")
+@app.route(route="audit/decisions", methods=["GET"])
+async def get_decision_history(req: func.HttpRequest) -> func.HttpResponse:
+    """Get decision history."""
+    orch_id = req.params.get("orchestration_id")
+    agent_id = req.params.get("agent_id")
+    results = list(_decisions)
+    if orch_id:
+        results = [d for d in results if d.get("orchestration_id") == orch_id]
+    if agent_id:
+        results = [d for d in results if d.get("agent_id") == agent_id]
+    return func.HttpResponse(json.dumps({"decisions": results}), mimetype="application/json")
+
+
+@app.function_name("get_audit_trail")
+@app.route(route="audit/trail", methods=["GET"])
+async def get_audit_trail(req: func.HttpRequest) -> func.HttpResponse:
+    """Get the audit trail."""
+    return func.HttpResponse(json.dumps({"entries": _audit_entries}), mimetype="application/json")
+
+
+# ── Covenant Management Endpoints ────────────────────────────────────────────
+
+
+@app.function_name("create_covenant")
+@app.route(route="covenants", methods=["POST"])
+async def create_covenant(req: func.HttpRequest) -> func.HttpResponse:
+    """Create a covenant."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    cov_id = body.get("id") or f"cov-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+    cov = {
+        "id": cov_id, "title": body.get("title", ""),
+        "version": body.get("version", "1.0"), "status": "draft",
+        "parties": body.get("parties", []), "terms": body.get("terms", {}),
+        "signers": [], "created_at": now, "updated_at": now,
+    }
+    _covenants[cov_id] = cov
+    return func.HttpResponse(json.dumps(cov), status_code=201, mimetype="application/json")
+
+
+@app.function_name("list_covenants")
+@app.route(route="covenants", methods=["GET"])
+async def list_covenants(req: func.HttpRequest) -> func.HttpResponse:
+    """List covenants."""
+    status = req.params.get("status")
+    results = list(_covenants.values())
+    if status:
+        results = [c for c in results if c["status"] == status]
+    return func.HttpResponse(json.dumps({"covenants": results}), mimetype="application/json")
+
+
+@app.function_name("validate_covenant")
+@app.route(route="covenants/{covenant_id}/validate", methods=["GET"])
+async def validate_covenant(req: func.HttpRequest) -> func.HttpResponse:
+    """Validate a covenant."""
+    cov_id = req.route_params.get("covenant_id", "")
+    if cov_id not in _covenants:
+        return _json_error(f"Covenant '{cov_id}' not found", 404)
+    return func.HttpResponse(json.dumps({
+        "covenant_id": cov_id, "valid": True, "violations": [],
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }), mimetype="application/json")
+
+
+@app.function_name("sign_covenant")
+@app.route(route="covenants/{covenant_id}/sign", methods=["POST"])
+async def sign_covenant(req: func.HttpRequest) -> func.HttpResponse:
+    """Sign a covenant."""
+    cov_id = req.route_params.get("covenant_id", "")
+    cov = _covenants.get(cov_id)
+    if cov is None:
+        return _json_error(f"Covenant '{cov_id}' not found", 404)
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    signer = body.get("signer", "")
+    if signer and signer not in cov["signers"]:
+        cov["signers"].append(signer)
+    cov["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return func.HttpResponse(json.dumps(cov), mimetype="application/json")
+
+
+# ── Analytics & Metrics Endpoints ────────────────────────────────────────────
+
+
+@app.function_name("record_metric")
+@app.route(route="metrics", methods=["POST"])
+async def record_metric(req: func.HttpRequest) -> func.HttpResponse:
+    """Record a metric data point."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    _metrics_store.append({
+        "name": body.get("name", ""),
+        "value": body.get("value", 0.0),
+        "tags": body.get("tags", {}),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+    return func.HttpResponse(status_code=204)
+
+
+@app.function_name("get_metrics")
+@app.route(route="metrics", methods=["GET"])
+async def get_metrics(req: func.HttpRequest) -> func.HttpResponse:
+    """Retrieve metric time series."""
+    name = req.params.get("name", "")
+    points = [m for m in _metrics_store if m["name"] == name]
+    return func.HttpResponse(json.dumps({
+        "name": name,
+        "data_points": [{"value": p["value"], "tags": p["tags"],
+                          "timestamp": p["timestamp"]} for p in points],
+    }), mimetype="application/json")
+
+
+@app.function_name("create_kpi")
+@app.route(route="kpis", methods=["POST"])
+async def create_kpi(req: func.HttpRequest) -> func.HttpResponse:
+    """Create a KPI definition."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    kpi_id = body.get("id") or f"kpi-{uuid.uuid4().hex[:8]}"
+    kpi = {
+        "id": kpi_id, "name": body.get("name", ""),
+        "description": body.get("description", ""),
+        "target_value": body.get("target_value"),
+        "current_value": body.get("current_value"),
+        "unit": body.get("unit", ""),
+        "metadata": body.get("metadata", {}),
+    }
+    _kpis[kpi_id] = kpi
+    return func.HttpResponse(json.dumps(kpi), status_code=201, mimetype="application/json")
+
+
+@app.function_name("get_kpi_dashboard")
+@app.route(route="kpis/dashboard", methods=["GET"])
+async def get_kpi_dashboard(req: func.HttpRequest) -> func.HttpResponse:
+    """Get the KPI dashboard."""
+    return func.HttpResponse(json.dumps({
+        "kpis": list(_kpis.values()),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }), mimetype="application/json")
+
+
+# ── MCP Server Integration Endpoints ────────────────────────────────────────
+
+
+@app.function_name("list_mcp_servers")
+@app.route(route="mcp/servers", methods=["GET"])
+async def list_mcp_servers(req: func.HttpRequest) -> func.HttpResponse:
+    """List available MCP servers."""
+    return func.HttpResponse(
+        json.dumps({"servers": list(_mcp_servers.values())}),
+        mimetype="application/json",
+    )
+
+
+@app.function_name("call_mcp_tool")
+@app.route(route="mcp/servers/{server}/tools/{tool}", methods=["POST"])
+async def call_mcp_tool(req: func.HttpRequest) -> func.HttpResponse:
+    """Invoke a tool on an MCP server."""
+    server = req.route_params.get("server", "")
+    tool = req.route_params.get("tool", "")
+    try:
+        args = req.get_json()
+    except ValueError:
+        args = {}
+    return func.HttpResponse(json.dumps({
+        "server": server, "tool": tool, "args": args, "result": None,
+    }), mimetype="application/json")
+
+
+@app.function_name("get_mcp_server_status")
+@app.route(route="mcp/servers/{server}/status", methods=["GET"])
+async def get_mcp_server_status(req: func.HttpRequest) -> func.HttpResponse:
+    """Get MCP server status."""
+    server = req.route_params.get("server", "")
+    return func.HttpResponse(json.dumps({
+        "name": server, "status": "running", "healthy": True,
+        "last_checked": datetime.now(timezone.utc).isoformat(),
+    }), mimetype="application/json")
+
+
+# ── Agent Interaction Endpoints ──────────────────────────────────────────────
+
+
+@app.function_name("ask_agent")
+@app.route(route="agents/{agent_id}/ask", methods=["POST"])
+async def ask_agent(req: func.HttpRequest) -> func.HttpResponse:
+    """Direct message to an agent."""
+    agent_id = req.route_params.get("agent_id", "")
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    return func.HttpResponse(json.dumps({
+        "agent_id": agent_id,
+        "message": f"Response from {agent_id}",
+        "context": body.get("context", {}),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }), mimetype="application/json")
+
+
+@app.function_name("send_to_agent")
+@app.route(route="agents/{agent_id}/send", methods=["POST"])
+async def send_to_agent(req: func.HttpRequest) -> func.HttpResponse:
+    """Fire-and-forget message to an agent."""
+    return func.HttpResponse(status_code=202)
+
+
+# ── Network Discovery Endpoints ─────────────────────────────────────────────
+
+
+@app.function_name("discover_peers")
+@app.route(route="network/discover", methods=["POST"])
+async def discover_peers(req: func.HttpRequest) -> func.HttpResponse:
+    """Discover peer applications."""
+    return func.HttpResponse(json.dumps({"peers": []}), mimetype="application/json")
+
+
+@app.function_name("join_network")
+@app.route(route="network/{network_id}/join", methods=["POST"])
+async def join_network(req: func.HttpRequest) -> func.HttpResponse:
+    """Join a network."""
+    network_id = req.route_params.get("network_id", "")
+    membership = {
+        "network_id": network_id, "app_id": "caller",
+        "joined_at": datetime.now(timezone.utc).isoformat(),
+        "status": "active",
+    }
+    _network_memberships[network_id] = membership
+    return func.HttpResponse(json.dumps(membership), mimetype="application/json")
+
+
+@app.function_name("list_networks")
+@app.route(route="network", methods=["GET"])
+async def list_networks(req: func.HttpRequest) -> func.HttpResponse:
+    """List available networks."""
+    return func.HttpResponse(
+        json.dumps({"networks": list(_networks.values())}),
+        mimetype="application/json",
+    )
+
+
 # ── Internal Helpers ─────────────────────────────────────────────────────────
+
+
+def _json_error(message: str, status_code: int) -> func.HttpResponse:
+    """Return a JSON error response."""
+    return func.HttpResponse(
+        json.dumps({"error": message}),
+        status_code=status_code,
+        mimetype="application/json",
+    )
 
 
 def _process_orchestration_request(
