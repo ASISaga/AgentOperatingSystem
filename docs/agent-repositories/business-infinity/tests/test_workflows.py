@@ -5,6 +5,7 @@ import pytest
 from business_infinity.workflows import (
     C_SUITE_AGENT_IDS,
     C_SUITE_TYPES,
+    app,
     select_c_suite_agents,
 )
 
@@ -22,3 +23,19 @@ class TestCSuiteSelection:
     def test_c_suite_types(self):
         assert "LeadershipAgent" in C_SUITE_TYPES
         assert "CMOAgent" in C_SUITE_TYPES
+
+
+class TestAOSAppWorkflows:
+    """Test AOSApp workflow registration."""
+
+    def test_app_name(self):
+        assert app.name == "business-infinity"
+
+    def test_workflows_registered(self):
+        names = app.get_workflow_names()
+        assert "strategic-review" in names
+        assert "market-analysis" in names
+        assert "budget-approval" in names
+
+    def test_workflow_count(self):
+        assert len(app.get_workflow_names()) == 3

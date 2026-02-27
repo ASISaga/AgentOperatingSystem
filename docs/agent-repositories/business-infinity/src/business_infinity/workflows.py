@@ -1,7 +1,10 @@
 """BusinessInfinity workflows — pure business logic orchestrations.
 
-Each workflow function defines WHAT to do (business logic), not HOW to do it
-(infrastructure).  The ``aos_client`` SDK handles communication with AOS.
+Each workflow function is decorated with ``@app.workflow`` from the AOS Client
+SDK.  The SDK handles all Azure Functions scaffolding (HTTP triggers,
+Service Bus triggers, authentication, health endpoints).
+
+Client applications define WHAT to do (business logic), not HOW to do it.
 """
 
 from __future__ import annotations
@@ -9,9 +12,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List
 
-from aos_client import AOSClient, AgentDescriptor
+from aos_client import AOSApp, AOSClient, AgentDescriptor, WorkflowRequest
 
 logger = logging.getLogger(__name__)
+
+app = AOSApp(name="business-infinity")
 
 # ── C-Suite Agent Selection ──────────────────────────────────────────────────
 
@@ -44,34 +49,29 @@ async def select_c_suite_agents(client: AOSClient) -> List[AgentDescriptor]:
 
 # ── Business Workflows ───────────────────────────────────────────────────────
 
-async def run_strategic_review(
-    client: AOSClient,
-    quarter: str,
-    focus_areas: List[str] | None = None,
-) -> Dict[str, Any]:
+
+@app.workflow("strategic-review")
+async def strategic_review(request: WorkflowRequest) -> Dict[str, Any]:
     """Run a quarterly strategic review with C-suite agents.
 
-    This is a pure business-logic workflow.  AOS handles agent lifecycle,
-    orchestration, messaging, and result aggregation.
+    Request body::
 
-    Args:
-        client: Authenticated :class:`AOSClient`.
-        quarter: Quarter identifier (e.g. ``"Q1-2026"``).
-        focus_areas: Optional list of focus areas for the review.
-
-    Returns:
-        Orchestration result dictionary.
+        {"quarter": "Q1-2026", "focus_areas": ["revenue", "growth"]}
     """
-    agents = await select_c_suite_agents(client)
+    quarter = request.body.get("quarter")
+    if not quarter:
+        raise ValueError("quarter is required")
+
+    agents = await select_c_suite_agents(request.client)
     agent_ids = [a.agent_id for a in agents]
 
-    result = await client.run_orchestration(
+    result = await request.client.run_orchestration(
         agent_ids=agent_ids,
         task={
             "type": "strategic_review",
             "data": {
                 "quarter": quarter,
-                "focus_areas": focus_areas or ["revenue", "growth", "efficiency"],
+                "focus_areas": request.body.get("focus_areas", ["revenue", "growth", "efficiency"]),
             },
         },
         workflow="collaborative",
@@ -80,23 +80,20 @@ async def run_strategic_review(
     return result.model_dump()
 
 
-async def run_market_analysis(
-    client: AOSClient,
-    market: str,
-    competitors: List[str] | None = None,
-) -> Dict[str, Any]:
+@app.workflow("market-analysis")
+async def market_analysis(request: WorkflowRequest) -> Dict[str, Any]:
     """Run a market analysis led by the CMO agent.
 
-    Args:
-        client: Authenticated :class:`AOSClient`.
-        market: Target market name.
-        competitors: Optional list of competitor names.
+    Request body::
 
-    Returns:
-        Orchestration result dictionary.
+        {"market": "EU SaaS", "competitors": ["AcmeCorp", "Globex"]}
     """
+    market = request.body.get("market")
+    if not market:
+        raise ValueError("market is required")
+
     # Select CMO + supporting agents
-    agents = await select_c_suite_agents(client)
+    agents = await select_c_suite_agents(request.client)
     agent_ids = [a.agent_id for a in agents if a.agent_type == "CMOAgent"]
 
     # Add CEO for strategic oversight if available
@@ -107,13 +104,13 @@ async def run_market_analysis(
     if not agent_ids:
         raise ValueError("No CMO or CEO agents available in the catalog")
 
-    result = await client.run_orchestration(
+    result = await request.client.run_orchestration(
         agent_ids=agent_ids,
         task={
             "type": "market_analysis",
             "data": {
                 "market": market,
-                "competitors": competitors or [],
+                "competitors": request.body.get("competitors", []),
             },
         },
         workflow="hierarchical",
@@ -122,41 +119,42 @@ async def run_market_analysis(
     return result.model_dump()
 
 
-async def run_budget_approval(
-    client: AOSClient,
-    department: str,
-    amount: float,
-    justification: str,
-) -> Dict[str, Any]:
+@app.workflow("budget-approval")
+async def budget_approval(request: WorkflowRequest) -> Dict[str, Any]:
     """Submit a budget approval request to C-suite leadership.
 
-    Args:
-        client: Authenticated :class:`AOSClient`.
-        department: Department requesting the budget.
-        amount: Requested budget amount.
-        justification: Business justification.
+    Request body::
 
-    Returns:
-        Orchestration result dictionary containing the approval decision.
+        {"department": "Marketing", "amount": 500000, "justification": "Q2 campaign"}
     """
-    agents = await select_c_suite_agents(client)
+    required = ("department", "amount", "justification")
+    missing = [f for f in required if f not in request.body]
+    if missing:
+        raise ValueError(f"Missing required fields: {missing}")
+
+    agents = await select_c_suite_agents(request.client)
     # Budget approvals: CEO + CFO
     agent_ids = [a.agent_id for a in agents if a.agent_id in ("ceo", "cfo")]
 
     if not agent_ids:
         raise ValueError("CEO and/or CFO agents not available in the catalog")
 
-    result = await client.run_orchestration(
+    result = await request.client.run_orchestration(
         agent_ids=agent_ids,
         task={
             "type": "budget_approval",
             "data": {
-                "department": department,
-                "amount": amount,
-                "justification": justification,
+                "department": request.body["department"],
+                "amount": float(request.body["amount"]),
+                "justification": request.body["justification"],
             },
         },
         workflow="sequential",
     )
-    logger.info("Budget approval for %s ($%.0f): %s", department, amount, result.summary)
+    logger.info(
+        "Budget approval for %s ($%.0f): %s",
+        request.body["department"],
+        float(request.body["amount"]),
+        result.summary,
+    )
     return result.model_dump()

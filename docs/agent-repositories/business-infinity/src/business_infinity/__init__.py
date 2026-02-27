@@ -4,16 +4,16 @@ BusinessInfinity demonstrates how a client application uses the Agent Operating
 System as an infrastructure service.  It contains only business logic — agent
 lifecycle, orchestration, messaging, and storage are handled by AOS.
 
+The ``aos-client-sdk`` provides the ``AOSApp`` framework that handles all
+Azure Functions scaffolding, Service Bus communication, authentication,
+and deployment.  BusinessInfinity just defines workflows.
+
 Usage::
 
-    # Browse the C-suite agent catalog
-    agents = await client.list_agents()
+    from business_infinity.workflows import app
 
-    # Run a strategic review orchestration
-    result = await client.run_orchestration(
-        agent_ids=["ceo", "cfo", "cmo", "coo", "cto"],
-        task={"type": "strategic_review", "data": {"quarter": "Q1-2026"}},
-    )
+    # function_app.py:
+    functions = app.get_functions()
 """
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
