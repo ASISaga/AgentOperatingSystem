@@ -46,7 +46,7 @@ class TestCorrelationContext:
         ctx = CorrelationContext(correlation_id="test", operation_name="op")
         d = ctx.to_dict()
         assert d["correlation_id"] == "test"
-        assert d["operation"] == "op"
+        assert d["operation_name"] == "op"
         assert "duration_ms" in d
 
 

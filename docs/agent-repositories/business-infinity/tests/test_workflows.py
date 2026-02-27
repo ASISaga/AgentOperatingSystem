@@ -38,4 +38,22 @@ class TestAOSAppWorkflows:
         assert "budget-approval" in names
 
     def test_workflow_count(self):
-        assert len(app.get_workflow_names()) == 3
+        assert len(app.get_workflow_names()) == 9
+
+    def test_new_workflows_registered(self):
+        names = app.get_workflow_names()
+        assert "knowledge-search" in names
+        assert "risk-register" in names
+        assert "risk-assess" in names
+        assert "log-decision" in names
+        assert "covenant-create" in names
+        assert "ask-agent" in names
+
+    def test_update_handler_registered(self):
+        assert "strategic-review" in app.get_update_handler_names()
+
+    def test_mcp_tool_registered(self):
+        assert "erp-search" in app.get_mcp_tool_names()
+
+    def test_observability_configured(self):
+        assert app.observability is not None
