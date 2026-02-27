@@ -2,65 +2,71 @@
 
 ## Overview
 
-The AOS Function App is the primary cloud entry point for the Agent Operating
-System.  It exposes AOS capabilities as Azure Functions triggered by Service Bus
-messages and HTTP requests.
+The AOS Function App is the **orchestration API** for the Agent Operating System.
+Client applications submit orchestration requests (selecting agents from the
+RealmOfAgents catalog) and retrieve results through HTTP endpoints exposed by
+this function app.
 
 ## Component Architecture
 
 ```
 ┌─────────────────────────────────────┐
 │   Client Applications               │
-│   (BusinessInfinity, MCP, etc.)     │
+│   (BusinessInfinity, etc.)          │
+│   pip install aos-client-sdk        │
 └─────────────────────────────────────┘
               │
-        Azure Service Bus
-              │
-              ▼
-┌─────────────────────────────────────┐
-│   AOS Function App                  │
-│   • Service Bus triggers            │
-│   • HTTP endpoints                  │
-│   • Timer triggers                  │
-│   • Global AOS instance             │
-└─────────────────────────────────────┘
+         HTTPS (aos-client-sdk)
               │
               ▼
-┌─────────────────────────────────────┐
-│   Azure AI Agents Runtime           │
-│   (Foundry Agent Service)           │
-│   • Stateful agent threads          │
-│   • Managed lifecycle               │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────┐  ┌─────────────────────────────────┐
+│   AOS Function App                  │  │   RealmOfAgents                 │
+│   POST /api/orchestrations          │  │   GET /api/realm/agents         │
+│   GET  /api/orchestrations/{id}     │  │   Agent catalog (CEO, CFO, ...) │
+│   GET  /api/orchestrations/{id}/    │  │                                 │
+│         result                      │  │                                 │
+│   POST /api/orchestrations/{id}/    │  │                                 │
+│         cancel                      │  │                                 │
+│   GET  /api/health                  │  │                                 │
+└─────────────────────────────────────┘  └─────────────────────────────────┘
               │
               ▼
 ┌─────────────────────────────────────┐
 │   aos-kernel                        │
-│   • Storage, MCP, Messaging, Auth   │
+│   Orchestration engine, Messaging,  │
+│   Storage, Auth, MCP, Monitoring    │
 └─────────────────────────────────────┘
 ```
 
-## Key Components
+## Key Principle
 
-### Service Bus Triggers
+> AOS provides agent orchestrations as an infrastructure service.
+> Client apps contain only business logic — AOS handles the rest.
 
-Service Bus triggers are the primary interface for event-driven agent activation.
-Messages arrive on designated queues, and the function app routes them to the
-appropriate AOS handler.
+## HTTP Endpoints
 
-### HTTP Endpoints
+### Orchestration API
 
-HTTP endpoints provide:
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/orchestrations` | Submit an orchestration request |
+| GET | `/api/orchestrations/{id}` | Poll orchestration status |
+| GET | `/api/orchestrations/{id}/result` | Retrieve completed result |
+| POST | `/api/orchestrations/{id}/cancel` | Cancel a running orchestration |
+| GET | `/api/health` | Health check |
 
-- **Health check** — `GET /api/health`
-- **Agent status** — `GET /api/agents/{id}/status`
-- **Management** — Administrative endpoints for agent lifecycle
+### Orchestration Request Body
 
-### Global State
-
-The function app maintains a single `AgentOperatingSystem` instance that is
-initialized on first invocation and reused across all subsequent calls. This
-avoids cold-start overhead for repeated invocations.
+```json
+{
+    "orchestration_id": "optional-client-id",
+    "agent_ids": ["ceo", "cfo", "cmo"],
+    "workflow": "collaborative",
+    "task": {"type": "strategic_review", "data": {"quarter": "Q1-2026"}},
+    "config": {},
+    "callback_url": null
+}
+```
 
 ## Configuration
 
@@ -73,7 +79,8 @@ avoids cold-start overhead for repeated invocations.
 
 ## Related Repositories
 
+- [aos-client-sdk](https://github.com/ASISaga/aos-client-sdk) — Client SDK
+- [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — Agent catalog
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
+- [business-infinity](https://github.com/ASISaga/business-infinity) — Example client app
 - [aos-deployment](https://github.com/ASISaga/aos-deployment) — Deployment
-- [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — RealmOfAgents
-- [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) — MCPServers

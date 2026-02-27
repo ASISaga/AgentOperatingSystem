@@ -1,14 +1,62 @@
 # Agent Operating System
 
-**Multi-Repository Architecture for AI Agent Infrastructure**
+**Agent Orchestrations as an Infrastructure Service**
 
-The Agent Operating System (AOS) is a production-ready operating system for AI agents, built on Microsoft Azure and the Microsoft Agent Framework. The key architectural difference from traditional AI frameworks is **persistence** — agents are perpetual entities that run indefinitely, not temporary task-based sessions.
+The Agent Operating System (AOS) provides **agent orchestrations as an infrastructure service** to client applications. Client apps stay lean, containing only business logic, while AOS handles agent lifecycle, orchestration, messaging, storage, and monitoring.
+
+## How It Works
+
+```
+┌───────────────────────────────┐
+│  Client Application           │  ← Your app (e.g. BusinessInfinity)
+│  (business logic only)        │     pip install aos-client-sdk
+│  aos-client-sdk ──────────────┼──┐
+└───────────────────────────────┘  │
+                                   │ HTTPS / Service Bus
+┌──────────────────────────────────┼────────────────────────────────┐
+│  Agent Operating System          ▼                                │
+│  ┌──────────────────┐  ┌────────────────────┐  ┌──────────────┐  │
+│  │ aos-function-app  │  │ aos-realm-of-      │  │ aos-mcp-     │  │
+│  │ POST /api/        │  │ agents             │  │ servers      │  │
+│  │  orchestrations   │  │ GET /api/realm/    │  │ MCP protocol │  │
+│  │ Orchestration API │  │  agents            │  │              │  │
+│  │                   │  │ Agent catalog:     │  │              │  │
+│  │                   │  │  CEO · CFO · CMO   │  │              │  │
+│  │                   │  │  COO · CTO · ...   │  │              │  │
+│  └────────┬─────────┘  └────────────────────┘  └──────────────┘  │
+│           │                                                       │
+│  ┌────────▼─────────────────────────────────────────────────────┐ │
+│  │ aos-kernel                                                    │ │
+│  │ Orchestration · Messaging · Storage · Auth · MCP · Monitoring │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Example: BusinessInfinity
+
+[BusinessInfinity](https://github.com/ASISaga/business-infinity) is a lean Azure Functions app that selects C-suite agents from the RealmOfAgents catalog and runs orchestrations via AOS — with **zero agent code and zero infrastructure code**:
+
+```python
+from aos_client import AOSClient
+
+async with AOSClient(endpoint="https://my-aos.azurewebsites.net") as client:
+    # Browse the agent catalog
+    agents = await client.list_agents()
+
+    # Select C-suite agents and run a strategic review
+    c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
+    result = await client.run_orchestration(
+        agent_ids=c_suite,
+        task={"type": "strategic_review", "data": {"quarter": "Q1-2026"}},
+    )
+    print(result.summary)
+```
 
 ## Repository Structure
 
-This monorepo has been split into **9 focused repositories** under the [ASISaga](https://github.com/ASISaga) organization. Each repository is independently versioned, tested, and deployed.
+This meta-repository coordinates **11 focused repositories** under the [ASISaga](https://github.com/ASISaga) organization. Each is independently versioned, tested, and deployed.
 
-### Agent Repositories
+### Agent Repositories (RealmOfAgents)
 
 | Repository | Description | Package |
 |-----------|-------------|---------|
@@ -24,13 +72,20 @@ This monorepo has been split into **9 focused repositories** under the [ASISaga]
 | [aos-intelligence](https://github.com/ASISaga/aos-intelligence) | ML/AI — LoRA, DPO, self-learning, knowledge, RAG | `pip install aos-intelligence` |
 | [aos-deployment](https://github.com/ASISaga/aos-deployment) | Infrastructure — Bicep, orchestrator, regional validation | Standalone CLI |
 
-### Azure Functions Repositories
+### Service Repositories (AOS Infrastructure)
 
 | Repository | Description | Deployment |
 |-----------|-------------|------------|
-| [aos-function-app](https://github.com/ASISaga/aos-function-app) | Main Azure Functions entry point | Azure Functions |
-| [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) | Config-driven agent deployment | Azure Functions |
-| [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) | Config-driven MCP server deployment | Azure Functions |
+| [aos-function-app](https://github.com/ASISaga/aos-function-app) | Orchestration API — submit, monitor, retrieve orchestrations | Azure Functions |
+| [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) | Agent catalog — browse and select agents | Azure Functions |
+| [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) | MCP server deployment | Azure Functions |
+
+### Client Repositories
+
+| Repository | Description | Package |
+|-----------|-------------|---------|
+| [aos-client-sdk](https://github.com/ASISaga/aos-client-sdk) | Lightweight SDK for client apps to interact with AOS | `pip install aos-client-sdk` |
+| [business-infinity](https://github.com/ASISaga/business-infinity) | Example client app — C-suite orchestrations via AOS | Azure Functions |
 
 ## Dependency Graph
 
@@ -48,11 +103,37 @@ This monorepo has been split into **9 focused repositories** under the [ASISaga]
           aos-intelligence  │
                     │       │
           aos-function-app  aos-realm-of-agents  aos-mcp-servers
-                              
+                    ▲
+                    │
+              aos-client-sdk ◄──────── lightweight HTTP SDK
+                    ▲
+                    │
+            business-infinity ◄──────── lean client app (business logic only)
+
           aos-deployment (standalone — no AOS runtime deps)
 ```
 
 ## Quick Start
+
+### For Client Application Developers
+
+```bash
+# Install the client SDK — no agent or infrastructure dependencies
+pip install aos-client-sdk
+```
+
+```python
+from aos_client import AOSClient
+
+async with AOSClient(endpoint="https://my-aos.azurewebsites.net") as client:
+    agents = await client.list_agents()
+    result = await client.run_orchestration(
+        agent_ids=["ceo", "cfo", "cmo"],
+        task={"type": "quarterly_review", "data": {"quarter": "Q1-2026"}},
+    )
+```
+
+### For AOS Platform Developers
 
 ```bash
 # Install the kernel with Azure backends
@@ -67,40 +148,34 @@ pip install leadership-agent
 pip install cmo-agent
 ```
 
-```python
-from AgentOperatingSystem import AgentOperatingSystem
-
-aos = AgentOperatingSystem()
-await aos.initialize()
-await aos.start()
-```
-
 ## Cut-Paste Ready Repositories
 
-The `docs/agent-repositories/` directory contains **cut-paste ready** scaffolding for each of the 9 repositories. Each subdirectory is a complete, self-sufficient repository structure ready to be moved to its own Git repository:
+The `docs/agent-repositories/` directory contains **cut-paste ready** scaffolding for each of the 11 repositories. Each subdirectory is a complete, self-sufficient repository structure:
 
 ```
 docs/agent-repositories/
-├── purpose-driven-agent/   # Ready to cut-paste
-├── leadership-agent/       # Ready to cut-paste
-├── cmo-agent/              # Ready to cut-paste
-├── aos-kernel/             # Ready to cut-paste
-├── aos-deployment/         # Ready to cut-paste
-├── aos-intelligence/       # Ready to cut-paste
-├── aos-function-app/       # Ready to cut-paste
-├── aos-realm-of-agents/    # Ready to cut-paste
-└── aos-mcp-servers/        # Ready to cut-paste
+├── purpose-driven-agent/   # Agent base class
+├── leadership-agent/       # Leadership agent
+├── cmo-agent/              # CMO agent
+├── aos-kernel/             # OS kernel
+├── aos-deployment/         # Infrastructure deployment
+├── aos-intelligence/       # ML/AI intelligence
+├── aos-function-app/       # Orchestration API
+├── aos-realm-of-agents/    # Agent catalog
+├── aos-mcp-servers/        # MCP servers
+├── aos-client-sdk/         # Client SDK
+└── business-infinity/      # Example client app
 ```
 
 ## Architecture
 
 For detailed architecture documentation, see:
 - [Repository Split Plan](docs/development/REPOSITORY_SPLIT_PLAN.md) — Complete multi-repo architecture plan
-- Each repository's own `docs/architecture.md` for module-specific architecture
+- Each repository's own `docs/` for module-specific architecture
 
 ## Git Submodules
 
-Once the repositories are created on GitHub, this meta-repo can reference them as submodules:
+Once the repositories are created on GitHub, this meta-repo references them as submodules:
 
 ```bash
 git submodule add https://github.com/ASISaga/purpose-driven-agent.git
@@ -112,6 +187,8 @@ git submodule add https://github.com/ASISaga/aos-intelligence.git
 git submodule add https://github.com/ASISaga/aos-function-app.git
 git submodule add https://github.com/ASISaga/aos-realm-of-agents.git
 git submodule add https://github.com/ASISaga/aos-mcp-servers.git
+git submodule add https://github.com/ASISaga/aos-client-sdk.git
+git submodule add https://github.com/ASISaga/business-infinity.git
 ```
 
 ## License

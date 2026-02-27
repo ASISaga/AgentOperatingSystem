@@ -1,10 +1,10 @@
 # Repository Split Plan: AgentOperatingSystem → Multi-Repository Architecture
 
-**Version:** 1.4  
+**Version:** 1.5  
 **Date:** February 2026  
 **Status:** Proposed  
 **Author:** Architecture Analysis  
-**Last Updated:** February 2026 (split aos-azure-functions into 3 independent function app repos; distributed docs and copilot extensions to owning repos)
+**Last Updated:** February 2026 (added aos-client-sdk and business-infinity repos; established AOS-as-infrastructure-service architecture; updated from 9 to 11 repos)
 
 ---
 
@@ -23,6 +23,9 @@
   - [7. aos-function-app](#7-aos-function-app)
   - [8. aos-realm-of-agents](#8-aos-realm-of-agents)
   - [9. aos-mcp-servers](#9-aos-mcp-servers)
+  - [10. aos-client-sdk](#10-aos-client-sdk)
+  - [11. business-infinity](#11-business-infinity)
+- [Client Interaction Architecture](#client-interaction-architecture)
 - [Documentation Distribution](#documentation-distribution)
 - [Copilot Extensions Distribution](#copilot-extensions-distribution)
 - [Dependency Graph](#dependency-graph)
@@ -43,7 +46,9 @@ The AgentOperatingSystem repository currently contains **198 Python files** (~45
 3. **Agent intelligence** (ML pipelines, LoRA/LoRAx, DPO training, self-learning, knowledge/RAG)
 4. **Azure Functions hosting** — three independent function apps (main entry point, RealmOfAgents, MCPServers)
 
-This plan proposes splitting into **9 focused repositories** under the `ASISaga` GitHub organization, connected via Python package dependencies and shared interface contracts. Documentation and GitHub Copilot extensions (skills, prompts, instructions) are **distributed** to the repositories they belong to rather than centralized in dedicated repos.
+This plan proposes splitting into **11 focused repositories** under the `ASISaga` GitHub organization, connected via Python package dependencies and shared interface contracts. Documentation and GitHub Copilot extensions (skills, prompts, instructions) are **distributed** to the repositories they belong to rather than centralized in dedicated repos.
+
+The primary purpose of AOS is to provide **agent orchestrations as an infrastructure service** to client applications. Client apps (like BusinessInfinity) stay lean, containing only business logic, while AOS handles agent lifecycle, orchestration, messaging, storage, and monitoring. The `aos-client-sdk` provides a lightweight SDK for this interaction pattern.
 
 ---
 
@@ -722,6 +727,130 @@ azure-functions>=1.21.0
 
 ---
 
+### 10. aos-client-sdk
+
+**Purpose:** Lightweight Python SDK for client applications to interact with the Agent Operating System as an infrastructure service. Client apps use this SDK to browse agents, compose orchestrations, and retrieve results — without managing agent lifecycles or infrastructure.
+
+**Cut-paste-ready directory structure:** `docs/agent-repositories/aos-client-sdk/` in this monorepo.
+
+**What moves here:**
+
+```
+src/aos_client/
+├── __init__.py
+├── client.py            # AOSClient — primary HTTP client
+└── models.py            # Pydantic models (AgentDescriptor, OrchestrationRequest, etc.)
+.github/
+└── workflows/ci.yml
+tests/
+├── test_client.py
+└── test_models.py
+examples/
+pyproject.toml
+README.md
+LICENSE
+```
+
+**Package name:** `aos-client-sdk` (`pip install aos-client-sdk`)
+
+**Dependencies:**
+```
+pydantic>=2.0.0
+aiohttp>=3.9.0
+azure-identity>=1.15.0    # Optional, for Azure auth
+azure-servicebus>=7.12.0  # Optional, for event-driven workflows
+```
+
+**Key design decisions:**
+- **No AOS runtime dependencies** — the SDK depends only on `pydantic` and `aiohttp`. Client applications never need `aos-kernel`, `purpose-driven-agent`, or any agent package.
+- Communicates with AOS over HTTP (REST) and optionally Azure Service Bus.
+- Provides both low-level methods (`submit_orchestration`, `get_orchestration_status`) and convenience helpers (`run_orchestration` — submit, poll, return result).
+- Models match the API contracts of `aos-function-app` (orchestration endpoints) and `aos-realm-of-agents` (agent catalog endpoints).
+
+---
+
+### 11. business-infinity
+
+**Purpose:** Example lean Azure Functions client application that demonstrates using AOS as an infrastructure service. Contains only business logic — all agent management, orchestration, and infrastructure concerns are delegated to AOS via `aos-client-sdk`.
+
+**Cut-paste-ready directory structure:** `docs/agent-repositories/business-infinity/` in this monorepo.
+
+**What moves here:**
+
+```
+src/
+├── function_app.py                    # Azure Functions HTTP triggers
+└── business_infinity/
+    ├── __init__.py
+    └── workflows.py                   # Pure business logic workflows
+.github/
+└── workflows/ci.yml
+tests/
+└── test_workflows.py
+docs/
+pyproject.toml
+README.md
+LICENSE
+```
+
+**Package name:** `business-infinity` (deployment target)
+
+**Dependencies:**
+```
+aos-client-sdk>=1.0.0      # Lightweight SDK — no agent or infrastructure deps
+azure-functions>=1.21.0
+```
+
+**Key design decisions:**
+- **Zero agent code, zero infrastructure code.** BusinessInfinity contains only business workflows (strategic review, market analysis, budget approval).
+- Depends only on `aos-client-sdk` — never on `aos-kernel`, `purpose-driven-agent`, or any agent package.
+- Selects C-suite agents (CEO, CFO, CMO, COO, CTO) from the RealmOfAgents catalog and composes orchestrations via AOS.
+- Serves as the **reference implementation** for any client application that wants to use AOS as an infrastructure service.
+
+---
+
+## Client Interaction Architecture
+
+The primary purpose of AOS is to provide **agent orchestrations as an infrastructure service** to client applications living in other Azure Functions apps (or any HTTP-capable application).
+
+### Separation of Concerns
+
+| Concern | Owner | Repository |
+|---------|-------|-----------|
+| Business logic (workflows, decisions, triggers) | Client app | `business-infinity` (example) |
+| Agent catalog (available agents, capabilities) | RealmOfAgents | `aos-realm-of-agents` |
+| Orchestration API (submit, monitor, cancel, result) | AOS Function App | `aos-function-app` |
+| Agent lifecycle, orchestration engine, messaging, storage | AOS Kernel | `aos-kernel` |
+| Client-to-AOS communication | Client SDK | `aos-client-sdk` |
+
+### Interaction Flow
+
+```
+1. Client app calls  client.list_agents()
+   → GET /api/realm/agents  → aos-realm-of-agents
+
+2. Client app selects agents and calls  client.run_orchestration(agent_ids, task)
+   → POST /api/orchestrations  → aos-function-app
+   → aos-function-app dispatches to aos-kernel orchestration engine
+
+3. Client app polls  client.get_orchestration_status(id)
+   → GET /api/orchestrations/{id}  → aos-function-app
+
+4. Client app retrieves  client.get_orchestration_result(id)
+   → GET /api/orchestrations/{id}/result  → aos-function-app
+```
+
+### Dependency Principle
+
+Client applications depend **only** on `aos-client-sdk` (pydantic + aiohttp). They never import `aos-kernel`, `purpose-driven-agent`, or any agent package. This ensures:
+
+- **Lean deployments** — client apps have minimal dependencies
+- **Clear boundaries** — business logic is cleanly separated from infrastructure
+- **Independent versioning** — client apps and AOS evolve independently
+- **Easy onboarding** — new client apps need only `pip install aos-client-sdk`
+
+---
+
 ## Documentation Distribution
 
 With the removal of a dedicated `aos-docs` repository, documentation is **distributed** across all repositories. Each repo owns and maintains the documentation relevant to its domain.
@@ -1077,7 +1206,7 @@ on:
 
 | # | Decision | Rationale | Date |
 |---|----------|-----------|------|
-| 1 | Split into 9 repos | Natural domain boundaries; different release cadences and audiences; each function app independently deployable | Feb 2026 |
+| 1 | Split into 11 repos | Natural domain boundaries; different release cadences and audiences; each function app independently deployable; client SDK and example app enable infrastructure-as-a-service pattern | Feb 2026 |
 | 2 | `aos-deployment` has no Python dependency on `aos-kernel` | Deployment orchestrator is standalone CLI; no runtime coupling needed | Feb 2026 |
 | 3 | ML/Intelligence in separate repo from kernel | Heavy dependencies (PyTorch, transformers), different release cadence, different team expertise | Feb 2026 |
 | 4 | Distribute Copilot extensions to owning repos | Skills, prompts, and instructions are more effective when co-located with the code they describe | Feb 2026 |
@@ -1092,6 +1221,9 @@ on:
 | 13 | Split `aos-azure-functions` into 3 repos | Each function app has its own deployment lifecycle, scaling requirements, and team ownership; independently versioned and deployed | Feb 2026 |
 | 14 | Remove dedicated `aos-docs` repo | Documentation co-located with code improves maintainability; each repo owns its docs | Feb 2026 |
 | 15 | Remove dedicated `aos-copilot-extensions` repo | Copilot skills, prompts, and instructions are more effective when co-located with the code they describe | Feb 2026 |
+| 16 | Add `aos-client-sdk` repo | Client applications need a lightweight SDK to interact with AOS as an infrastructure service without depending on agent or kernel packages; enables the lean-client architecture | Feb 2026 |
+| 17 | Add `business-infinity` repo | Reference implementation of a lean client app that uses AOS via `aos-client-sdk`; demonstrates the C-suite orchestration use case with zero agent/infrastructure code | Feb 2026 |
+| 18 | AOS as infrastructure service | The primary purpose of AOS is to provide agent orchestrations as an infrastructure service; client apps select agents from RealmOfAgents and compose orchestrations via the client SDK | Feb 2026 |
 
 ---
 
@@ -1108,7 +1240,9 @@ on:
 | aos-function-app | ~2 | ~8 | host.json, 1 YAML | ~12 |
 | aos-realm-of-agents | ~4 | ~6 | 2 JSON, host.json | ~13 |
 | aos-mcp-servers | ~3 | ~5 | 2 JSON, host.json | ~11 |
-| **Total** | **~175** | **~94** | **~43** | **~314** |
+| aos-client-sdk | ~3 | ~2 | pyproject.toml, LICENSE | ~6 |
+| business-infinity | ~3 | ~2 | pyproject.toml, LICENSE | ~6 |
+| **Total** | **~181** | **~98** | **~47** | **~326** |
 
 > Note: Some files appear in multiple counts due to shared ownership (e.g., docs that reference deployment).
 > The current monorepo has ~198 Python + ~117 MD + ~40 other = ~355 files.
