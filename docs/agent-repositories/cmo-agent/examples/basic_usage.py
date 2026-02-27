@@ -40,12 +40,6 @@ async def demo_cmo_agent() -> None:
             "cross-functional growth initiatives"
         ),
         purpose_scope="Marketing and cross-functional leadership",
-        success_criteria=[
-            "Grow MQL pipeline by 40% year-over-year",
-            "Improve NPS by 15 points",
-            "Launch 4 major campaigns per year",
-            "Build high-performing marketing team of 25+",
-        ],
         marketing_adapter_name="marketing",
         leadership_adapter_name="leadership",
     )

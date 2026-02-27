@@ -32,7 +32,6 @@ PurposeDrivenAgent(
     role: Optional[str] = None,
     agent_type: Optional[str] = None,
     purpose_scope: Optional[str] = None,
-    success_criteria: Optional[List[str]] = None,
     tools: Optional[List[Any]] = None,
     system_message: Optional[str] = None,
     adapter_name: Optional[str] = None,
@@ -52,7 +51,6 @@ PurposeDrivenAgent(
 | `role` | `str` | `"agent"` | Role label |
 | `agent_type` | `str` | `"purpose_driven"` | Type label |
 | `purpose_scope` | `str` | `"General purpose operation"` | Scope/boundaries |
-| `success_criteria` | `List[str]` | `[]` | Success conditions |
 | `tools` | `List[Any]` | `[]` | Tools available via MCP |
 | `system_message` | `str` | `""` | System message override |
 | `adapter_name` | `str` | `None` | LoRA adapter name |
@@ -148,7 +146,6 @@ Return a summary of purpose-driven operation.
     "agent_id": str,
     "purpose": str,
     "purpose_scope": str,
-    "success_criteria": List[str],
     "metrics": {
         "purpose_aligned_actions": int,
         "purpose_evaluations": int,
@@ -292,7 +289,6 @@ Implements `IMLService`.  Every method raises `NotImplementedError`.
 | `agent_type` | `str` | Type label |
 | `purpose` | `str` | Long-term purpose |
 | `purpose_scope` | `str` | Purpose scope |
-| `success_criteria` | `List[str]` | Success criteria |
 | `adapter_name` | `Optional[str]` | LoRA adapter name |
 | `is_running` | `bool` | Whether perpetual loop is active |
 | `sleep_mode` | `bool` | Whether agent is currently sleeping |

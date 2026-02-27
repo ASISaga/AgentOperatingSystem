@@ -104,7 +104,6 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         role: Optional[str] = None,
         agent_type: Optional[str] = None,
         purpose_scope: Optional[str] = None,
-        success_criteria: Optional[List[str]] = None,
         tools: Optional[List[Any]] = None,
         system_message: Optional[str] = None,
         adapter_name: Optional[str] = None,
@@ -115,15 +114,17 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         """
         Initialise a Purpose-Driven Agent.
 
+        Purposes are perpetual — there are no success criteria.  The agent
+        works toward its purpose indefinitely, guided by its purpose scope.
+
         Args:
             agent_id: Unique identifier for this agent.
-            purpose: The long-term purpose this agent works toward (added to
-                LLM context).
+            purpose: The long-term, perpetual purpose this agent works
+                toward (added to LLM context).
             name: Human-readable agent name (defaults to *agent_id*).
             role: Agent role/type (defaults to ``"agent"``).
             agent_type: Type label (defaults to ``"purpose_driven"``).
             purpose_scope: Scope/boundaries of the purpose.
-            success_criteria: List of criteria that define success.
             tools: Tools available to the agent (via MCP).
             system_message: System message for the agent.
             adapter_name: Name for the LoRA adapter providing domain knowledge
@@ -182,7 +183,6 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         # ---- Purpose attributes --------------------------------------------
         self.purpose: str = purpose
         self.purpose_scope: str = purpose_scope or "General purpose operation"
-        self.success_criteria: List[str] = success_criteria or []
 
         self.purpose_metrics: Dict[str, int] = {
             "purpose_aligned_actions": 0,
@@ -303,9 +303,6 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             if self.mcp_context_server:
                 await self.mcp_context_server.set_context("purpose", self.purpose)
                 await self.mcp_context_server.set_context("purpose_scope", self.purpose_scope)
-                await self.mcp_context_server.set_context(
-                    "success_criteria", self.success_criteria
-                )
 
             self.logger.info(
                 "PurposeDrivenAgent '%s' initialised — purpose in LLM context, "
@@ -589,7 +586,6 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         self,
         orchestration_purpose: str,
         orchestration_scope: str = "",
-        orchestration_criteria: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Align this agent's working purpose to an orchestration's overarching purpose.
@@ -605,10 +601,11 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         and goal tracking operate under the aligned purpose for the duration of
         the orchestration.
 
+        Purposes are perpetual — there are no success criteria to merge.
+
         Args:
             orchestration_purpose: The overarching purpose of the orchestration.
             orchestration_scope: Scope/boundaries of the orchestration purpose.
-            orchestration_criteria: Success criteria for the orchestration.
 
         Returns:
             Dict with keys: ``"agent_id"``, ``"original_purpose"``,
@@ -616,7 +613,6 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             ``"alignment_strategy"``, ``"timestamp"``.
         """
         original_purpose = self.purpose
-        criteria = orchestration_criteria or []
 
         # Build an aligned purpose that merges orchestration goal with agent
         # domain expertise (adapter_name provides the agent's persona).
@@ -631,21 +627,14 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         if orchestration_scope and self.purpose_scope:
             merged_scope = f"{orchestration_scope} | Agent scope: {self.purpose_scope}"
 
-        # Merge success criteria: orchestration-level + agent-level
-        merged_criteria = list(criteria) + [
-            c for c in self.success_criteria if c not in criteria
-        ]
-
         # Apply the alignment
         self.purpose = aligned_purpose
         self.purpose_scope = merged_scope
-        self.success_criteria = merged_criteria
 
         # Persist to MCP context
         if self.mcp_context_server:
             await self.mcp_context_server.set_context("purpose", self.purpose)
             await self.mcp_context_server.set_context("purpose_scope", self.purpose_scope)
-            await self.mcp_context_server.set_context("success_criteria", self.success_criteria)
             await self.mcp_context_server.set_context("original_purpose", original_purpose)
             await self.mcp_context_server.set_context(
                 "orchestration_purpose", orchestration_purpose
@@ -828,7 +817,6 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             "agent_id": self.agent_id,
             "purpose": self.purpose,
             "purpose_scope": self.purpose_scope,
-            "success_criteria": self.success_criteria,
             "metrics": self.purpose_metrics,
             "active_goals": len(self.active_goals),
             "completed_goals": len(self.completed_goals),

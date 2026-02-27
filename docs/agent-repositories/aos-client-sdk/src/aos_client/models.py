@@ -1,4 +1,10 @@
-"""Data models for the AOS Client SDK."""
+"""Data models for the AOS Client SDK.
+
+All orchestration models follow the **purpose-driven, perpetual** paradigm:
+orchestrations are started with a purpose and run indefinitely until
+explicitly stopped.  There are no completion criteria or finite task
+payloads — agents work toward the overarching purpose continuously.
+"""
 
 from __future__ import annotations
 
@@ -27,6 +33,9 @@ class OrchestrationPurpose(BaseModel):
     :class:`PurposeDrivenAgent` instances align their working purposes to
     achieve this overarching goal while retaining their own domain-specific
     knowledge, skills, and personas.
+
+    Purposes are **perpetual** — they have no success criteria because a
+    purpose-driven orchestration runs indefinitely.
     """
 
     purpose: str = Field(..., description="The overarching purpose of the orchestration")
@@ -34,30 +43,36 @@ class OrchestrationPurpose(BaseModel):
         default="General orchestration scope",
         description="Boundaries/scope for the orchestration purpose",
     )
-    success_criteria: List[str] = Field(
-        default_factory=list,
-        description="Criteria that define successful orchestration completion",
-    )
 
 
 class OrchestrationRequest(BaseModel):
-    """Request to run an agent orchestration via AOS."""
+    """Request to start a purpose-driven agent orchestration via AOS.
+
+    Orchestrations are perpetual: they run until explicitly stopped.
+    The ``purpose`` drives agent alignment; ``context`` supplies initial
+    data that informs the agents' work.
+    """
 
     orchestration_id: Optional[str] = Field(None, description="Client-supplied ID (auto-generated if omitted)")
     agent_ids: List[str] = Field(..., min_length=1, description="Agent IDs to include in the orchestration")
     workflow: str = Field(default="collaborative", description="Workflow pattern: collaborative, sequential, hierarchical")
-    purpose: Optional[OrchestrationPurpose] = Field(None, description="Overarching purpose that drives the orchestration and guides agent alignment")
-    task: Dict[str, Any] = Field(..., description="Task payload for the orchestration")
+    purpose: OrchestrationPurpose = Field(..., description="Overarching purpose that drives the orchestration and guides agent alignment")
+    context: Dict[str, Any] = Field(default_factory=dict, description="Initial context data for the orchestration")
     config: Dict[str, Any] = Field(default_factory=dict, description="Orchestration-level configuration")
-    callback_url: Optional[str] = Field(None, description="Webhook URL for completion notification")
+    callback_url: Optional[str] = Field(None, description="Webhook URL for status notifications")
 
 
 class OrchestrationStatusEnum(str, Enum):
-    """Orchestration lifecycle states."""
+    """Orchestration lifecycle states.
+
+    Orchestrations are perpetual — they transition from ``PENDING`` to
+    ``ACTIVE`` and remain active until explicitly ``STOPPED`` or
+    ``CANCELLED``, or until a ``FAILED`` state is reached.
+    """
 
     PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
+    ACTIVE = "active"
+    STOPPED = "stopped"
     FAILED = "failed"
     CANCELLED = "cancelled"
 
@@ -68,20 +83,7 @@ class OrchestrationStatus(BaseModel):
     orchestration_id: str
     status: OrchestrationStatusEnum
     agent_ids: List[str] = Field(default_factory=list)
-    progress: float = Field(default=0.0, ge=0.0, le=1.0, description="Progress 0.0-1.0")
+    purpose: Optional[str] = Field(None, description="The orchestration's driving purpose")
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     error: Optional[str] = None
-
-
-class OrchestrationResult(BaseModel):
-    """Final result of a completed orchestration."""
-
-    orchestration_id: str
-    status: OrchestrationStatusEnum
-    agent_ids: List[str] = Field(default_factory=list)
-    results: Dict[str, Any] = Field(default_factory=dict, description="Per-agent results keyed by agent_id")
-    summary: Optional[str] = Field(None, description="Aggregated summary of the orchestration outcome")
-    created_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    duration_seconds: Optional[float] = None

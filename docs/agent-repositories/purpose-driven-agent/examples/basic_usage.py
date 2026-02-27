@@ -33,11 +33,6 @@ async def demo_basic_agent() -> None:
         agent_id="demo-assistant",
         purpose="Assist users with information retrieval and task coordination",
         purpose_scope="Knowledge queries and workflow orchestration",
-        success_criteria=[
-            "Respond to all queries within 2 seconds",
-            "Maintain >90% user satisfaction",
-            "Process >1000 events per day",
-        ],
         adapter_name="general",
     )
 

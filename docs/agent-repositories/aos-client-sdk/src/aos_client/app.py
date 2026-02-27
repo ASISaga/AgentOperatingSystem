@@ -15,9 +15,10 @@ Usage::
     async def strategic_review(request):
         agents = await request.client.list_agents()
         c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
-        return await request.client.run_orchestration(
+        return await request.client.start_orchestration(
             agent_ids=c_suite,
-            task={"type": "strategic_review", "data": request.body},
+            purpose="Drive strategic growth and continuous organisational improvement",
+            context=request.body,
         )
 
     # function_app.py just does:
@@ -34,7 +35,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from aos_client.auth import AOSAuth, TokenClaims
-from aos_client.models import OrchestrationResult
+from aos_client.models import OrchestrationStatus
 from aos_client.service_bus import AOSServiceBus
 
 logger = logging.getLogger(__name__)
@@ -140,7 +141,7 @@ class AOSApp:
         """Register a business workflow.
 
         The decorated function receives a :class:`WorkflowRequest` and
-        should return the workflow result (dict, :class:`OrchestrationResult`,
+        should return the workflow result (dict, :class:`OrchestrationStatus`,
         or any JSON-serializable object).
 
         The SDK automatically creates:
@@ -270,7 +271,7 @@ class AOSApp:
                     )
 
             # Serialize result
-            if isinstance(result, OrchestrationResult):
+            if isinstance(result, OrchestrationStatus):
                 result_data = result.model_dump(mode="json")
             elif hasattr(result, "model_dump"):
                 result_data = result.model_dump(mode="json")

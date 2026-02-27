@@ -4,7 +4,7 @@ import json
 import pytest
 
 from aos_client.service_bus import AOSServiceBus, DEFAULT_REQUEST_QUEUE, DEFAULT_RESULT_TOPIC
-from aos_client.models import OrchestrationResult, OrchestrationStatus, OrchestrationStatusEnum
+from aos_client.models import OrchestrationPurpose, OrchestrationStatus, OrchestrationStatusEnum
 
 
 class TestAOSServiceBus:
@@ -32,17 +32,16 @@ class TestAOSServiceBus:
         data = {
             "payload": {
                 "orchestration_id": "orch-1",
-                "status": "completed",
+                "status": "active",
                 "agent_ids": ["ceo"],
-                "results": {"ceo": {"decision": "approve"}},
-                "summary": "Approved",
+                "purpose": "Drive strategic growth",
             }
         }
         result = AOSServiceBus.parse_orchestration_result(data)
-        assert isinstance(result, OrchestrationResult)
+        assert isinstance(result, OrchestrationStatus)
         assert result.orchestration_id == "orch-1"
-        assert result.status == OrchestrationStatusEnum.COMPLETED
-        assert result.summary == "Approved"
+        assert result.status == OrchestrationStatusEnum.ACTIVE
+        assert result.purpose == "Drive strategic growth"
 
     def test_parse_orchestration_result_from_json_string(self):
         data = json.dumps({
@@ -60,7 +59,7 @@ class TestAOSServiceBus:
         data = json.dumps({
             "payload": {
                 "orchestration_id": "orch-3",
-                "status": "completed",
+                "status": "active",
             }
         }).encode("utf-8")
         result = AOSServiceBus.parse_orchestration_result(data)
@@ -70,31 +69,33 @@ class TestAOSServiceBus:
         data = {
             "payload": {
                 "orchestration_id": "orch-4",
-                "status": "running",
-                "progress": 0.5,
+                "status": "active",
+                "purpose": "Monitor market trends",
             }
         }
         status = AOSServiceBus.parse_orchestration_status(data)
         assert isinstance(status, OrchestrationStatus)
-        assert status.status == OrchestrationStatusEnum.RUNNING
-        assert status.progress == 0.5
+        assert status.status == OrchestrationStatusEnum.ACTIVE
 
     def test_build_result_message(self):
-        result = OrchestrationResult(
+        status = OrchestrationStatus(
             orchestration_id="orch-5",
-            status=OrchestrationStatusEnum.COMPLETED,
-            summary="Done",
+            status=OrchestrationStatusEnum.STOPPED,
+            purpose="Drive growth",
         )
-        message = AOSServiceBus.build_result_message(result, app_name="test-app")
+        message = AOSServiceBus.build_result_message(status, app_name="test-app")
         assert message["message_type"] == "orchestration_result"
         assert message["app_name"] == "test-app"
         assert message["payload"]["orchestration_id"] == "orch-5"
 
     @pytest.mark.asyncio
     async def test_send_requires_context_manager(self):
-        from aos_client.models import OrchestrationRequest
+        from aos_client.models import OrchestrationPurpose, OrchestrationRequest
 
         bus = AOSServiceBus(app_name="test")
-        request = OrchestrationRequest(agent_ids=["ceo"], task={"type": "test"})
+        request = OrchestrationRequest(
+            agent_ids=["ceo"],
+            purpose=OrchestrationPurpose(purpose="Test purpose"),
+        )
         with pytest.raises(RuntimeError, match="Service Bus not available"):
             await bus.send_orchestration_request(request)

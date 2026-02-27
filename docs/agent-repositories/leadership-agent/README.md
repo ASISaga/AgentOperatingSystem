@@ -154,11 +154,6 @@ agent = LeadershipAgent(
     purpose="Technology strategy: Build world-class engineering organisation",
     adapter_name="technology",
     purpose_scope="Engineering, architecture, technical strategy",
-    success_criteria=[
-        "Ship 3 major releases per year",
-        "Maintain 99.9% uptime",
-        "Grow engineering headcount by 30%",
-    ],
 )
 await agent.initialize()
 await agent.start()

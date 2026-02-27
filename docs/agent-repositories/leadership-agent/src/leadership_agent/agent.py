@@ -57,7 +57,6 @@ class LeadershipAgent(PurposeDrivenAgent):
         role: Optional[str] = None,
         purpose: Optional[str] = None,
         purpose_scope: Optional[str] = None,
-        success_criteria: Optional[List[str]] = None,
         tools: Optional[List[Any]] = None,
         system_message: Optional[str] = None,
         adapter_name: Optional[str] = None,
@@ -74,7 +73,6 @@ class LeadershipAgent(PurposeDrivenAgent):
             purpose: Leadership purpose (defaults to standard leadership
                 purpose if not provided).
             purpose_scope: Scope/boundaries of the purpose.
-            success_criteria: List of criteria that define success.
             tools: Tools available to the agent.
             system_message: System message for the agent.
             adapter_name: LoRA adapter name (defaults to ``"leadership"``).
@@ -96,7 +94,6 @@ class LeadershipAgent(PurposeDrivenAgent):
             agent_id=agent_id,
             purpose=purpose,
             purpose_scope=purpose_scope,
-            success_criteria=success_criteria,
             tools=tools,
             system_message=system_message,
             adapter_name=adapter_name,
