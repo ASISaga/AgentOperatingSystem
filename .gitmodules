@@ -33,3 +33,11 @@ url = https://github.com/ASISaga/aos-realm-of-agents.git
 [submodule "aos-mcp-servers"]
 path = aos-mcp-servers
 url = https://github.com/ASISaga/aos-mcp-servers.git
+
+[submodule "aos-client-sdk"]
+path = aos-client-sdk
+url = https://github.com/ASISaga/aos-client-sdk.git
+
+[submodule "business-infinity"]
+path = business-infinity
+url = https://github.com/ASISaga/business-infinity.git

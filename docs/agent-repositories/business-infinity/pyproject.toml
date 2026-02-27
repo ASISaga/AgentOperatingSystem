@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=75.0.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "business-infinity"
+version = "1.0.0"
+description = "Lean Azure Functions client app powered by the Agent Operating System"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+
+dependencies = [
+    "aos-client-sdk>=1.0.0",
+    "azure-functions>=1.21.0",
+]
+
+[project.optional-dependencies]
+azure = [
+    "azure-identity>=1.15.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pylint>=3.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

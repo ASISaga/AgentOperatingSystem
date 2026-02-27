@@ -1,4 +1,49 @@
 {
-    "_comment": "Copy from monorepo: azure_functions/example_agent_registry.json or equivalent. Defines agent configurations for config-driven deployment.",
-    "agents": []
+    "agents": [
+        {
+            "agent_id": "ceo",
+            "agent_type": "LeadershipAgent",
+            "purpose": "Strategic leadership, vision setting, and executive decision-making",
+            "adapter_name": "leadership",
+            "capabilities": ["strategic_planning", "decision_making", "delegation", "stakeholder_management"],
+            "config": {"decision_mode": "autonomous"},
+            "enabled": true
+        },
+        {
+            "agent_id": "cfo",
+            "agent_type": "LeadershipAgent",
+            "purpose": "Financial strategy, budgeting, risk management, and fiscal oversight",
+            "adapter_name": "finance",
+            "capabilities": ["financial_analysis", "budget_approval", "risk_assessment", "forecasting"],
+            "config": {"decision_mode": "autonomous"},
+            "enabled": true
+        },
+        {
+            "agent_id": "cmo",
+            "agent_type": "CMOAgent",
+            "purpose": "Marketing strategy, brand management, customer acquisition, and market analysis",
+            "adapter_name": "marketing",
+            "capabilities": ["marketing", "brand_management", "market_analysis", "customer_acquisition"],
+            "config": {"marketing_adapter_name": "marketing", "leadership_adapter_name": "leadership"},
+            "enabled": true
+        },
+        {
+            "agent_id": "coo",
+            "agent_type": "LeadershipAgent",
+            "purpose": "Operations management, process optimisation, and organisational efficiency",
+            "adapter_name": "operations",
+            "capabilities": ["operations", "process_optimization", "supply_chain", "efficiency"],
+            "config": {"decision_mode": "autonomous"},
+            "enabled": true
+        },
+        {
+            "agent_id": "cto",
+            "agent_type": "LeadershipAgent",
+            "purpose": "Technology strategy, innovation, engineering leadership, and digital transformation",
+            "adapter_name": "technology",
+            "capabilities": ["technology_strategy", "innovation", "architecture", "digital_transformation"],
+            "config": {"decision_mode": "autonomous"},
+            "enabled": true
+        }
+    ]
 }
