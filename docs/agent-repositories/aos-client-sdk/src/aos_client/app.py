@@ -44,6 +44,27 @@ logger = logging.getLogger(__name__)
 WorkflowHandler = Callable[["WorkflowRequest"], Awaitable[Any]]
 
 
+def workflow_template(func: Callable) -> Callable:
+    """Decorator that marks a coroutine as a reusable workflow template.
+
+    Templates can be called from ``@app.workflow`` handlers to factor out
+    common orchestration patterns.
+
+    Example::
+
+        @workflow_template
+        async def c_suite_orchestration(request, agent_filter, purpose, purpose_scope):
+            agents = await select_c_suite_agents(request.client)
+            agent_ids = [a.agent_id for a in agents if agent_filter(a)]
+            return await request.client.start_orchestration(
+                agent_ids=agent_ids, purpose=purpose, purpose_scope=purpose_scope,
+                context=request.body,
+            )
+    """
+    func._is_workflow_template = True  # type: ignore[attr-defined]
+    return func
+
+
 @dataclass
 class WorkflowRequest:
     """Request object passed to workflow handler functions.
@@ -115,6 +136,8 @@ class AOSApp:
         service_bus_connection_env: str = "SERVICE_BUS_CONNECTION",
         auth: Optional[AOSAuth] = None,
         enable_service_bus: bool = True,
+        observability: Optional[Any] = None,
+        mode: Optional[str] = None,
     ) -> None:
         self.name = name
         self.aos_endpoint = aos_endpoint or os.environ.get("AOS_ENDPOINT", "http://localhost:7071")
@@ -122,8 +145,12 @@ class AOSApp:
         self.service_bus_connection_env = service_bus_connection_env
         self.auth = auth or self._default_auth()
         self.enable_service_bus = enable_service_bus
+        self.observability = observability
+        self.mode = mode
 
         self._workflows: Dict[str, _WorkflowRegistration] = {}
+        self._update_handlers: Dict[str, Callable] = {}
+        self._mcp_tools: Dict[str, Callable] = {}
         self._functions_app: Optional[Any] = None  # azure.functions.FunctionApp
 
     # ------------------------------------------------------------------
@@ -170,6 +197,44 @@ class AOSApp:
                 auth_required=auth_required,
                 description=func.__doc__ or description,
             )
+            return func
+
+        return decorator
+
+    def on_orchestration_update(
+        self,
+        workflow_name: str,
+    ) -> Callable:
+        """Register a handler for orchestration intermediate updates.
+
+        Example::
+
+            @app.on_orchestration_update("strategic-review")
+            async def handle_update(update):
+                logger.info("Agent %s produced: %s", update.agent_id, update.output)
+        """
+
+        def decorator(func: Callable) -> Callable:
+            self._update_handlers[workflow_name] = func
+            return func
+
+        return decorator
+
+    def mcp_tool(
+        self,
+        tool_name: str,
+    ) -> Callable:
+        """Register an MCP tool handler.
+
+        Example::
+
+            @app.mcp_tool("erp-search")
+            async def erp_search(request):
+                return await request.client.call_mcp_tool("erpnext", "search", request.args)
+        """
+
+        def decorator(func: Callable) -> Callable:
+            self._mcp_tools[tool_name] = func
             return func
 
         return decorator
@@ -363,6 +428,14 @@ class AOSApp:
     def get_workflow_names(self) -> List[str]:
         """Return the names of all registered workflows."""
         return list(self._workflows.keys())
+
+    def get_update_handler_names(self) -> List[str]:
+        """Return the names of all registered orchestration update handlers."""
+        return list(self._update_handlers.keys())
+
+    def get_mcp_tool_names(self) -> List[str]:
+        """Return the names of all registered MCP tools."""
+        return list(self._mcp_tools.keys())
 
     @staticmethod
     def _default_auth() -> AOSAuth:
