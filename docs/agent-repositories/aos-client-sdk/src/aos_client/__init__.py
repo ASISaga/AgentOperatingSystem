@@ -16,6 +16,7 @@ __version__ = "2.0.0"
 from aos_client.client import AOSClient
 from aos_client.models import (
     AgentDescriptor,
+    OrchestrationPurpose,
     OrchestrationRequest,
     OrchestrationResult,
     OrchestrationStatus,
@@ -36,6 +37,7 @@ __all__ = [
     "AgentDescriptor",
     "AppRegistration",
     "DeploymentResult",
+    "OrchestrationPurpose",
     "OrchestrationRequest",
     "OrchestrationResult",
     "OrchestrationStatus",

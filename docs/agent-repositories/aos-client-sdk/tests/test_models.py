@@ -3,6 +3,7 @@
 import pytest
 from aos_client.models import (
     AgentDescriptor,
+    OrchestrationPurpose,
     OrchestrationRequest,
     OrchestrationResult,
     OrchestrationStatus,
@@ -51,6 +52,47 @@ class TestOrchestrationRequest:
     def test_requires_at_least_one_agent(self):
         with pytest.raises(Exception):
             OrchestrationRequest(agent_ids=[], task={"type": "test"})
+
+    def test_create_with_purpose(self):
+        purpose = OrchestrationPurpose(
+            purpose="Evaluate Q1 strategic direction",
+            purpose_scope="C-suite quarterly review",
+            success_criteria=["All departments reviewed", "Action items identified"],
+        )
+        request = OrchestrationRequest(
+            agent_ids=["ceo", "cfo", "cmo"],
+            task={"type": "strategic_review"},
+            purpose=purpose,
+        )
+        assert request.purpose is not None
+        assert request.purpose.purpose == "Evaluate Q1 strategic direction"
+        assert len(request.purpose.success_criteria) == 2
+
+    def test_purpose_is_optional(self):
+        request = OrchestrationRequest(
+            agent_ids=["ceo"],
+            task={"type": "test"},
+        )
+        assert request.purpose is None
+
+
+class TestOrchestrationPurpose:
+    """OrchestrationPurpose model tests."""
+
+    def test_create_minimal(self):
+        purpose = OrchestrationPurpose(purpose="Drive strategic growth")
+        assert purpose.purpose == "Drive strategic growth"
+        assert purpose.purpose_scope == "General orchestration scope"
+        assert purpose.success_criteria == []
+
+    def test_create_full(self):
+        purpose = OrchestrationPurpose(
+            purpose="Quarterly budget review and approval",
+            purpose_scope="Finance department Q2 planning",
+            success_criteria=["Budget approved", "Allocations finalized", "Timeline set"],
+        )
+        assert purpose.purpose_scope == "Finance department Q2 planning"
+        assert len(purpose.success_criteria) == 3
 
 
 class TestOrchestrationStatus:

@@ -356,3 +356,101 @@ class TestGetState:
         await basic_agent.initialize()
         state = await basic_agent.get_state()
         assert state["adapter_name"] == "test-adapter"
+
+
+# ---------------------------------------------------------------------------
+# align_purpose_to_orchestration
+# ---------------------------------------------------------------------------
+
+
+class TestAlignPurposeToOrchestration:
+    @pytest.mark.asyncio
+    async def test_alignment_returns_expected_keys(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        result = await initialised_agent.align_purpose_to_orchestration(
+            orchestration_purpose="Execute Q1 strategic review",
+        )
+        required = {
+            "agent_id",
+            "original_purpose",
+            "aligned_purpose",
+            "orchestration_purpose",
+            "alignment_strategy",
+            "timestamp",
+        }
+        assert required.issubset(result.keys())
+
+    @pytest.mark.asyncio
+    async def test_alignment_preserves_original_purpose(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        original = initialised_agent.purpose
+        result = await initialised_agent.align_purpose_to_orchestration(
+            orchestration_purpose="Budget approval workflow",
+        )
+        assert result["original_purpose"] == original
+        assert initialised_agent.purpose != original
+
+    @pytest.mark.asyncio
+    async def test_aligned_purpose_includes_domain(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        await initialised_agent.align_purpose_to_orchestration(
+            orchestration_purpose="Evaluate market expansion",
+        )
+        # Aligned purpose should reference the adapter domain
+        assert "test-adapter" in initialised_agent.purpose
+        assert "Evaluate market expansion" in initialised_agent.purpose
+
+    @pytest.mark.asyncio
+    async def test_alignment_merges_success_criteria(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        await initialised_agent.align_purpose_to_orchestration(
+            orchestration_purpose="Review budget",
+            orchestration_criteria=["Budget approved", "Timeline set"],
+        )
+        # Should contain both orchestration and agent criteria
+        assert "Budget approved" in initialised_agent.success_criteria
+        assert "Timeline set" in initialised_agent.success_criteria
+        # Agent's original criteria should also be present
+        for c in ["Tests pass", "Coverage >= 80%"]:
+            assert c in initialised_agent.success_criteria
+
+    @pytest.mark.asyncio
+    async def test_alignment_stores_in_mcp(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        await initialised_agent.align_purpose_to_orchestration(
+            orchestration_purpose="Strategic alignment",
+        )
+        stored = await initialised_agent.mcp_context_server.get_context(
+            "orchestration_purpose"
+        )
+        assert stored == "Strategic alignment"
+        original = await initialised_agent.mcp_context_server.get_context(
+            "original_purpose"
+        )
+        assert original is not None
+
+    @pytest.mark.asyncio
+    async def test_restore_original_purpose(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        original = initialised_agent.purpose
+        await initialised_agent.align_purpose_to_orchestration(
+            orchestration_purpose="Temporary orchestration goal",
+        )
+        assert initialised_agent.purpose != original
+
+        restored = await initialised_agent.restore_original_purpose()
+        assert restored is True
+        assert initialised_agent.purpose == original
+
+    @pytest.mark.asyncio
+    async def test_restore_without_alignment_returns_false(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        result = await initialised_agent.restore_original_purpose()
+        assert result is False

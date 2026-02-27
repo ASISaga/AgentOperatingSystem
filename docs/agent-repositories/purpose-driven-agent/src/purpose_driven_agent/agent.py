@@ -585,6 +585,115 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         )
         return evaluation
 
+    async def align_purpose_to_orchestration(
+        self,
+        orchestration_purpose: str,
+        orchestration_scope: str = "",
+        orchestration_criteria: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Align this agent's working purpose to an orchestration's overarching purpose.
+
+        When an agent participates in a purpose-driven orchestration, it creates
+        an aligned purpose that combines the orchestration's overarching goal with
+        its own domain-specific knowledge, skill, and persona (provided by the
+        LoRA adapter).
+
+        The agent's *original* purpose is preserved and used to inform how it
+        contributes to the orchestration purpose.  The ``aligned_purpose`` is
+        stored in MCP context so that subsequent event handling, decision-making,
+        and goal tracking operate under the aligned purpose for the duration of
+        the orchestration.
+
+        Args:
+            orchestration_purpose: The overarching purpose of the orchestration.
+            orchestration_scope: Scope/boundaries of the orchestration purpose.
+            orchestration_criteria: Success criteria for the orchestration.
+
+        Returns:
+            Dict with keys: ``"agent_id"``, ``"original_purpose"``,
+            ``"aligned_purpose"``, ``"orchestration_purpose"``,
+            ``"alignment_strategy"``, ``"timestamp"``.
+        """
+        original_purpose = self.purpose
+        criteria = orchestration_criteria or []
+
+        # Build an aligned purpose that merges orchestration goal with agent
+        # domain expertise (adapter_name provides the agent's persona).
+        domain = self.adapter_name or "general"
+        aligned_purpose = (
+            f"Contribute {domain} expertise toward: {orchestration_purpose}. "
+            f"Agent domain purpose: {original_purpose}"
+        )
+
+        # Merge scopes
+        merged_scope = orchestration_scope or self.purpose_scope
+        if orchestration_scope and self.purpose_scope:
+            merged_scope = f"{orchestration_scope} | Agent scope: {self.purpose_scope}"
+
+        # Merge success criteria: orchestration-level + agent-level
+        merged_criteria = list(criteria) + [
+            c for c in self.success_criteria if c not in criteria
+        ]
+
+        # Apply the alignment
+        self.purpose = aligned_purpose
+        self.purpose_scope = merged_scope
+        self.success_criteria = merged_criteria
+
+        # Persist to MCP context
+        if self.mcp_context_server:
+            await self.mcp_context_server.set_context("purpose", self.purpose)
+            await self.mcp_context_server.set_context("purpose_scope", self.purpose_scope)
+            await self.mcp_context_server.set_context("success_criteria", self.success_criteria)
+            await self.mcp_context_server.set_context("original_purpose", original_purpose)
+            await self.mcp_context_server.set_context(
+                "orchestration_purpose", orchestration_purpose
+            )
+
+        alignment_result = {
+            "agent_id": self.agent_id,
+            "original_purpose": original_purpose,
+            "aligned_purpose": aligned_purpose,
+            "orchestration_purpose": orchestration_purpose,
+            "alignment_strategy": (
+                f"Merged orchestration purpose with {domain} domain expertise"
+            ),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        self.logger.info(
+            "Agent '%s' aligned purpose to orchestration: %s",
+            self.agent_id,
+            orchestration_purpose,
+        )
+        return alignment_result
+
+    async def restore_original_purpose(self) -> bool:
+        """
+        Restore the agent's original purpose after an orchestration completes.
+
+        Retrieves the ``original_purpose`` stored during
+        :meth:`align_purpose_to_orchestration` and reapplies it.
+
+        Returns:
+            ``True`` if the original purpose was restored, ``False`` if no
+            original purpose was stored (agent was not aligned).
+        """
+        if self.mcp_context_server:
+            original = await self.mcp_context_server.get_context("original_purpose")
+            if original:
+                self.purpose = original
+                await self.mcp_context_server.set_context("purpose", self.purpose)
+                await self.mcp_context_server.set_context("orchestration_purpose", None)
+                self.logger.info(
+                    "Agent '%s' restored original purpose: %s",
+                    self.agent_id,
+                    self.purpose,
+                )
+                return True
+        return False
+
     async def make_purpose_driven_decision(
         self, decision_context: Dict[str, Any]
     ) -> Dict[str, Any]:
