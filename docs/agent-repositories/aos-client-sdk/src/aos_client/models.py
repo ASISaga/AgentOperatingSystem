@@ -20,12 +20,33 @@ class AgentDescriptor(BaseModel):
     config: Dict[str, Any] = Field(default_factory=dict, description="Agent-specific configuration")
 
 
+class OrchestrationPurpose(BaseModel):
+    """The overarching purpose that drives an orchestration.
+
+    When set on an :class:`OrchestrationRequest`, participating
+    :class:`PurposeDrivenAgent` instances align their working purposes to
+    achieve this overarching goal while retaining their own domain-specific
+    knowledge, skills, and personas.
+    """
+
+    purpose: str = Field(..., description="The overarching purpose of the orchestration")
+    purpose_scope: str = Field(
+        default="General orchestration scope",
+        description="Boundaries/scope for the orchestration purpose",
+    )
+    success_criteria: List[str] = Field(
+        default_factory=list,
+        description="Criteria that define successful orchestration completion",
+    )
+
+
 class OrchestrationRequest(BaseModel):
     """Request to run an agent orchestration via AOS."""
 
     orchestration_id: Optional[str] = Field(None, description="Client-supplied ID (auto-generated if omitted)")
     agent_ids: List[str] = Field(..., min_length=1, description="Agent IDs to include in the orchestration")
     workflow: str = Field(default="collaborative", description="Workflow pattern: collaborative, sequential, hierarchical")
+    purpose: Optional[OrchestrationPurpose] = Field(None, description="Overarching purpose that drives the orchestration and guides agent alignment")
     task: Dict[str, Any] = Field(..., description="Task payload for the orchestration")
     config: Dict[str, Any] = Field(default_factory=dict, description="Orchestration-level configuration")
     callback_url: Optional[str] = Field(None, description="Webhook URL for completion notification")
