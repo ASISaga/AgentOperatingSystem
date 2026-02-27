@@ -11,14 +11,13 @@ as an infrastructure service:
 - **AOSDeployer** — Code deployment to Azure Functions
 """
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 from aos_client.client import AOSClient
 from aos_client.models import (
     AgentDescriptor,
     OrchestrationPurpose,
     OrchestrationRequest,
-    OrchestrationResult,
     OrchestrationStatus,
 )
 from aos_client.app import AOSApp, WorkflowRequest
@@ -39,7 +38,6 @@ __all__ = [
     "DeploymentResult",
     "OrchestrationPurpose",
     "OrchestrationRequest",
-    "OrchestrationResult",
     "OrchestrationStatus",
     "TokenClaims",
     "WorkflowRequest",

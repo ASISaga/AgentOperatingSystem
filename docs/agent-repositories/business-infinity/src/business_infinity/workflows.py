@@ -1,10 +1,12 @@
-"""BusinessInfinity workflows — pure business logic orchestrations.
+"""BusinessInfinity workflows — purpose-driven perpetual orchestrations.
 
 Each workflow function is decorated with ``@app.workflow`` from the AOS Client
 SDK.  The SDK handles all Azure Functions scaffolding (HTTP triggers,
 Service Bus triggers, authentication, health endpoints).
 
-Client applications define WHAT to do (business logic), not HOW to do it.
+Orchestrations are **perpetual and purpose-driven**: each workflow starts an
+ongoing orchestration guided by a purpose.  Agents work toward the purpose
+continuously — there is no finite task to complete.
 """
 
 from __future__ import annotations
@@ -47,51 +49,50 @@ async def select_c_suite_agents(client: AOSClient) -> List[AgentDescriptor]:
     return selected
 
 
-# ── Business Workflows ───────────────────────────────────────────────────────
+# ── Purpose-Driven Orchestrations ────────────────────────────────────────────
 
 
 @app.workflow("strategic-review")
 async def strategic_review(request: WorkflowRequest) -> Dict[str, Any]:
-    """Run a quarterly strategic review with C-suite agents.
+    """Start a perpetual strategic review orchestration with C-suite agents.
+
+    The orchestration continuously drives strategic alignment, review, and
+    improvement across the organisation.  It does not complete — agents
+    work toward the purpose indefinitely.
 
     Request body::
 
         {"quarter": "Q1-2026", "focus_areas": ["revenue", "growth"]}
     """
-    quarter = request.body.get("quarter")
-    if not quarter:
-        raise ValueError("quarter is required")
-
     agents = await select_c_suite_agents(request.client)
     agent_ids = [a.agent_id for a in agents]
 
-    result = await request.client.run_orchestration(
+    status = await request.client.start_orchestration(
         agent_ids=agent_ids,
-        task={
-            "type": "strategic_review",
-            "data": {
-                "quarter": quarter,
-                "focus_areas": request.body.get("focus_areas", ["revenue", "growth", "efficiency"]),
-            },
+        purpose="Drive strategic review and continuous organisational improvement",
+        purpose_scope="C-suite strategic alignment and cross-functional coordination",
+        context={
+            "quarter": request.body.get("quarter", "current"),
+            "focus_areas": request.body.get("focus_areas", ["revenue", "growth", "efficiency"]),
         },
         workflow="collaborative",
     )
-    logger.info("Strategic review for %s complete: %s", quarter, result.summary)
-    return result.model_dump()
+    logger.info("Strategic review orchestration started: %s", status.orchestration_id)
+    return {"orchestration_id": status.orchestration_id, "status": status.status.value}
 
 
 @app.workflow("market-analysis")
 async def market_analysis(request: WorkflowRequest) -> Dict[str, Any]:
-    """Run a market analysis led by the CMO agent.
+    """Start a perpetual market analysis orchestration led by the CMO agent.
+
+    The orchestration continuously monitors markets, analyses competitors,
+    and surfaces insights.  It does not complete — agents work toward the
+    purpose indefinitely.
 
     Request body::
 
         {"market": "EU SaaS", "competitors": ["AcmeCorp", "Globex"]}
     """
-    market = request.body.get("market")
-    if not market:
-        raise ValueError("market is required")
-
     # Select CMO + supporting agents
     agents = await select_c_suite_agents(request.client)
     agent_ids = [a.agent_id for a in agents if a.agent_type == "CMOAgent"]
@@ -104,57 +105,52 @@ async def market_analysis(request: WorkflowRequest) -> Dict[str, Any]:
     if not agent_ids:
         raise ValueError("No CMO or CEO agents available in the catalog")
 
-    result = await request.client.run_orchestration(
+    status = await request.client.start_orchestration(
         agent_ids=agent_ids,
-        task={
-            "type": "market_analysis",
-            "data": {
-                "market": market,
-                "competitors": request.body.get("competitors", []),
-            },
+        purpose="Continuously analyse markets and surface competitive insights",
+        purpose_scope="Market intelligence, competitor monitoring, and opportunity identification",
+        context={
+            "market": request.body.get("market", ""),
+            "competitors": request.body.get("competitors", []),
         },
         workflow="hierarchical",
     )
-    logger.info("Market analysis for %s complete: %s", market, result.summary)
-    return result.model_dump()
+    logger.info("Market analysis orchestration started: %s", status.orchestration_id)
+    return {"orchestration_id": status.orchestration_id, "status": status.status.value}
 
 
 @app.workflow("budget-approval")
 async def budget_approval(request: WorkflowRequest) -> Dict[str, Any]:
-    """Submit a budget approval request to C-suite leadership.
+    """Start a perpetual budget governance orchestration with C-suite leadership.
+
+    The orchestration continuously oversees budget allocation, monitors
+    spend, and governs financial decisions.  It does not complete — agents
+    work toward the purpose indefinitely.
 
     Request body::
 
         {"department": "Marketing", "amount": 500000, "justification": "Q2 campaign"}
     """
-    required = ("department", "amount", "justification")
-    missing = [f for f in required if f not in request.body]
-    if missing:
-        raise ValueError(f"Missing required fields: {missing}")
-
     agents = await select_c_suite_agents(request.client)
-    # Budget approvals: CEO + CFO
+    # Budget governance: CEO + CFO
     agent_ids = [a.agent_id for a in agents if a.agent_id in ("ceo", "cfo")]
 
     if not agent_ids:
         raise ValueError("CEO and/or CFO agents not available in the catalog")
 
-    result = await request.client.run_orchestration(
+    status = await request.client.start_orchestration(
         agent_ids=agent_ids,
-        task={
-            "type": "budget_approval",
-            "data": {
-                "department": request.body["department"],
-                "amount": float(request.body["amount"]),
-                "justification": request.body["justification"],
-            },
+        purpose="Govern budget allocation and ensure fiscal responsibility",
+        purpose_scope="Financial governance, budget oversight, and resource allocation",
+        context={
+            "department": request.body.get("department", ""),
+            "amount": float(request.body.get("amount", 0)),
+            "justification": request.body.get("justification", ""),
         },
         workflow="sequential",
     )
     logger.info(
-        "Budget approval for %s ($%.0f): %s",
-        request.body["department"],
-        float(request.body["amount"]),
-        result.summary,
+        "Budget governance orchestration started: %s",
+        status.orchestration_id,
     )
-    return result.model_dump()
+    return {"orchestration_id": status.orchestration_id, "status": status.status.value}
