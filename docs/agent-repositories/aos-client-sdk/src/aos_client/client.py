@@ -289,6 +289,6 @@ class AOSClient:
         try:
             token = self.credential.get_token("https://management.azure.com/.default")
             return {"Authorization": f"Bearer {token.token}"}
-        except Exception:
-            logger.warning("Failed to obtain auth token, proceeding without authentication")
+        except Exception as exc:
+            logger.warning("Failed to obtain auth token: %s. Proceeding without authentication.", exc)
             return {}

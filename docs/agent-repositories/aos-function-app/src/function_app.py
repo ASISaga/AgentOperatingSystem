@@ -26,7 +26,9 @@ import azure.functions as func
 logger = logging.getLogger(__name__)
 app = func.FunctionApp()
 
-# ── In-Memory Orchestration Store (production: Azure Table/Cosmos) ────────────
+# ── In-Memory Orchestration Store ─────────────────────────────────────────────
+# Development/prototype only.  Data is lost on restart and not shared across
+# instances.  In production, replace with Azure Table Storage or Cosmos DB.
 
 _orchestrations: Dict[str, Dict[str, Any]] = {}
 
