@@ -50,10 +50,43 @@ Endpoints — Agents:
     POST /api/agents/{id}/ask             Ask an agent
     POST /api/agents/{id}/send            Send to an agent
 
+Endpoints — Knowledge Base (batch/versioning):
+    POST /api/knowledge/documents/batch            Batch-create documents
+    GET  /api/knowledge/documents/{id}/versions     Get document version history
+    POST /api/knowledge/documents/{id}/restore      Restore a document version
+    POST /api/knowledge/documents/export            Export documents
+
+Endpoints — Risk Aggregation:
+    GET  /api/risks/heatmap               Risk heatmap
+    GET  /api/risks/summary               Risk summary statistics
+    GET  /api/risks/trends                Risk trend data
+
+Endpoints — Audit Compliance:
+    POST /api/audit/compliance-report     Generate compliance report
+    GET  /api/audit/decisions/{id}/chain   Get decision chain
+
+Endpoints — Analytics (dashboards & alerts):
+    POST /api/dashboards                  Create a custom dashboard
+    POST /api/alerts                      Create a metric alert
+    GET  /api/alerts                      List alerts
+
+Endpoints — Network (federation):
+    POST /api/network                     Create a network
+    POST /api/network/{id}/request        Request network membership
+    GET  /api/network/{id}/verify/{pid}   Verify a peer
+
 Endpoints — Network:
     POST /api/network/discover            Discover peers
     POST /api/network/{id}/join           Join a network
     GET  /api/network                     List networks
+
+Endpoints — Orchestration Streaming:
+    POST /api/orchestrations/{id}/subscribe  Subscribe to updates
+    GET  /api/orchestrations/{id}/updates    Get orchestration updates
+
+Endpoints — Webhooks:
+    POST /api/webhooks                    Register a webhook
+    GET  /api/webhooks                    List webhooks
 
 Endpoints — App Registration:
     POST /api/apps/register               Register a client application
@@ -97,6 +130,12 @@ _kpis: Dict[str, Dict[str, Any]] = {}
 _mcp_servers: Dict[str, Dict[str, Any]] = {}
 _networks: Dict[str, Dict[str, Any]] = {}
 _network_memberships: Dict[str, Dict[str, Any]] = {}
+_document_versions: Dict[str, list] = {}
+_alerts_store: Dict[str, Dict[str, Any]] = {}
+_dashboards_store: Dict[str, Dict[str, Any]] = {}
+_webhooks_store: Dict[str, Dict[str, Any]] = {}
+_orchestration_subscriptions: Dict[str, list] = {}
+_orchestration_updates: Dict[str, list] = {}
 
 
 # ── HTTP Endpoints — Orchestrations ──────────────────────────────────────────
@@ -487,6 +526,90 @@ async def delete_document(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse(status_code=204)
 
 
+# ── Knowledge Base Batch / Versioning Endpoints ──────────────────────────────
+
+
+@app.function_name("batch_create_documents")
+@app.route(route="knowledge/documents/batch", methods=["POST"])
+async def batch_create_documents(req: func.HttpRequest) -> func.HttpResponse:
+    """Batch-create knowledge documents."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    docs_in = body.get("documents", [])
+    created = []
+    now = datetime.now(timezone.utc).isoformat()
+    for item in docs_in:
+        doc_id = item.get("id") or f"doc-{uuid.uuid4().hex[:8]}"
+        doc = {
+            "id": doc_id, "title": item.get("title", ""),
+            "doc_type": item.get("doc_type", ""), "status": "draft",
+            "content": item.get("content", {}), "tags": item.get("tags", []),
+            "metadata": item.get("metadata", {}),
+            "created_at": now, "updated_at": now,
+            "created_by": item.get("created_by"),
+        }
+        _documents[doc_id] = doc
+        created.append(doc)
+    return func.HttpResponse(
+        json.dumps({"documents": created}), status_code=201, mimetype="application/json")
+
+
+@app.function_name("get_document_versions")
+@app.route(route="knowledge/documents/{document_id}/versions", methods=["GET"])
+async def get_document_versions(req: func.HttpRequest) -> func.HttpResponse:
+    """Get the version history of a knowledge document."""
+    doc_id = req.route_params.get("document_id", "")
+    if doc_id not in _documents:
+        return _json_error(f"Document '{doc_id}' not found", 404)
+    versions = _document_versions.get(doc_id, [])
+    return func.HttpResponse(
+        json.dumps({"document_id": doc_id, "versions": versions}),
+        mimetype="application/json")
+
+
+@app.function_name("restore_document_version")
+@app.route(route="knowledge/documents/{document_id}/restore", methods=["POST"])
+async def restore_document_version(req: func.HttpRequest) -> func.HttpResponse:
+    """Restore a document to a previous version."""
+    doc_id = req.route_params.get("document_id", "")
+    doc = _documents.get(doc_id)
+    if doc is None:
+        return _json_error(f"Document '{doc_id}' not found", 404)
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    version = body.get("version")
+    versions = _document_versions.get(doc_id, [])
+    target = next((v for v in versions if v.get("version") == version), None)
+    if target is None:
+        return _json_error(f"Version {version} not found for document '{doc_id}'", 404)
+    doc["content"] = target.get("content", doc["content"])
+    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return func.HttpResponse(json.dumps(doc), mimetype="application/json")
+
+
+@app.function_name("export_documents")
+@app.route(route="knowledge/documents/export", methods=["POST"])
+async def export_documents(req: func.HttpRequest) -> func.HttpResponse:
+    """Export documents matching a query."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    query = (body.get("query") or "").lower()
+    fmt = body.get("format", "json")
+    results = list(_documents.values())
+    if query:
+        results = [d for d in results if query in d.get("title", "").lower()
+                    or query in json.dumps(d.get("content", {})).lower()]
+    return func.HttpResponse(
+        json.dumps({"format": fmt, "documents": results}),
+        mimetype="application/json")
+
+
 # ── Risk Registry Endpoints ──────────────────────────────────────────────────
 
 
@@ -593,6 +716,54 @@ async def add_mitigation_plan(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse(json.dumps(risk), mimetype="application/json")
 
 
+# ── Risk Aggregation Endpoints ───────────────────────────────────────────────
+
+
+@app.function_name("get_risk_heatmap")
+@app.route(route="risks/heatmap", methods=["GET"])
+async def get_risk_heatmap(req: func.HttpRequest) -> func.HttpResponse:
+    """Compute and return a risk heatmap from the risks store."""
+    cells: list = []
+    for risk in _risks.values():
+        assessment = risk.get("assessment")
+        if assessment:
+            cells.append({
+                "risk_id": risk["id"],
+                "title": risk["title"],
+                "likelihood": assessment.get("likelihood", 0),
+                "impact": assessment.get("impact", 0),
+                "severity": assessment.get("severity", "info"),
+            })
+    return func.HttpResponse(
+        json.dumps({"cells": cells, "generated_at": datetime.now(timezone.utc).isoformat()}),
+        mimetype="application/json")
+
+
+@app.function_name("get_risk_summary")
+@app.route(route="risks/summary", methods=["GET"])
+async def get_risk_summary(req: func.HttpRequest) -> func.HttpResponse:
+    """Compute and return risk summary statistics."""
+    total = len(_risks)
+    by_status: Dict[str, int] = {}
+    by_category: Dict[str, int] = {}
+    for risk in _risks.values():
+        by_status[risk["status"]] = by_status.get(risk["status"], 0) + 1
+        by_category[risk["category"]] = by_category.get(risk["category"], 0) + 1
+    return func.HttpResponse(json.dumps({
+        "total": total, "by_status": by_status, "by_category": by_category,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }), mimetype="application/json")
+
+
+@app.function_name("get_risk_trends")
+@app.route(route="risks/trends", methods=["GET"])
+async def get_risk_trends(req: func.HttpRequest) -> func.HttpResponse:
+    """Return risk trend data (placeholder)."""
+    return func.HttpResponse(json.dumps({
+        "trends": [], "generated_at": datetime.now(timezone.utc).isoformat(),
+    }), mimetype="application/json")
+
+
 # ── Audit Trail / Decision Ledger Endpoints ──────────────────────────────────
 
 
@@ -640,6 +811,46 @@ async def get_decision_history(req: func.HttpRequest) -> func.HttpResponse:
 async def get_audit_trail(req: func.HttpRequest) -> func.HttpResponse:
     """Get the audit trail."""
     return func.HttpResponse(json.dumps({"entries": _audit_entries}), mimetype="application/json")
+
+
+# ── Audit Compliance Endpoints ───────────────────────────────────────────────
+
+
+@app.function_name("generate_compliance_report")
+@app.route(route="audit/compliance-report", methods=["POST"])
+async def generate_compliance_report(req: func.HttpRequest) -> func.HttpResponse:
+    """Generate a compliance report from the decisions store."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        body = {}
+    framework = body.get("framework", "general")
+    now = datetime.now(timezone.utc).isoformat()
+    total = len(_decisions)
+    compliant = sum(1 for d in _decisions if d.get("outcome") == "approved")
+    return func.HttpResponse(json.dumps({
+        "report_id": f"rpt-{uuid.uuid4().hex[:8]}",
+        "framework": framework,
+        "total_decisions": total,
+        "compliant_decisions": compliant,
+        "compliance_rate": (compliant / total) if total > 0 else 0.0,
+        "generated_at": now,
+    }), status_code=201, mimetype="application/json")
+
+
+@app.function_name("get_decision_chain")
+@app.route(route="audit/decisions/{decision_id}/chain", methods=["GET"])
+async def get_decision_chain(req: func.HttpRequest) -> func.HttpResponse:
+    """Get the chain of related decisions for a given decision ID."""
+    decision_id = req.route_params.get("decision_id", "")
+    target = next((d for d in _decisions if d.get("id") == decision_id), None)
+    if target is None:
+        return _json_error(f"Decision '{decision_id}' not found", 404)
+    orch_id = target.get("orchestration_id")
+    chain = [d for d in _decisions if d.get("orchestration_id") == orch_id] if orch_id else [target]
+    return func.HttpResponse(
+        json.dumps({"decision_id": decision_id, "chain": chain}),
+        mimetype="application/json")
 
 
 # ── Covenant Management Endpoints ────────────────────────────────────────────
@@ -772,6 +983,60 @@ async def get_kpi_dashboard(req: func.HttpRequest) -> func.HttpResponse:
     }), mimetype="application/json")
 
 
+# ── Dashboards & Alerts Endpoints ────────────────────────────────────────────
+
+
+@app.function_name("create_dashboard")
+@app.route(route="dashboards", methods=["POST"])
+async def create_dashboard(req: func.HttpRequest) -> func.HttpResponse:
+    """Create a custom dashboard."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    dash_id = body.get("id") or f"dash-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+    dashboard = {
+        "id": dash_id, "name": body.get("name", ""),
+        "description": body.get("description", ""),
+        "widgets": body.get("widgets", []),
+        "created_at": now, "updated_at": now,
+    }
+    _dashboards_store[dash_id] = dashboard
+    return func.HttpResponse(json.dumps(dashboard), status_code=201, mimetype="application/json")
+
+
+@app.function_name("create_alert")
+@app.route(route="alerts", methods=["POST"])
+async def create_alert(req: func.HttpRequest) -> func.HttpResponse:
+    """Create a metric alert."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    alert_id = body.get("id") or f"alert-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+    alert = {
+        "id": alert_id, "name": body.get("name", ""),
+        "metric": body.get("metric", ""),
+        "condition": body.get("condition", ""),
+        "threshold": body.get("threshold"),
+        "status": "active",
+        "created_at": now, "updated_at": now,
+    }
+    _alerts_store[alert_id] = alert
+    return func.HttpResponse(json.dumps(alert), status_code=201, mimetype="application/json")
+
+
+@app.function_name("list_alerts")
+@app.route(route="alerts", methods=["GET"])
+async def list_alerts(req: func.HttpRequest) -> func.HttpResponse:
+    """List metric alerts."""
+    return func.HttpResponse(
+        json.dumps({"alerts": list(_alerts_store.values())}),
+        mimetype="application/json")
+
+
 # ── MCP Server Integration Endpoints ────────────────────────────────────────
 
 
@@ -838,6 +1103,65 @@ async def send_to_agent(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse(status_code=202)
 
 
+# ── Network Federation Endpoints ─────────────────────────────────────────────
+
+
+@app.function_name("create_network")
+@app.route(route="network", methods=["POST"])
+async def create_network(req: func.HttpRequest) -> func.HttpResponse:
+    """Create a new network with a covenant."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    net_id = body.get("id") or f"net-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+    network = {
+        "id": net_id, "name": body.get("name", ""),
+        "covenant_id": body.get("covenant_id"),
+        "members": [], "status": "active",
+        "created_at": now, "updated_at": now,
+    }
+    _networks[net_id] = network
+    return func.HttpResponse(json.dumps(network), status_code=201, mimetype="application/json")
+
+
+@app.function_name("request_network_membership")
+@app.route(route="network/{network_id}/request", methods=["POST"])
+async def request_network_membership(req: func.HttpRequest) -> func.HttpResponse:
+    """Request membership in a network."""
+    network_id = req.route_params.get("network_id", "")
+    network = _networks.get(network_id)
+    if network is None:
+        return _json_error(f"Network '{network_id}' not found", 404)
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    request_record = {
+        "network_id": network_id,
+        "requester": body.get("requester", "unknown"),
+        "status": "pending",
+        "requested_at": datetime.now(timezone.utc).isoformat(),
+    }
+    return func.HttpResponse(json.dumps(request_record), status_code=201, mimetype="application/json")
+
+
+@app.function_name("verify_peer")
+@app.route(route="network/{network_id}/verify/{peer_id}", methods=["GET"])
+async def verify_peer(req: func.HttpRequest) -> func.HttpResponse:
+    """Verify a peer in a network."""
+    network_id = req.route_params.get("network_id", "")
+    peer_id = req.route_params.get("peer_id", "")
+    if network_id not in _networks:
+        return _json_error(f"Network '{network_id}' not found", 404)
+    return func.HttpResponse(json.dumps({
+        "network_id": network_id, "peer_id": peer_id,
+        "verified": True,
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+    }), mimetype="application/json")
+
+
 # ── Network Discovery Endpoints ─────────────────────────────────────────────
 
 
@@ -870,6 +1194,73 @@ async def list_networks(req: func.HttpRequest) -> func.HttpResponse:
         json.dumps({"networks": list(_networks.values())}),
         mimetype="application/json",
     )
+
+
+# ── Orchestration Streaming Endpoints ────────────────────────────────────────
+
+
+@app.function_name("subscribe_orchestration")
+@app.route(route="orchestrations/{orchestration_id}/subscribe", methods=["POST"])
+async def subscribe_orchestration(req: func.HttpRequest) -> func.HttpResponse:
+    """Subscribe to updates for an orchestration."""
+    orch_id = req.route_params.get("orchestration_id", "")
+    if orch_id not in _orchestrations:
+        return _json_error(f"Orchestration '{orch_id}' not found", 404)
+    try:
+        body = req.get_json()
+    except ValueError:
+        body = {}
+    subscriber = body.get("subscriber", f"sub-{uuid.uuid4().hex[:8]}")
+    subs = _orchestration_subscriptions.setdefault(orch_id, [])
+    subs.append({"subscriber": subscriber, "subscribed_at": datetime.now(timezone.utc).isoformat()})
+    return func.HttpResponse(json.dumps({
+        "orchestration_id": orch_id, "subscriber": subscriber, "status": "subscribed",
+    }), status_code=201, mimetype="application/json")
+
+
+@app.function_name("get_orchestration_updates")
+@app.route(route="orchestrations/{orchestration_id}/updates", methods=["GET"])
+async def get_orchestration_updates(req: func.HttpRequest) -> func.HttpResponse:
+    """Get updates for an orchestration."""
+    orch_id = req.route_params.get("orchestration_id", "")
+    if orch_id not in _orchestrations:
+        return _json_error(f"Orchestration '{orch_id}' not found", 404)
+    updates = _orchestration_updates.get(orch_id, [])
+    return func.HttpResponse(
+        json.dumps({"orchestration_id": orch_id, "updates": updates}),
+        mimetype="application/json")
+
+
+# ── Webhook Endpoints ────────────────────────────────────────────────────────
+
+
+@app.function_name("register_webhook")
+@app.route(route="webhooks", methods=["POST"])
+async def register_webhook(req: func.HttpRequest) -> func.HttpResponse:
+    """Register a webhook."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+    wh_id = body.get("id") or f"wh-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+    webhook = {
+        "id": wh_id, "url": body.get("url", ""),
+        "events": body.get("events", []),
+        "status": "active",
+        "created_at": now, "updated_at": now,
+    }
+    _webhooks_store[wh_id] = webhook
+    return func.HttpResponse(json.dumps(webhook), status_code=201, mimetype="application/json")
+
+
+@app.function_name("list_webhooks")
+@app.route(route="webhooks", methods=["GET"])
+async def list_webhooks(req: func.HttpRequest) -> func.HttpResponse:
+    """List registered webhooks."""
+    return func.HttpResponse(
+        json.dumps({"webhooks": list(_webhooks_store.values())}),
+        mimetype="application/json")
 
 
 # ── Internal Helpers ─────────────────────────────────────────────────────────

@@ -19,19 +19,23 @@ Usage::
 
 from __future__ import annotations
 
+import json
 import uuid
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 
 from aos_client.models import (
     AgentDescriptor,
     AgentResponse,
+    Alert,
     AuditEntry,
+    ComplianceReport,
     Covenant,
     CovenantStatus,
     CovenantValidation,
     Dashboard,
+    DecisionChain,
     DecisionRecord,
     Document,
     DocumentStatus,
@@ -48,11 +52,18 @@ from aos_client.models import (
     OrchestrationStatusEnum,
     OrchestrationUpdate,
     PeerApp,
+    PeerVerification,
     Risk,
     RiskAssessment,
     RiskCategory,
+    RiskHeatmap,
+    RiskHeatmapCell,
     RiskSeverity,
     RiskStatus,
+    RiskSummary,
+    RiskTrend,
+    Subscription,
+    Webhook,
     calculate_risk_severity,
 )
 
@@ -79,6 +90,12 @@ class MockAOSClient:
         self._mcp_servers: Dict[str, MCPServer] = {}
         self._networks: Dict[str, Network] = {}
         self._memberships: Dict[str, NetworkMembership] = {}
+        self._alerts: Dict[str, Alert] = {}
+        self._webhooks: Dict[str, Webhook] = {}
+        self._document_versions: Dict[str, List[Document]] = {}
+        self._subscriptions: Dict[str, Callable[[OrchestrationUpdate], Awaitable[None]]] = {}
+        self._updates: Dict[str, List[OrchestrationUpdate]] = {}
+        self._dashboards: Dict[str, Dashboard] = {}
 
     # -- context manager --------------------------------------------------
 
@@ -202,6 +219,36 @@ class MockAOSClient:
     async def delete_document(self, document_id: str) -> None:
         self._documents.pop(document_id, None)
 
+    async def create_documents_batch(self, documents: List[dict]) -> List[Document]:
+        created: List[Document] = []
+        for doc_data in documents:
+            doc = await self.create_document(
+                title=doc_data.get("title", ""),
+                doc_type=doc_data.get("doc_type", ""),
+                content=doc_data.get("content", {}),
+                **{k: v for k, v in doc_data.items() if k not in ("title", "doc_type", "content")},
+            )
+            created.append(doc)
+        return created
+
+    async def get_document_versions(self, document_id: str) -> List[Document]:
+        if document_id not in self._documents:
+            raise KeyError(f"Document {document_id} not found")
+        return self._document_versions.get(document_id, [self._documents[document_id]])
+
+    async def restore_document_version(self, document_id: str, version: int) -> Document:
+        versions = await self.get_document_versions(document_id)
+        if version < 0 or version >= len(versions):
+            raise KeyError(f"Version {version} not found for document {document_id}")
+        restored = versions[version]
+        self._documents[document_id] = restored
+        return restored
+
+    async def export_documents(self, query: str, format: str = "json") -> bytes:
+        results = await self.search_documents(query)
+        data = [doc.model_dump(mode="json") for doc in results]
+        return json.dumps(data).encode("utf-8")
+
     # -- Risk Registry ----------------------------------------------------
 
     async def register_risk(self, risk_data: dict) -> Risk:
@@ -265,6 +312,61 @@ class MockAOSClient:
         risk.updated_at = datetime.utcnow()
         return risk
 
+    async def get_risk_heatmap(self, category: Optional[str] = None) -> RiskHeatmap:
+        risks = list(self._risks.values())
+        if category:
+            risks = [r for r in risks if r.category == category]
+        cells: List[RiskHeatmapCell] = []
+        buckets = ["0.0-0.2", "0.2-0.4", "0.4-0.6", "0.6-0.8", "0.8-1.0"]
+        for lb in buckets:
+            for ib in buckets:
+                l_lo = float(lb.split("-")[0])
+                l_hi = float(lb.split("-")[1])
+                i_lo = float(ib.split("-")[0])
+                i_hi = float(ib.split("-")[1])
+                matching = [
+                    r for r in risks
+                    if r.assessment
+                    and l_lo <= r.assessment.likelihood < l_hi
+                    and i_lo <= r.assessment.impact < i_hi
+                ]
+                if matching:
+                    cells.append(RiskHeatmapCell(
+                        likelihood_range=lb,
+                        impact_range=ib,
+                        count=len(matching),
+                        risk_ids=[r.id for r in matching],
+                    ))
+        return RiskHeatmap(cells=cells, total_risks=len(risks))
+
+    async def get_risk_summary(self, category: Optional[str] = None) -> RiskSummary:
+        risks = list(self._risks.values())
+        if category:
+            risks = [r for r in risks if r.category == category]
+        by_category: Dict[str, int] = {}
+        by_severity: Dict[str, int] = {}
+        by_status: Dict[str, int] = {}
+        total_open = 0
+        for r in risks:
+            cat = r.category if isinstance(r.category, str) else r.category.value
+            by_category[cat] = by_category.get(cat, 0) + 1
+            status = r.status if isinstance(r.status, str) else r.status.value
+            by_status[status] = by_status.get(status, 0) + 1
+            if status != "resolved":
+                total_open += 1
+            if r.assessment:
+                sev = r.assessment.severity if isinstance(r.assessment.severity, str) else r.assessment.severity.value
+                by_severity[sev] = by_severity.get(sev, 0) + 1
+        return RiskSummary(
+            by_category=by_category,
+            by_severity=by_severity,
+            by_status=by_status,
+            total_open=total_open,
+        )
+
+    async def get_risk_trends(self, period: str = "30d") -> List[RiskTrend]:
+        return [RiskTrend(period=period, new_risks=len(self._risks), mitigated_risks=0, risk_score_avg=0.0)]
+
     # -- Audit Trail / Decision Ledger ------------------------------------
 
     async def log_decision(self, decision: dict) -> DecisionRecord:
@@ -307,6 +409,34 @@ class MockAOSClient:
         if end_time:
             results = [e for e in results if e.timestamp and e.timestamp <= end_time]
         return results
+
+    async def generate_compliance_report(
+        self,
+        start_time: datetime,
+        end_time: datetime,
+        report_type: str = "decisions",
+        format: str = "json",
+    ) -> ComplianceReport:
+        entries = [
+            d for d in self._decisions
+            if d.created_at and start_time <= d.created_at <= end_time
+        ]
+        return ComplianceReport(
+            report_type=report_type,
+            period_start=start_time,
+            period_end=end_time,
+            entries=entries,
+            summary={"total": len(entries)},
+            generated_at=datetime.utcnow(),
+        )
+
+    async def get_decision_chain(self, decision_id: str) -> DecisionChain:
+        chain = [d for d in self._decisions if d.id == decision_id or d.context.get("parent_id") == decision_id]
+        return DecisionChain(
+            decision_id=decision_id,
+            chain=chain,
+            complete=True,
+        )
 
     # -- Covenant Management ----------------------------------------------
 
@@ -392,6 +522,34 @@ class MockAOSClient:
             generated_at=datetime.utcnow(),
         )
 
+    async def create_dashboard(
+        self, name: str, kpi_ids: List[str], layout: Optional[dict] = None,
+    ) -> Dashboard:
+        selected = [self._kpis[kid] for kid in kpi_ids if kid in self._kpis]
+        dash_id = f"dash-{uuid.uuid4().hex[:8]}"
+        dashboard = Dashboard(kpis=selected, generated_at=datetime.utcnow())
+        self._dashboards[dash_id] = dashboard
+        return dashboard
+
+    async def create_alert(
+        self, metric_name: str, threshold: float, condition: str = "gt",
+    ) -> Alert:
+        alert_id = f"alert-{uuid.uuid4().hex[:8]}"
+        alert = Alert(
+            id=alert_id,
+            metric_name=metric_name,
+            threshold=threshold,
+            condition=condition,
+        )
+        self._alerts[alert_id] = alert
+        return alert
+
+    async def list_alerts(self, status: Optional[str] = None) -> List[Alert]:
+        results = list(self._alerts.values())
+        if status:
+            results = [a for a in results if a.status == status]
+        return results
+
     # -- MCP Server Integration -------------------------------------------
 
     async def list_mcp_servers(self) -> List[MCPServer]:
@@ -440,7 +598,79 @@ class MockAOSClient:
     async def list_networks(self) -> List[Network]:
         return list(self._networks.values())
 
+    async def create_network(
+        self, name: str, covenant_id: str, description: str = "",
+    ) -> Network:
+        net_id = f"net-{uuid.uuid4().hex[:8]}"
+        network = Network(
+            id=net_id,
+            name=name,
+            description=description,
+            metadata={"covenant_id": covenant_id},
+        )
+        self._networks[net_id] = network
+        return network
+
+    async def request_membership(
+        self, network_id: str, covenant_signature: str,
+    ) -> NetworkMembership:
+        membership = NetworkMembership(
+            network_id=network_id,
+            app_id="mock-app",
+            joined_at=datetime.utcnow(),
+        )
+        self._memberships[network_id] = membership
+        return membership
+
+    async def verify_peer(self, peer_app_id: str, network_id: str) -> PeerVerification:
+        return PeerVerification(
+            peer_app_id=peer_app_id,
+            network_id=network_id,
+            verified=network_id in self._networks,
+            covenant_status="active" if network_id in self._networks else "",
+            verified_at=datetime.utcnow(),
+        )
+
     # -- Health -----------------------------------------------------------
 
     async def health_check(self) -> Dict[str, Any]:
         return {"status": "healthy", "mock": True}
+
+    # -- Orchestration Streaming ------------------------------------------
+
+    async def subscribe_to_orchestration(
+        self,
+        orchestration_id: str,
+        callback: Callable[[OrchestrationUpdate], Awaitable[None]],
+    ) -> Subscription:
+        sub_id = f"sub-{uuid.uuid4().hex[:8]}"
+        self._subscriptions[sub_id] = callback
+        return Subscription(
+            id=sub_id,
+            orchestration_id=orchestration_id,
+            status="active",
+            created_at=datetime.utcnow(),
+        )
+
+    async def stream_orchestration_updates(
+        self, orchestration_id: str,
+    ) -> AsyncIterator[OrchestrationUpdate]:
+        for update in self._updates.get(orchestration_id, []):
+            yield update
+
+    # -- Webhooks ---------------------------------------------------------
+
+    async def register_webhook(self, url: str, events: List[str]) -> Webhook:
+        wh_id = f"wh-{uuid.uuid4().hex[:8]}"
+        webhook = Webhook(
+            id=wh_id,
+            url=url,
+            events=events,
+            status="active",
+            created_at=datetime.utcnow(),
+        )
+        self._webhooks[wh_id] = webhook
+        return webhook
+
+    async def list_webhooks(self) -> List[Webhook]:
+        return list(self._webhooks.values())
