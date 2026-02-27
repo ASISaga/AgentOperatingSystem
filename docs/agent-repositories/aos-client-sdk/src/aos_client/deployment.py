@@ -174,8 +174,21 @@ class AOSDeployer:
         Returns:
             :class:`DeploymentResult` with deployment details.
         """
+        import tempfile
+        import zipfile
+
         # Ensure configuration files exist
         self.ensure_host_json()
+
+        # Create a zip archive for deployment
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+            zip_path = tmp.name
+
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for file_path in self.project_path.rglob("*"):
+                if file_path.is_file() and "__pycache__" not in str(file_path):
+                    arcname = file_path.relative_to(self.project_path)
+                    zf.write(file_path, arcname)
 
         cmd = [
             "az",
@@ -188,7 +201,7 @@ class AOSDeployer:
             "--name",
             self.app_name,
             "--src",
-            str(self.project_path),
+            zip_path,
         ]
 
         if slot:
@@ -227,3 +240,5 @@ class AOSDeployer:
                 status="failed",
                 details={"error": exc.stderr},
             )
+        finally:
+            Path(zip_path).unlink(missing_ok=True)
