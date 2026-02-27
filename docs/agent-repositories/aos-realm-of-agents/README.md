@@ -1,34 +1,67 @@
 # aos-realm-of-agents
 
-Config-driven agent deployment Azure Function app for the Agent Operating System. Dynamically deploys and manages agents based on registry configuration.
+The **agent catalog** for the Agent Operating System. RealmOfAgents provides a config-driven registry of available agents (CEO, CFO, CMO, COO, CTO, and custom agents) that client applications query when composing orchestrations.
 
 ## Overview
 
 RealmOfAgents provides:
 
-- **Config-Driven Deployment** — Define agents in JSON, deploy automatically
-- **Agent Registry** — Central registry of agent configurations
-- **Dynamic Scaling** — Agents scale based on configuration
-- **Migration Support** — Path from custom deployment to Microsoft Foundry Agent Service
+- **Agent Catalog API** — HTTP endpoints for browsing available agents and their capabilities
+- **Config-Driven Registry** — Agents defined in JSON, deployable without code changes
+- **C-Suite Agents** — Pre-configured CEO, CFO, CMO, COO, CTO agents using LeadershipAgent and CMOAgent
+- **Extensible** — Add custom agents by editing the registry JSON
 
-## Quick Start
+## How Client Apps Use It
 
-1. Define agent configuration in `example_agent_registry.json`
-2. Deploy the function app
-3. Agents are automatically created and managed
+```python
+from aos_client import AOSClient
+
+async with AOSClient(endpoint="https://my-aos.azurewebsites.net") as client:
+    # Browse the agent catalog
+    agents = await client.list_agents()
+    for agent in agents:
+        print(f"{agent.agent_id}: {agent.purpose}")
+
+    # Filter by agent type
+    cmo_agents = await client.list_agents(agent_type="CMOAgent")
+```
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/realm/agents` | List all enabled agents |
+| GET | `/api/realm/agents?agent_type=CMOAgent` | Filter by agent type |
+| GET | `/api/realm/agents/{agent_id}` | Get a single agent |
+| GET | `/api/realm/config` | Full registry (admin) |
+| GET | `/api/health` | Health check |
+
+## Agent Registry
+
+The `example_agent_registry.json` file defines the available agents:
+
+| Agent ID | Type | Purpose | LoRA Adapter |
+|----------|------|---------|-------------|
+| ceo | LeadershipAgent | Strategic leadership and executive decision-making | leadership |
+| cfo | LeadershipAgent | Financial strategy, budgeting, and fiscal oversight | finance |
+| cmo | CMOAgent | Marketing strategy, brand management, market analysis | marketing |
+| coo | LeadershipAgent | Operations management and process optimisation | operations |
+| cto | LeadershipAgent | Technology strategy, innovation, digital transformation | technology |
 
 ## Local Development
 
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"
 func start
 ```
 
 ## Related Repositories
 
+- [aos-client-sdk](https://github.com/ASISaga/aos-client-sdk) — Client SDK for browsing agents
+- [aos-function-app](https://github.com/ASISaga/aos-function-app) — Orchestration API
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
-- [aos-function-app](https://github.com/ASISaga/aos-function-app) — Main function app
-- [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) — MCPServers function app
+- [business-infinity](https://github.com/ASISaga/business-infinity) — Example client app
+- [purpose-driven-agent](https://github.com/ASISaga/purpose-driven-agent) — Agent base class
 
 ## License
 

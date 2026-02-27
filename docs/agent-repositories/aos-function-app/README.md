@@ -1,14 +1,29 @@
 # aos-function-app
 
-Main Azure Functions entry point for the Agent Operating System. Exposes AOS as cloud services via Service Bus triggers and HTTP endpoints.
+**Orchestration API** for the Agent Operating System. Exposes AOS as an infrastructure service — client applications submit orchestration requests, monitor progress, and retrieve results through HTTP endpoints.
 
 ## Overview
 
-This function app is the primary AOS cloud entry point, providing:
+This function app is the AOS orchestration API, providing:
 
-- **Service Bus Triggers** — Event-driven agent activation via Azure Service Bus
-- **HTTP Endpoints** — REST API for agent management and status
-- **Agent Lifecycle** — Agent initialization, event processing, and health monitoring
+- **Orchestration Submission** — `POST /api/orchestrations` to run agent workflows
+- **Status Monitoring** — `GET /api/orchestrations/{id}` to poll progress
+- **Result Retrieval** — `GET /api/orchestrations/{id}/result` for completed results
+- **Cancellation** — `POST /api/orchestrations/{id}/cancel` to stop running orchestrations
+- **Health Check** — `GET /api/health`
+
+## How Client Apps Use It
+
+```python
+from aos_client import AOSClient
+
+async with AOSClient(endpoint="https://my-aos.azurewebsites.net") as client:
+    result = await client.run_orchestration(
+        agent_ids=["ceo", "cfo", "cmo"],
+        task={"type": "strategic_review", "data": {"quarter": "Q1-2026"}},
+    )
+    print(result.summary)
+```
 
 ## Prerequisites
 
@@ -19,7 +34,7 @@ This function app is the primary AOS cloud entry point, providing:
 ## Local Development
 
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"
 func start
 ```
 
@@ -39,10 +54,11 @@ func azure functionapp publish <app-name>
 
 ## Related Repositories
 
+- [aos-client-sdk](https://github.com/ASISaga/aos-client-sdk) — Client SDK
+- [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — Agent catalog
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
+- [business-infinity](https://github.com/ASISaga/business-infinity) — Example client app
 - [aos-deployment](https://github.com/ASISaga/aos-deployment) — Infrastructure deployment
-- [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — RealmOfAgents function app
-- [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) — MCPServers function app
 
 ## License
 
