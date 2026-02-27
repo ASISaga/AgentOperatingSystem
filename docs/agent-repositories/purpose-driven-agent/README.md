@@ -125,8 +125,7 @@ asyncio.run(main())
 │  │  ──────────────────    │   │  ──────────────────────────      │   │
 │  │  purpose               │   │  adapter_name → domain model     │   │
 │  │  purpose_scope         │   │  "general", "leadership",        │   │
-│  │  success_criteria      │   │  "marketing", "finance", ...     │   │
-│  │  purpose_metrics       │   │                                  │   │
+│  │  purpose_metrics       │   │  "marketing", "finance", ...     │   │
 │  └────────────────────────┘   └──────────────────────────────────┘   │
 │                                                                      │
 │  ┌──────────────────────────────────────────────────────────────┐    │
@@ -188,10 +187,6 @@ agent = GenericPurposeDrivenAgent(
     agent_id="cfo-assistant",
     purpose="Support the CFO with financial analysis and reporting",
     purpose_scope="Financial data, budgeting, forecasting",
-    success_criteria=[
-        "Generate monthly reports in < 5 minutes",
-        "Achieve >95% data accuracy",
-    ],
     adapter_name="finance",
 )
 
@@ -353,7 +348,7 @@ during `initialize()`.  It stores the agent's full state persistently:
 
 ```python
 # Automatic (set by the agent on every event)
-# purpose, purpose_scope, success_criteria, active_goals,
+# purpose, purpose_scope, active_goals,
 # completed_goals, purpose_metrics, wake_count, last_active …
 
 # Manual — store anything

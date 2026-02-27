@@ -36,8 +36,7 @@ interaction.
 │  │  ─────────────────   │   │  ──────────────────────────          │ │
 │  │  purpose (string)    │   │  adapter_name → domain model         │ │
 │  │  purpose_scope       │   │  e.g. "general", "leadership",       │ │
-│  │  success_criteria    │   │       "marketing", "finance"         │ │
-│  │  purpose_metrics     │   │                                      │ │
+│  │  purpose_metrics     │   │       "marketing", "finance"         │ │
 │  └──────────────────────┘   └──────────────────────────────────────┘ │
 │                                                                      │
 │  ┌──────────────────────────────────────────────────────────────────┐ │
@@ -113,7 +112,6 @@ preserves full state across events and restarts.
 |---|---|
 | `purpose` | Agent's purpose string |
 | `purpose_scope` | Scope/boundaries |
-| `success_criteria` | List of success criteria |
 | `active_goals` | Currently tracked goals |
 | `completed_goals` | Completed goal history |
 | `purpose_metrics` | Counters for aligned actions, decisions, etc. |

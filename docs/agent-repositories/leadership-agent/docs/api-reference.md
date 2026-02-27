@@ -29,7 +29,6 @@ LeadershipAgent(
     role: Optional[str] = None,
     purpose: Optional[str] = None,
     purpose_scope: Optional[str] = None,
-    success_criteria: Optional[List[str]] = None,
     tools: Optional[List[Any]] = None,
     system_message: Optional[str] = None,
     adapter_name: Optional[str] = None,
@@ -47,7 +46,6 @@ LeadershipAgent(
 | `role` | `str` | `"leader"` | Role label |
 | `purpose` | `str` | Standard leadership purpose | Long-term purpose |
 | `purpose_scope` | `str` | `"Leadership and decision-making domain"` | Scope |
-| `success_criteria` | `List[str]` | `[]` | Success conditions |
 | `tools` | `List[Any]` | `[]` | Tools via MCP |
 | `system_message` | `str` | `""` | System message |
 | `adapter_name` | `str` | `"leadership"` | LoRA adapter name |

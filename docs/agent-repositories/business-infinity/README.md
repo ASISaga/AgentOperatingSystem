@@ -40,7 +40,7 @@ A lean Azure Functions application that demonstrates using the **Agent Operating
 |---------|-------|
 | Business workflows (strategic review, market analysis, budget approval) | BusinessInfinity |
 | Azure Functions scaffolding, HTTP/Service Bus triggers, auth | aos-client-sdk |
-| Agent lifecycle, orchestration, messaging, storage, monitoring | AOS |
+| Agent lifecycle, perpetual orchestration, messaging, storage, monitoring | AOS |
 | Agent catalog (C-suite agents, capabilities, LoRA adapters) | RealmOfAgents |
 
 ## Workflows
@@ -57,9 +57,10 @@ app = AOSApp(name="business-infinity")
 async def strategic_review(request: WorkflowRequest):
     agents = await request.client.list_agents()
     c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
-    return await request.client.run_orchestration(
+    return await request.client.start_orchestration(
         agent_ids=c_suite,
-        task={"type": "strategic_review", "data": request.body},
+        purpose="strategic_review",
+        context=request.body,
     )
 ```
 
@@ -74,20 +75,23 @@ functions = app.get_functions()
 ### Invoke via HTTP
 
 ```bash
-# Strategic Review
+# Strategic Review — returns orchestration_id + status (perpetual)
 curl -X POST https://business-infinity.azurewebsites.net/api/workflows/strategic-review \
   -H "Content-Type: application/json" \
   -d '{"quarter": "Q1-2026", "focus_areas": ["revenue", "growth", "efficiency"]}'
+# → {"orchestration_id": "...", "status": "ACTIVE"}
 
 # Market Analysis
 curl -X POST https://business-infinity.azurewebsites.net/api/workflows/market-analysis \
   -H "Content-Type: application/json" \
   -d '{"market": "EU SaaS", "competitors": ["AcmeCorp", "Globex"]}'
+# → {"orchestration_id": "...", "status": "ACTIVE"}
 
 # Budget Approval
 curl -X POST https://business-infinity.azurewebsites.net/api/workflows/budget-approval \
   -H "Content-Type: application/json" \
   -d '{"department": "Marketing", "amount": 500000, "justification": "Q2 brand campaign"}'
+# → {"orchestration_id": "...", "status": "ACTIVE"}
 ```
 
 ## Registration with AOS

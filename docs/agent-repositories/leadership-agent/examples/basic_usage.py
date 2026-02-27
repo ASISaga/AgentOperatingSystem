@@ -36,11 +36,6 @@ async def demo_leadership_agent() -> None:
             "and organisational alignment"
         ),
         purpose_scope="Strategic planning, major decisions, cross-team coordination",
-        success_criteria=[
-            "Increase revenue by 20% year-over-year",
-            "Maintain team satisfaction above 85%",
-            "Launch 2 new products per quarter",
-        ],
         adapter_name="leadership",
     )
 

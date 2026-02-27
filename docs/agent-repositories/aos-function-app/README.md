@@ -1,15 +1,15 @@
 # aos-function-app
 
-**Orchestration API** for the Agent Operating System. Exposes AOS as an infrastructure service — client applications submit orchestration requests, monitor progress, and retrieve results through HTTP endpoints.
+**Orchestration API** for the Agent Operating System. Exposes AOS as an infrastructure service — client applications submit orchestration requests, monitor progress, and stop perpetual orchestrations through HTTP endpoints.
 
 ## Overview
 
 This function app is the AOS orchestration API, providing:
 
-- **Orchestration Submission** — `POST /api/orchestrations` to run agent workflows
+- **Orchestration Submission** — `POST /api/orchestrations` to start perpetual agent orchestrations
 - **Status Monitoring** — `GET /api/orchestrations/{id}` to poll progress
-- **Result Retrieval** — `GET /api/orchestrations/{id}/result` for completed results
-- **Cancellation** — `POST /api/orchestrations/{id}/cancel` to stop running orchestrations
+- **Stop Orchestration** — `POST /api/orchestrations/{id}/stop` to stop perpetual orchestrations
+- **Cancellation** — `POST /api/orchestrations/{id}/cancel` to cancel an orchestration
 - **Health Check** — `GET /api/health`
 
 ## How Client Apps Use It
@@ -18,11 +18,12 @@ This function app is the AOS orchestration API, providing:
 from aos_client import AOSClient
 
 async with AOSClient(endpoint="https://my-aos.azurewebsites.net") as client:
-    result = await client.run_orchestration(
+    status = await client.start_orchestration(
         agent_ids=["ceo", "cfo", "cmo"],
-        task={"type": "strategic_review", "data": {"quarter": "Q1-2026"}},
+        purpose="strategic_review",
+        context={"quarter": "Q1-2026"},
     )
-    print(result.summary)
+    print(status.orchestration_id)  # perpetual — no final result
 ```
 
 ## Prerequisites

@@ -47,9 +47,10 @@ app = AOSApp(name="business-infinity")
 async def strategic_review(request: WorkflowRequest):
     agents = await request.client.list_agents()
     c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
-    return await request.client.run_orchestration(
+    return await request.client.start_orchestration(
         agent_ids=c_suite,
-        task={"type": "strategic_review", "data": request.body},
+        purpose="strategic_review",
+        context=request.body,
     )
 ```
 
@@ -141,9 +142,10 @@ app = AOSApp(name="my-app")
 @app.workflow("quarterly-review")
 async def quarterly_review(request: WorkflowRequest):
     agents = await request.client.list_agents()
-    return await request.client.run_orchestration(
+    return await request.client.start_orchestration(
         agent_ids=[a.agent_id for a in agents],
-        task={"type": "quarterly_review", "data": request.body},
+        purpose="quarterly_review",
+        context=request.body,
     )
 ```
 

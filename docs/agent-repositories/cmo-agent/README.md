@@ -177,10 +177,6 @@ cmo = CMOAgent(
         "Leadership: Lead the marketing organisation and align growth initiatives"
     ),
     purpose_scope="Marketing and cross-functional leadership",
-    success_criteria=[
-        "Grow MQL pipeline by 40% YoY",
-        "Improve NPS by 15 points",
-    ],
     marketing_adapter_name="marketing",
     leadership_adapter_name="leadership",
 )
