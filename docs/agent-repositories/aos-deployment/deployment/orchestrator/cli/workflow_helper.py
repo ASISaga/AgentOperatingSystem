@@ -169,11 +169,15 @@ def _analyze_output(args: argparse.Namespace) -> None:
     _output("should_retry", str(is_transient).lower())
     _output("is_transient", str(is_transient).lower())
 
-    # Persist error message for downstream steps
+    # Persist error message for downstream steps (capped at 4 KB)
     error_file = "error-message.txt"
     error_lines = [ln for ln in log_text.splitlines() if "error" in ln.lower()]
-    Path(error_file).write_text("\n".join(error_lines[-50:]) if error_lines else log_text[-2000:])
+    error_text = "\n".join(error_lines[-50:]) if error_lines else log_text[-2000:]
+    Path(error_file).write_text(error_text[:4096])
     _output("error_file", error_file)
+
+
+_SHA_RE = re.compile(r"^[a-fA-F0-9]{7,40}$")
 
 
 def _retry(args: argparse.Namespace) -> None:
@@ -192,7 +196,7 @@ def _retry(args: argparse.Namespace) -> None:
     if params:
         deploy_args += ["--parameters", params]
     git_sha = getattr(args, "git_sha", "")
-    if git_sha:
+    if git_sha and _SHA_RE.match(git_sha):
         deploy_args += ["--git-sha", git_sha]
 
     for attempt in range(1, max_retries + 1):

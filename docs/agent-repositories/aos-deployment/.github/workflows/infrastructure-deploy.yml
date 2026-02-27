@@ -249,7 +249,7 @@ jobs:
           
           # Build argument list without shell evaluation
           ARGS=(
-            $SUBCOMMAND
+            "$SUBCOMMAND"
             --resource-group "${{ needs.setup.outputs.resource_group }}"
             --location "$PRIMARY_REGION"
             --location-ml "$ML_REGION"
