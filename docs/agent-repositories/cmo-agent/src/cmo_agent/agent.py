@@ -75,7 +75,6 @@ class CMOAgent(LeadershipAgent):
         marketing_purpose: Optional[str] = None,
         leadership_purpose: Optional[str] = None,
         purpose_scope: Optional[str] = None,
-        success_criteria: Optional[List[str]] = None,
         tools: Optional[List[Any]] = None,
         system_message: Optional[str] = None,
         marketing_adapter_name: Optional[str] = None,
@@ -94,7 +93,6 @@ class CMOAgent(LeadershipAgent):
             leadership_purpose: Leadership purpose string.  Defaults to the
                 standard leadership purpose if not provided.
             purpose_scope: Scope/boundaries of the combined purpose.
-            success_criteria: List of criteria that define success.
             tools: Tools available to the agent.
             system_message: System message for the agent.
             marketing_adapter_name: LoRA adapter for marketing (defaults to
@@ -129,7 +127,6 @@ class CMOAgent(LeadershipAgent):
             role=role or "CMO",
             purpose=combined_purpose,
             purpose_scope=purpose_scope,
-            success_criteria=success_criteria,
             tools=tools,
             system_message=system_message,
             adapter_name=marketing_adapter_name,

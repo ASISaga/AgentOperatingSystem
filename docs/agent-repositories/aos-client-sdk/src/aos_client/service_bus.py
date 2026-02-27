@@ -26,7 +26,6 @@ from typing import Any, Dict, Optional
 
 from aos_client.models import (
     OrchestrationRequest,
-    OrchestrationResult,
     OrchestrationStatus,
 )
 
@@ -154,14 +153,14 @@ class AOSServiceBus:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def parse_orchestration_result(message_body: str | bytes | Dict[str, Any]) -> OrchestrationResult:
-        """Parse an orchestration result from a Service Bus message.
+    def parse_orchestration_result(message_body: str | bytes | Dict[str, Any]) -> OrchestrationStatus:
+        """Parse an orchestration status update from a Service Bus result message.
 
         Args:
             message_body: Raw message body (JSON string, bytes, or dict).
 
         Returns:
-            Parsed :class:`OrchestrationResult`.
+            Parsed :class:`OrchestrationStatus`.
         """
         if isinstance(message_body, bytes):
             message_body = message_body.decode("utf-8")
@@ -171,7 +170,7 @@ class AOSServiceBus:
             data = message_body
 
         payload = data.get("payload", data)
-        return OrchestrationResult(**payload)
+        return OrchestrationStatus(**payload)
 
     @staticmethod
     def parse_orchestration_status(message_body: str | bytes | Dict[str, Any]) -> OrchestrationStatus:
@@ -195,15 +194,15 @@ class AOSServiceBus:
 
     @staticmethod
     def build_result_message(
-        result: OrchestrationResult,
+        result: OrchestrationStatus,
         app_name: str,
     ) -> Dict[str, Any]:
-        """Build a Service Bus message body for an orchestration result.
+        """Build a Service Bus message body for an orchestration status update.
 
-        Used by AOS to send results back to client applications.
+        Used by AOS to send status updates back to client applications.
 
         Args:
-            result: Completed orchestration result.
+            result: Current orchestration status.
             app_name: Target client application name.
 
         Returns:

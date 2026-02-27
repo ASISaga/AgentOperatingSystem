@@ -72,7 +72,6 @@ class MyAgent(PurposeDrivenAgent):
             agent_id="my_agent",
             purpose="Clear statement of agent purpose",
             purpose_scope="Specific areas of responsibility",
-            success_criteria=["Measurable criteria"],
             adapter_name="my_agent"
         )
     

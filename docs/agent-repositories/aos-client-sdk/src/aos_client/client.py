@@ -8,13 +8,15 @@ Usage::
         # Browse the agent catalog
         agents = await client.list_agents()
 
-        # Select C-suite agents and compose an orchestration
+        # Select C-suite agents and start a perpetual orchestration
         selected = [a.agent_id for a in agents if "leadership" in a.capabilities]
-        result = await client.run_orchestration(
+        status = await client.start_orchestration(
             agent_ids=selected,
-            task={"type": "strategic_review", "data": {"quarter": "Q1-2026"}},
+            purpose="Drive strategic growth and continuous organisational improvement",
+            purpose_scope="C-suite quarterly review and ongoing alignment",
+            context={"quarter": "Q1-2026"},
         )
-        print(result.summary)
+        print(status.orchestration_id, status.status)
 """
 
 from __future__ import annotations
@@ -25,8 +27,8 @@ from typing import Any, Dict, List, Optional
 
 from aos_client.models import (
     AgentDescriptor,
+    OrchestrationPurpose,
     OrchestrationRequest,
-    OrchestrationResult,
     OrchestrationStatus,
     OrchestrationStatusEnum,
 )
@@ -143,11 +145,14 @@ class AOSClient:
         *,
         via_service_bus: bool = False,
     ) -> OrchestrationStatus:
-        """Submit an orchestration request to AOS.
+        """Submit a purpose-driven orchestration request to AOS.
+
+        The orchestration runs perpetually until explicitly stopped or
+        cancelled.
 
         Args:
-            request: Orchestration request describing which agents to use
-                and the task to execute.
+            request: Orchestration request describing the purpose, which
+                agents to include, and initial context.
             via_service_bus: When ``True``, submit via Azure Service Bus
                 instead of HTTP.  Requires a Service Bus connection string.
 
@@ -163,6 +168,7 @@ class AOSClient:
                 orchestration_id=request.orchestration_id,
                 status=OrchestrationStatusEnum.PENDING,
                 agent_ids=request.agent_ids,
+                purpose=request.purpose.purpose,
             )
 
         data = await self._post(
@@ -183,22 +189,23 @@ class AOSClient:
         data = await self._get(f"{self.endpoint}/api/orchestrations/{orchestration_id}")
         return OrchestrationStatus(**data)
 
-    async def get_orchestration_result(self, orchestration_id: str) -> OrchestrationResult:
-        """Retrieve the final result of a completed orchestration.
+    async def stop_orchestration(self, orchestration_id: str) -> OrchestrationStatus:
+        """Stop a running orchestration.
+
+        Perpetual orchestrations run until explicitly stopped.  This method
+        requests a graceful stop.
 
         Args:
-            orchestration_id: ID returned by :meth:`submit_orchestration`.
+            orchestration_id: ID of the orchestration to stop.
 
         Returns:
-            :class:`OrchestrationResult` with per-agent results and summary.
-
-        Raises:
-            RuntimeError: If the orchestration has not completed yet.
+            Updated :class:`OrchestrationStatus` (typically ``STOPPED``).
         """
-        data = await self._get(
-            f"{self.endpoint}/api/orchestrations/{orchestration_id}/result"
+        data = await self._post(
+            f"{self.endpoint}/api/orchestrations/{orchestration_id}/stop",
+            json={},
         )
-        return OrchestrationResult(**data)
+        return OrchestrationStatus(**data)
 
     async def cancel_orchestration(self, orchestration_id: str) -> OrchestrationStatus:
         """Cancel a running orchestration.
@@ -219,61 +226,43 @@ class AOSClient:
     # Convenience helpers
     # ------------------------------------------------------------------
 
-    async def run_orchestration(
+    async def start_orchestration(
         self,
         agent_ids: List[str],
-        task: Dict[str, Any],
+        purpose: str,
+        purpose_scope: str = "",
+        context: Optional[Dict[str, Any]] = None,
         workflow: str = "collaborative",
         config: Optional[Dict[str, Any]] = None,
-        poll_interval_seconds: float = 2.0,
-        timeout_seconds: float = 300.0,
-    ) -> OrchestrationResult:
-        """Submit an orchestration and wait for the result.
+    ) -> OrchestrationStatus:
+        """Start a perpetual purpose-driven orchestration.
 
-        This is a convenience method that submits the request, polls for
-        completion, and returns the final result.
+        This is a convenience method that builds an
+        :class:`OrchestrationRequest` from simple parameters and submits
+        it.  The orchestration runs perpetually until explicitly stopped.
 
         Args:
             agent_ids: Agent IDs to include.
-            task: Task payload.
+            purpose: The overarching purpose that drives the orchestration.
+            purpose_scope: Boundaries/scope for the purpose.
+            context: Initial context data for the orchestration.
             workflow: Workflow pattern (default ``"collaborative"``).
             config: Optional orchestration config.
-            poll_interval_seconds: Seconds between status polls.
-            timeout_seconds: Maximum seconds to wait.
 
         Returns:
-            :class:`OrchestrationResult`.
-
-        Raises:
-            TimeoutError: If the orchestration does not complete within
-                *timeout_seconds*.
-            RuntimeError: If the orchestration fails.
+            :class:`OrchestrationStatus` with the orchestration ID.
         """
-        import asyncio
-
         request = OrchestrationRequest(
             agent_ids=agent_ids,
             workflow=workflow,
-            task=task,
+            purpose=OrchestrationPurpose(
+                purpose=purpose,
+                purpose_scope=purpose_scope or "General orchestration scope",
+            ),
+            context=context or {},
             config=config or {},
         )
-        status = await self.submit_orchestration(request)
-        oid = status.orchestration_id
-
-        elapsed = 0.0
-        while status.status in (OrchestrationStatusEnum.PENDING, OrchestrationStatusEnum.RUNNING):
-            if elapsed >= timeout_seconds:
-                raise TimeoutError(
-                    f"Orchestration {oid} did not complete within {timeout_seconds}s"
-                )
-            await asyncio.sleep(poll_interval_seconds)
-            elapsed += poll_interval_seconds
-            status = await self.get_orchestration_status(oid)
-
-        if status.status == OrchestrationStatusEnum.FAILED:
-            raise RuntimeError(f"Orchestration {oid} failed: {status.error}")
-
-        return await self.get_orchestration_result(oid)
+        return await self.submit_orchestration(request)
 
     # ------------------------------------------------------------------
     # Health

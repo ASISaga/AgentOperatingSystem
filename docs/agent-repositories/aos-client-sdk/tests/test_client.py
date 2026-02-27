@@ -3,7 +3,7 @@
 import pytest
 
 from aos_client.client import AOSClient
-from aos_client.models import OrchestrationRequest
+from aos_client.models import OrchestrationPurpose, OrchestrationRequest
 
 
 class TestAOSClient:
@@ -36,7 +36,22 @@ class TestAOSClient:
         client = AOSClient(endpoint="https://my-aos.azurewebsites.net")
         request = OrchestrationRequest(
             agent_ids=["ceo"],
-            task={"type": "test"},
+            purpose=OrchestrationPurpose(purpose="Test purpose"),
         )
         with pytest.raises(RuntimeError, match="context manager"):
             await client.submit_orchestration(request)
+
+    def test_no_run_orchestration_method(self):
+        """run_orchestration is removed — orchestrations are perpetual."""
+        client = AOSClient(endpoint="https://my-aos.azurewebsites.net")
+        assert not hasattr(client, "run_orchestration")
+
+    def test_has_start_orchestration_method(self):
+        """start_orchestration replaces the old task-driven run_orchestration."""
+        client = AOSClient(endpoint="https://my-aos.azurewebsites.net")
+        assert hasattr(client, "start_orchestration")
+
+    def test_has_stop_orchestration_method(self):
+        """stop_orchestration supports the perpetual lifecycle."""
+        client = AOSClient(endpoint="https://my-aos.azurewebsites.net")
+        assert hasattr(client, "stop_orchestration")

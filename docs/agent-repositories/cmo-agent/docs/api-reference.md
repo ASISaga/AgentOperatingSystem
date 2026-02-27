@@ -30,7 +30,6 @@ CMOAgent(
     marketing_purpose: Optional[str] = None,
     leadership_purpose: Optional[str] = None,
     purpose_scope: Optional[str] = None,
-    success_criteria: Optional[List[str]] = None,
     tools: Optional[List[Any]] = None,
     system_message: Optional[str] = None,
     marketing_adapter_name: Optional[str] = None,
@@ -49,7 +48,6 @@ CMOAgent(
 | `marketing_purpose` | `str` | Standard CMO marketing purpose | Marketing purpose |
 | `leadership_purpose` | `str` | Standard leadership purpose | Leadership purpose |
 | `purpose_scope` | `str` | `"Marketing and Leadership domains"` | Scope |
-| `success_criteria` | `List[str]` | `[]` | Success conditions |
 | `tools` | `List[Any]` | `[]` | Tools via MCP |
 | `system_message` | `str` | `""` | System message |
 | `marketing_adapter_name` | `str` | `"marketing"` | Marketing LoRA adapter |
@@ -140,7 +138,6 @@ Return full CMO status including dual purpose-adapter information.
     "agent_id":                 str,
     "purpose":                  str,
     "purpose_scope":            str,
-    "success_criteria":         List[str],
     "metrics":                  Dict[str, int],
     "active_goals":             int,
     "completed_goals":          int,

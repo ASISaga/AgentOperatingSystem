@@ -31,9 +31,10 @@ app = AOSApp(name="my-app")
 async def strategic_review(request: WorkflowRequest):
     agents = await request.client.list_agents()
     c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
-    return await request.client.run_orchestration(
+    return await request.client.start_orchestration(
         agent_ids=c_suite,
-        task={"type": "strategic_review", "data": request.body},
+        purpose="strategic_review",
+        context=request.body,
     )
 ```
 
@@ -98,9 +99,9 @@ endpoints, and authentication middleware.
 | `get_agent(agent_id)` | Get a single agent descriptor |
 | `submit_orchestration(request, via_service_bus=)` | Submit via HTTP or Service Bus |
 | `get_orchestration_status(id)` | Poll orchestration status |
-| `get_orchestration_result(id)` | Get final orchestration result |
+| `start_orchestration(...)` | Convenience: submit and return status (perpetual) |
+| `stop_orchestration(id)` | Stop a perpetual orchestration |
 | `cancel_orchestration(id)` | Cancel a running orchestration |
-| `run_orchestration(...)` | Convenience: submit + poll + return result |
 | `health_check()` | Check AOS health |
 
 ### `AOSAuth` — Authentication & Access Control
@@ -117,7 +118,7 @@ endpoints, and authentication middleware.
 | Method | Description |
 |--------|-------------|
 | `send_orchestration_request(request)` | Send orchestration via Service Bus |
-| `parse_orchestration_result(body)` | Parse result from Service Bus message |
+| `parse_orchestration_result(body)` | Parse status update from Service Bus message |
 | `parse_orchestration_status(body)` | Parse status from Service Bus message |
 
 ### `AOSRegistration` — App Registration & Provisioning
@@ -142,9 +143,8 @@ endpoints, and authentication middleware.
 |-------|-------------|
 | `WorkflowRequest` | Request passed to workflow handlers |
 | `AgentDescriptor` | Agent metadata from the RealmOfAgents catalog |
-| `OrchestrationRequest` | Request to run an agent orchestration |
-| `OrchestrationStatus` | Current status of an orchestration |
-| `OrchestrationResult` | Final result with per-agent outputs and summary |
+| `OrchestrationRequest` | Request to start a perpetual agent orchestration |
+| `OrchestrationStatus` | Current status of an orchestration (ACTIVE, STOPPED) |
 | `AppRegistration` | Client app registration record |
 | `DeploymentResult` | Deployment operation result |
 | `TokenClaims` | Parsed Azure AD token claims |

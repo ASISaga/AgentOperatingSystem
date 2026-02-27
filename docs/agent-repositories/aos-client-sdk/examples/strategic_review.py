@@ -1,7 +1,7 @@
 """Example: BusinessInfinity-style C-suite orchestration via AOS.
 
 This example shows how a lean client application uses the AOS Client SDK
-to browse agents, compose orchestrations, and retrieve results — without
+to browse agents and start perpetual orchestrations — without
 any agent or infrastructure code.
 
 Prerequisites:
@@ -21,9 +21,10 @@ Option A: Use AOSApp framework (recommended for Azure Functions)
     async def strategic_review(request: WorkflowRequest):
         agents = await request.client.list_agents()
         c_suite = [a.agent_id for a in agents]
-        return await request.client.run_orchestration(
+        return await request.client.start_orchestration(
             agent_ids=c_suite,
-            task={"type": "strategic_review", "data": request.body},
+            purpose="strategic_review",
+            context=request.body,
         )
 
 Option B: Use AOSClient directly (for scripts and non-Functions apps)
@@ -50,21 +51,18 @@ async def main():
         c_suite_ids = [a.agent_id for a in agents]
         print(f"\nSelected C-suite: {c_suite_ids}")
 
-        # ── Step 3: Run a strategic review orchestration ─────────────
-        print("\n=== Running Strategic Review ===")
-        result = await client.run_orchestration(
+        # ── Step 3: Start a strategic review orchestration (perpetual) ──
+        print("\n=== Starting Strategic Review ===")
+        status = await client.start_orchestration(
             agent_ids=c_suite_ids,
-            task={
-                "type": "strategic_review",
-                "data": {
-                    "quarter": "Q1-2026",
-                    "focus_areas": ["revenue", "growth", "efficiency"],
-                },
+            purpose="strategic_review",
+            context={
+                "quarter": "Q1-2026",
+                "focus_areas": ["revenue", "growth", "efficiency"],
             },
-            workflow="collaborative",
         )
-        print(f"Result: {result.summary}")
-        print(f"Per-agent results: {result.results}")
+        print(f"Orchestration ID: {status.orchestration_id}")
+        print(f"Status: {status.status}")  # "ACTIVE"
 
 
 if __name__ == "__main__":

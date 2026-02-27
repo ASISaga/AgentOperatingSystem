@@ -19,7 +19,6 @@ def basic_agent(agent_id: str) -> GenericPurposeDrivenAgent:
         agent_id=agent_id,
         purpose="Test purpose for unit testing",
         purpose_scope="Testing scope",
-        success_criteria=["Tests pass", "Coverage >= 80%"],
         adapter_name="test-adapter",
     )
 
