@@ -7,22 +7,23 @@ The Agent Operating System (AOS) provides **agent orchestrations as an infrastru
 ## How It Works
 
 ```
-┌───────────────────────────────┐
-│  Client Application           │  ← Your app (e.g. BusinessInfinity)
-│  (business logic only)        │     pip install aos-client-sdk
-│  aos-client-sdk ──────────────┼──┐
-└───────────────────────────────┘  │
-                                   │ HTTPS / Service Bus
-┌──────────────────────────────────┼────────────────────────────────┐
-│  Agent Operating System          ▼                                │
+┌───────────────────────────────────────┐
+│  Client Application                   │  ← Your app (e.g. BusinessInfinity)
+│  (business logic only)                │     pip install aos-client-sdk[azure]
+│  @app.workflow decorators  ───────────┼──┐
+│  function_app.py = 7 lines            │  │
+└───────────────────────────────────────┘  │
+                                           │ HTTPS / Azure Service Bus
+┌──────────────────────────────────────────┼───────────────────────┐
+│  Agent Operating System                  ▼                       │
 │  ┌──────────────────┐  ┌────────────────────┐  ┌──────────────┐  │
 │  │ aos-function-app  │  │ aos-realm-of-      │  │ aos-mcp-     │  │
 │  │ POST /api/        │  │ agents             │  │ servers      │  │
 │  │  orchestrations   │  │ GET /api/realm/    │  │ MCP protocol │  │
-│  │ Orchestration API │  │  agents            │  │              │  │
-│  │                   │  │ Agent catalog:     │  │              │  │
-│  │                   │  │  CEO · CFO · CMO   │  │              │  │
-│  │                   │  │  COO · CTO · ...   │  │              │  │
+│  │ Service Bus       │  │  agents            │  │              │  │
+│  │  trigger          │  │ Agent catalog:     │  │              │  │
+│  │ POST /api/apps/   │  │  CEO · CFO · CMO   │  │              │  │
+│  │  register         │  │  COO · CTO · ...   │  │              │  │
 │  └────────┬─────────┘  └────────────────────┘  └──────────────┘  │
 │           │                                                       │
 │  ┌────────▼─────────────────────────────────────────────────────┐ │
@@ -34,23 +35,31 @@ The Agent Operating System (AOS) provides **agent orchestrations as an infrastru
 
 ### Example: BusinessInfinity
 
-[BusinessInfinity](https://github.com/ASISaga/business-infinity) is a lean Azure Functions app that selects C-suite agents from the RealmOfAgents catalog and runs orchestrations via AOS — with **zero agent code and zero infrastructure code**:
+[BusinessInfinity](https://github.com/ASISaga/business-infinity) is a lean Azure Functions app that selects C-suite agents from the RealmOfAgents catalog and runs orchestrations via AOS — with **zero boilerplate, zero agent code, and zero infrastructure code**:
 
 ```python
-from aos_client import AOSClient
+# workflows.py — define business logic with @app.workflow decorators
+from aos_client import AOSApp, WorkflowRequest
 
-async with AOSClient(endpoint="https://my-aos.azurewebsites.net") as client:
-    # Browse the agent catalog
-    agents = await client.list_agents()
+app = AOSApp(name="business-infinity")
 
-    # Select C-suite agents and run a strategic review
+@app.workflow("strategic-review")
+async def strategic_review(request: WorkflowRequest):
+    agents = await request.client.list_agents()
     c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
-    result = await client.run_orchestration(
+    return await request.client.run_orchestration(
         agent_ids=c_suite,
-        task={"type": "strategic_review", "data": {"quarter": "Q1-2026"}},
+        task={"type": "strategic_review", "data": request.body},
     )
-    print(result.summary)
 ```
+
+```python
+# function_app.py — the SDK handles all Azure Functions scaffolding
+from business_infinity.workflows import app
+functions = app.get_functions()
+```
+
+The SDK generates HTTP triggers, Service Bus triggers, health endpoints, authentication middleware, and deployment configuration automatically.
 
 ## Repository Structure
 
@@ -84,7 +93,7 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
 
 | Repository | Description | Package |
 |-----------|-------------|---------|
-| [aos-client-sdk](https://github.com/ASISaga/aos-client-sdk) | Lightweight SDK for client apps to interact with AOS | `pip install aos-client-sdk` |
+| [aos-client-sdk](https://github.com/ASISaga/aos-client-sdk) | App framework & SDK — Azure Functions scaffolding, Service Bus, auth, registration, deployment | `pip install aos-client-sdk[azure]` |
 | [business-infinity](https://github.com/ASISaga/business-infinity) | Example client app — C-suite orchestrations via AOS | Azure Functions |
 
 ## Dependency Graph
@@ -105,10 +114,11 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
           aos-function-app  aos-realm-of-agents  aos-mcp-servers
                     ▲
                     │
-              aos-client-sdk ◄──────── lightweight HTTP SDK
+              aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
                     ▲
                     │
             business-infinity ◄──────── lean client app (business logic only)
+                                         function_app.py = 7 lines
 
           aos-deployment (standalone — no AOS runtime deps)
 ```
@@ -118,19 +128,29 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
 ### For Client Application Developers
 
 ```bash
-# Install the client SDK — no agent or infrastructure dependencies
-pip install aos-client-sdk
+# Install the client SDK with Azure Functions + Service Bus + Auth
+pip install aos-client-sdk[azure]
 ```
 
 ```python
-from aos_client import AOSClient
+# workflows.py — define business logic with decorators
+from aos_client import AOSApp, WorkflowRequest
 
-async with AOSClient(endpoint="https://my-aos.azurewebsites.net") as client:
-    agents = await client.list_agents()
-    result = await client.run_orchestration(
-        agent_ids=["ceo", "cfo", "cmo"],
-        task={"type": "quarterly_review", "data": {"quarter": "Q1-2026"}},
+app = AOSApp(name="my-app")
+
+@app.workflow("quarterly-review")
+async def quarterly_review(request: WorkflowRequest):
+    agents = await request.client.list_agents()
+    return await request.client.run_orchestration(
+        agent_ids=[a.agent_id for a in agents],
+        task={"type": "quarterly_review", "data": request.body},
     )
+```
+
+```python
+# function_app.py — zero boilerplate
+from my_app.workflows import app
+functions = app.get_functions()
 ```
 
 ### For AOS Platform Developers
