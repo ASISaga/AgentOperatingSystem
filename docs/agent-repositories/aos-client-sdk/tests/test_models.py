@@ -118,6 +118,7 @@ class TestOrchestrationStatus:
         assert OrchestrationStatusEnum.CANCELLED == "cancelled"
 
     def test_no_completed_state(self):
-        """Perpetual orchestrations do not have a COMPLETED state."""
+        """Perpetual orchestrations do not have COMPLETED or RUNNING states."""
         values = [e.value for e in OrchestrationStatusEnum]
         assert "completed" not in values
+        assert "running" not in values

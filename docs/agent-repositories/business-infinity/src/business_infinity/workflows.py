@@ -144,7 +144,7 @@ async def budget_approval(request: WorkflowRequest) -> Dict[str, Any]:
         purpose_scope="Financial governance, budget oversight, and resource allocation",
         context={
             "department": request.body.get("department", ""),
-            "amount": float(request.body.get("amount", 0)),
+            "amount": request.body.get("amount", 0),
             "justification": request.body.get("justification", ""),
         },
         workflow="sequential",
