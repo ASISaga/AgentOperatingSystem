@@ -34,7 +34,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol
 
 from purpose_driven_agent.context_server import ContextMCPServer
 from purpose_driven_agent.ml_interface import IMLService, NoOpMLService
-from purpose_driven_agent.mcp_routing import MCPToolDefinition, MCPTransportType
+from aos_mcp_servers.routing import MCPToolDefinition, MCPTransportType
 
 # ---------------------------------------------------------------------------
 # Optional agent_framework integration
@@ -66,10 +66,11 @@ class MCPServerProtocol(Protocol):
     satisfies this protocol and can be registered via
     :meth:`PurposeDrivenAgent.register_mcp_server`.
 
-    The three concrete transport classes — :class:`~purpose_driven_agent.mcp_routing.MCPStdioTool`,
-    :class:`~purpose_driven_agent.mcp_routing.MCPStreamableHTTPTool`, and
-    :class:`~purpose_driven_agent.mcp_routing.MCPWebsocketTool` — all satisfy
-    this protocol.
+    The three concrete transport classes — :class:`~aos_mcp_servers.routing.MCPStdioTool`,
+    :class:`~aos_mcp_servers.routing.MCPStreamableHTTPTool`, and
+    :class:`~aos_mcp_servers.routing.MCPWebsocketTool` — all satisfy
+    this protocol.  They are defined centrally in the ``aos-mcp-servers``
+    repository and consumed here.
     """
 
     async def list_tools(self) -> List[MCPToolDefinition]:
