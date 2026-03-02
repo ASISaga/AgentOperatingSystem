@@ -20,10 +20,9 @@ from purpose_driven_agent.context_server import ContextMCPServer
 from aos_mcp_servers.routing import (
     MCPStdioTool,
     MCPStreamableHTTPTool,
-    MCPToolDefinition,
-    MCPTransportType,
     MCPWebsocketTool,
 )
+from aos_client.mcp import MCPToolDefinition, MCPTransportType
 
 
 # ---------------------------------------------------------------------------

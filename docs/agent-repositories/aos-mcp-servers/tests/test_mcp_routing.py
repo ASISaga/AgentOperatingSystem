@@ -1,9 +1,10 @@
 """
-Tests for the centralized MCP routing module (aos_mcp_servers.routing).
+Tests for the MCP transport connection classes in aos_mcp_servers.routing.
 
-These tests cover the three transport types, MCPTransportType enum, and
-MCPToolDefinition dataclass that are defined centrally in aos-mcp-servers and
-consumed by all agent packages.
+MCPTransportType and MCPToolDefinition are defined in the SDK (aos_client.mcp)
+and imported here via aos_mcp_servers.routing.  The transport connection
+classes (MCPStdioTool, MCPStreamableHTTPTool, MCPWebsocketTool) are defined
+in aos_mcp_servers.routing and tested here.
 """
 
 import pytest
@@ -11,9 +12,11 @@ import pytest
 from aos_mcp_servers.routing import (
     MCPStdioTool,
     MCPStreamableHTTPTool,
+    MCPWebsocketTool,
+)
+from aos_client.mcp import (
     MCPToolDefinition,
     MCPTransportType,
-    MCPWebsocketTool,
 )
 
 

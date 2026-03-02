@@ -11,6 +11,7 @@ license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
 
 dependencies = [
+    "aos-client-sdk>=4.0.0",
     "aos-kernel[azure]>=3.0.0",
     "azure-functions>=1.21.0",
 ]

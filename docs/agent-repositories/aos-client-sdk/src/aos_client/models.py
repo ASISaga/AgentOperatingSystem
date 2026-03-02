@@ -14,6 +14,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from aos_client.mcp import MCPServerConfig
+
 
 class AgentDescriptor(BaseModel):
     """Describes an agent available in the RealmOfAgents catalog."""
@@ -51,6 +53,38 @@ class OrchestrationRequest(BaseModel):
     Orchestrations are perpetual: they run until explicitly stopped.
     The ``purpose`` drives agent alignment; ``context`` supplies initial
     data that informs the agents' work.
+
+    The optional ``mcp_servers`` field lets client applications declare which
+    MCP servers each participating agent should connect to.  Keys are agent
+    IDs; values are lists of :class:`~aos_client.mcp.MCPServerConfig` objects.
+    AOS resolves the configs and passes them to each agent at orchestration
+    start so agents can register the appropriate MCP servers without any
+    client-side transport implementation.
+
+    Example::
+
+        from aos_client import MCPServerConfig, MCPTransportType, OrchestrationRequest
+
+        request = OrchestrationRequest(
+            agent_ids=["ceo", "cmo"],
+            purpose=OrchestrationPurpose(purpose="Drive strategic growth"),
+            mcp_servers={
+                "ceo": [
+                    MCPServerConfig(
+                        server_name="erp",
+                        transport_type=MCPTransportType.STREAMABLE_HTTP,
+                        url="https://erp.example.com/mcp",
+                    )
+                ],
+                "cmo": [
+                    MCPServerConfig(
+                        server_name="crm",
+                        transport_type=MCPTransportType.WEBSOCKET,
+                        url="wss://crm.example.com/mcp",
+                    )
+                ],
+            },
+        )
     """
 
     orchestration_id: Optional[str] = Field(None, description="Client-supplied ID (auto-generated if omitted)")
@@ -60,6 +94,12 @@ class OrchestrationRequest(BaseModel):
     context: Dict[str, Any] = Field(default_factory=dict, description="Initial context data for the orchestration")
     config: Dict[str, Any] = Field(default_factory=dict, description="Orchestration-level configuration")
     callback_url: Optional[str] = Field(None, description="Webhook URL for status notifications")
+    mcp_servers: Dict[str, List[MCPServerConfig]] = Field(
+        default_factory=dict,
+        description="MCP servers to configure per agent (agent_id → list of MCPServerConfig). "
+                    "Clients use this to select which MCP servers each agent should connect to "
+                    "when the orchestration starts.",
+    )
 
 
 class OrchestrationStatusEnum(str, Enum):
