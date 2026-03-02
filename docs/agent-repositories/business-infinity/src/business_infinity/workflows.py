@@ -22,6 +22,9 @@ from aos_client import (
     AOSApp,
     AOSClient,
     AgentDescriptor,
+    MCPServerConfig,
+    OrchestrationPurpose,
+    OrchestrationRequest,
     WorkflowRequest,
     workflow_template,
 )
@@ -290,6 +293,79 @@ async def handle_strategic_review_update(update) -> None:
         getattr(update, "agent_id", "unknown"),
         getattr(update, "output", ""),
     )
+
+
+# ── MCP Server Selection in Orchestrations ───────────────────────────────────
+
+
+@app.workflow("mcp-orchestration")
+async def mcp_orchestration(request: WorkflowRequest) -> Dict[str, Any]:
+    """Start a purpose-driven orchestration with per-agent MCP server selection.
+
+    Clients declare which pre-registered MCP servers each agent should use by
+    providing :class:`~aos_client.MCPServerConfig` objects with a server name
+    and optional client-managed secrets.  AOS looks up each server in its
+    internal registry, injects the secrets, and connects the agents.  Transport
+    details (URLs, protocols, gateway configuration) are managed by AOS and are
+    never part of this request.
+
+    Request body::
+
+        {
+            "purpose": "Drive strategic growth with real-time data",
+            "erp_api_key": "secret-erp-key",
+            "crm_token": "secret-crm-token"
+        }
+    """
+    agents = await select_c_suite_agents(request.client)
+    ceo_ids = [a.agent_id for a in agents if a.agent_id == "ceo"]
+    cmo_ids = [a.agent_id for a in agents if a.agent_id == "cmo"]
+    agent_ids = ceo_ids + cmo_ids
+    if not agent_ids:
+        raise ValueError("CEO and/or CMO agents not available in the catalog")
+
+    purpose_text = request.body.get(
+        "purpose", "Drive strategic growth with real-time ERP and CRM data"
+    )
+
+    # Declare per-agent MCP server selection.
+    # Only server names and client secrets are provided; AOS handles everything else.
+    mcp_servers: Dict[str, List[MCPServerConfig]] = {}
+    for aid in ceo_ids:
+        erp_secrets = {"api_key": request.body["erp_api_key"]} if request.body.get("erp_api_key") else {}
+        mcp_servers[aid] = [MCPServerConfig(server_name="erp", secrets=erp_secrets)]
+    for aid in cmo_ids:
+        crm_secrets = {"token": request.body["crm_token"]} if request.body.get("crm_token") else {}
+        mcp_servers[aid] = [
+            MCPServerConfig(server_name="crm", secrets=crm_secrets),
+            MCPServerConfig(server_name="analytics"),
+        ]
+
+    req = OrchestrationRequest(
+        agent_ids=agent_ids,
+        purpose=OrchestrationPurpose(
+            purpose=purpose_text,
+            purpose_scope="C-suite strategic operations with live tool access",
+        ),
+        context=request.body,
+        mcp_servers=mcp_servers,
+    )
+    status = await request.client.submit_orchestration(req)
+    configured_servers = {
+        aid: [s.server_name for s in cfgs]
+        for aid, cfgs in mcp_servers.items()
+    }
+    logger.info(
+        "MCP orchestration started: %s | agents=%s | mcp_servers=%s",
+        status.orchestration_id,
+        agent_ids,
+        list(mcp_servers.keys()),
+    )
+    return {
+        "orchestration_id": status.orchestration_id,
+        "status": status.status.value,
+        "mcp_servers_configured": configured_servers,
+    }
 
 
 # ── MCP Tool Integration (Enhancement #7) ───────────────────────────────────

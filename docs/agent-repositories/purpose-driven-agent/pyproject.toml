@@ -24,6 +24,7 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "agent-framework>=1.0.0rc1",
+    "aos-mcp-servers>=3.0.0",
     "pydantic>=2.12.0",
 ]
 
