@@ -34,6 +34,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol
 
 from purpose_driven_agent.context_server import ContextMCPServer
 from purpose_driven_agent.ml_interface import IMLService, NoOpMLService
+from purpose_driven_agent.mcp_routing import MCPToolDefinition, MCPTransportType
 
 # ---------------------------------------------------------------------------
 # Optional agent_framework integration
@@ -61,9 +62,27 @@ class MCPServerProtocol(Protocol):
     """
     Structural protocol for MCP servers registered with :class:`PurposeDrivenAgent`.
 
-    Any object that provides an async ``call_tool`` method satisfies this
-    protocol and can be registered via :meth:`PurposeDrivenAgent.register_mcp_server`.
+    Any object that provides ``call_tool`` and ``list_tools`` async methods
+    satisfies this protocol and can be registered via
+    :meth:`PurposeDrivenAgent.register_mcp_server`.
+
+    The three concrete transport classes — :class:`~purpose_driven_agent.mcp_routing.MCPStdioTool`,
+    :class:`~purpose_driven_agent.mcp_routing.MCPStreamableHTTPTool`, and
+    :class:`~purpose_driven_agent.mcp_routing.MCPWebsocketTool` — all satisfy
+    this protocol.
     """
+
+    async def list_tools(self) -> List[MCPToolDefinition]:
+        """
+        Return the :class:`MCPToolDefinition` objects available on this server.
+
+        Called by :meth:`~PurposeDrivenAgent.discover_mcp_tools` to build the
+        tool-name → server-name routing index.
+
+        Returns:
+            List of :class:`~purpose_driven_agent.mcp_routing.MCPToolDefinition` objects.
+        """
+        ...  # pragma: no cover
 
     async def call_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
         """Invoke *tool_name* with *params* and return the result."""
@@ -201,6 +220,11 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         # Dynamic MCP server registry: name -> {server, tags, enabled}
         # Only enabled servers contribute tools to the LLM context window.
         self.mcp_servers: Dict[str, Dict[str, Any]] = {}
+
+        # Tool-name → server-name index built by discover_mcp_tools().
+        # Enables tool-name-based routing: the agent routes to the correct
+        # server without the caller needing to know the server's location.
+        self._tool_index: Dict[str, str] = {}
 
         # ---- Purpose attributes --------------------------------------------
         self.purpose: str = purpose
@@ -883,6 +907,87 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             )
         return activated
 
+    async def discover_mcp_tools(self) -> Dict[str, str]:
+        """
+        Discover tools across all enabled MCP servers and rebuild the tool index.
+
+        Calls ``list_tools()`` on every **enabled** server (mirroring
+        ``ListToolsAsync()`` in the Microsoft Agent Framework) and constructs
+        an internal ``tool_name → server_name`` lookup dictionary.
+
+        After this call, :meth:`invoke_tool` can route any discovered tool to
+        the correct server automatically, without the caller needing to know
+        the server's physical location.
+
+        When two enabled servers expose a tool with the same name, the **last
+        server iterated** wins.  A warning is logged so operators can detect
+        and resolve the collision by renaming the tool or disabling the
+        unwanted server.
+
+        Returns:
+            A copy of the rebuilt ``tool_name → server_name`` index.
+        """
+        self._tool_index = {}
+        for name, entry in self.mcp_servers.items():
+            if not entry["enabled"]:
+                continue
+            try:
+                tools: List[MCPToolDefinition] = await entry["server"].list_tools()
+                for tool in tools:
+                    if tool.name in self._tool_index:
+                        self.logger.warning(
+                            "Tool '%s' already registered by server '%s'; "
+                            "server '%s' will override it in the index",
+                            tool.name,
+                            self._tool_index[tool.name],
+                            name,
+                        )
+                    self._tool_index[tool.name] = name
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                self.logger.error(
+                    "Failed to list tools from MCP server '%s': %s", name, exc
+                )
+
+        self.logger.info(
+            "Discovered %d tools across %d active MCP servers",
+            len(self._tool_index),
+            sum(1 for e in self.mcp_servers.values() if e["enabled"]),
+        )
+        return dict(self._tool_index)
+
+    async def invoke_tool(
+        self, tool_name: str, params: Dict[str, Any]
+    ) -> Any:
+        """
+        Invoke a tool by name, routing to the correct MCP server automatically.
+
+        Uses the tool index built by :meth:`discover_mcp_tools` to determine
+        which server exposes *tool_name*, then delegates to
+        :meth:`route_mcp_request`.  The caller does not need to know the
+        server's transport type or physical location.
+
+        Args:
+            tool_name: Name of the tool to invoke.
+            params: Tool input parameters.
+
+        Returns:
+            Result from the server's ``call_tool`` implementation.
+
+        Raises:
+            KeyError: If *tool_name* is not in the tool index.  Call
+                :meth:`discover_mcp_tools` first to populate the index.
+        """
+        server_name = self._tool_index.get(tool_name)
+        if server_name is None:
+            raise KeyError(
+                f"Tool '{tool_name}' not found in tool index. "
+                "Call discover_mcp_tools() to populate the index."
+            )
+        self.logger.debug(
+            "invoke_tool: routing '%s' → server '%s'", tool_name, server_name
+        )
+        return await self.route_mcp_request(server_name, tool_name, params)
+
     async def make_purpose_driven_decision(
         self, decision_context: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -1045,6 +1150,7 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             "active_mcp_servers": [
                 name for name, entry in self.mcp_servers.items() if entry["enabled"]
             ],
+            "discovered_tools": list(self._tool_index.keys()),
         }
 
     async def health_check(self) -> Dict[str, Any]:
