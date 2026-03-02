@@ -58,6 +58,12 @@ param appNames array = [
 var suffix = '${projectName}-${environment}'
 var uniqueSuffix = uniqueString(resourceGroup().id, projectName, environment)
 
+// Core AOS orchestration hub — its URL is injected into every module's env vars for peer discovery.
+// The hostname follows the same naming formula used in functionapp.bicep:
+//   func-{appName}-{environment}-{take(uniqueSuffix,6)}.azurewebsites.net
+var coreAppName = 'aos-function-app'
+var coreAppUrl = 'https://func-${coreAppName}-${environment}-${take(uniqueSuffix, 6)}.azurewebsites.net'
+
 // ====================================================================
 // Modules
 // ====================================================================
@@ -120,6 +126,8 @@ module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
     serviceBusId: serviceBus.outputs.namespaceId
     keyVaultName: keyVault.outputs.keyVaultName
     keyVaultId: keyVault.outputs.keyVaultId
+    tableServiceUri: storage.outputs.tableServiceUri
+    coreAppUrl: coreAppUrl
     githubOrg: githubOrg
     githubEnvironment: environment
   }

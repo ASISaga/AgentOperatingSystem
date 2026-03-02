@@ -42,6 +42,12 @@ param keyVaultName string
 @description('Key Vault resource ID')
 param keyVaultId string
 
+@description('Table service URI for the shared storage account (for AOSStateStore connection)')
+param tableServiceUri string
+
+@description('URL of the core AOS Function App (aos-function-app) injected into all modules for peer discovery.')
+param coreAppUrl string
+
 @description('GitHub organization or user name that owns the AOS repositories (e.g. ASISaga)')
 param githubOrg string
 
@@ -62,6 +68,7 @@ var deploymentContainerName = 'deploy-${appName}'
 // RBAC role definition IDs
 var storageBlobDataOwnerRole = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
 var storageBlobDataContributorRole = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+var storageTableDataContributorRole = '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
 var websiteContributorRole = 'de139f84-1756-47ae-9be6-808fbbe84772'
 var keyVaultSecretsUserRole = '4633458b-17de-408a-b874-0445c86b69e6'
 var serviceBusDataSenderRole = '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'
@@ -195,9 +202,16 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'ServiceBusConnection__fullyQualifiedNamespace', value: '${serviceBusNamespace}.servicebus.windows.net' }
         { name: 'ServiceBusConnection__credential', value: 'managedidentity' }
         { name: 'ServiceBusConnection__clientId', value: userAssignedIdentity.properties.clientId }
+        // AOSStateStore — identity-based Table Storage connection for cross-module shared state
+        { name: 'AosStateStore__accountName', value: storageAccountName }
+        { name: 'AosStateStore__tableServiceUri', value: tableServiceUri }
+        { name: 'AosStateStore__credential', value: 'managedidentity' }
+        { name: 'AosStateStore__clientId', value: userAssignedIdentity.properties.clientId }
         { name: 'KEY_VAULT_URI', value: 'https://${keyVaultName}.vault.azure.net/' }
         { name: 'ENVIRONMENT', value: environment }
         { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.properties.clientId }
+        // Peer discovery — URL of the core AOS orchestration hub
+        { name: 'AOS_FUNCTION_APP_URL', value: coreAppUrl }
       ]
     }
   }
@@ -210,6 +224,17 @@ resource storageBlobOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-0
   scope: existingStorageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwnerRole)
+    principalId: userAssignedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC — Storage Table Data Contributor on the storage account (AOSStateStore cross-module shared state)
+resource storageTableContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccountId, userAssignedIdentity.id, storageTableDataContributorRole)
+  scope: existingStorageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRole)
     principalId: userAssignedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
