@@ -34,6 +34,10 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
       name: 'PerGB2018'
     }
     retentionInDays: retentionDays
+    // Daily ingestion cap prevents heartbeat logs from bloating the bill during idle periods
+    workspaceCapping: {
+      dailyQuotaGb: environment == 'prod' ? 5 : 1
+    }
   }
 }
 
