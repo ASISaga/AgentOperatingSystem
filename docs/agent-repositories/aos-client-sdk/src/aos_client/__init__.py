@@ -17,9 +17,9 @@ Enterprise capabilities (v4.0.0):
 - **Audit Trail / Decision Ledger** — immutable decision logging
 - **Covenant Management** — governance and compliance
 - **Analytics & Metrics** — KPI tracking and dashboards
-- **MCP Server Integration** — Model Context Protocol tool invocation
-- **MCP Registry** — ``MCPServerConfig`` and ``MCPTransportType`` for selecting
-  MCP servers per agent in :class:`OrchestrationRequest`
+- **MCP Server Selection** — ``MCPServerConfig`` for selecting pre-registered MCP
+  servers per agent in :class:`OrchestrationRequest`; transport details are
+  managed internally by AOS
 - **Reliability Patterns** — circuit breaker, retry, idempotency
 - **Observability** — structured logging, correlation, health checks
 - **Agent Interaction** — direct 1:1 agent messaging
@@ -31,7 +31,7 @@ Enterprise capabilities (v4.0.0):
 __version__ = "4.0.0"
 
 from aos_client.client import AOSClient
-from aos_client.mcp import MCPServerConfig, MCPToolDefinition, MCPTransportType
+from aos_client.mcp import MCPServerConfig
 from aos_client.models import (
     AgentDescriptor,
     AgentResponse,
@@ -89,9 +89,7 @@ __all__ = [
     "OrchestrationStatusEnum",
     "OrchestrationUpdate",
     "TokenClaims",
-    # MCP registry (for client-side MCP server selection in orchestrations)
-    "MCPTransportType",
-    "MCPToolDefinition",
+    # MCP server selection (per-agent server names and client secrets only)
     "MCPServerConfig",
     # Knowledge Base
     "Document",

@@ -1,21 +1,20 @@
 """
 aos_mcp_servers — Public API.
 
-MCP transport connection classes for the Agent Operating System.
+MCP transport infrastructure for the Agent Operating System.
 
-The MCP contract types (``MCPTransportType``, ``MCPToolDefinition``,
-``MCPServerConfig``) are defined in :mod:`aos_client.mcp` and available
-through the AOS Client SDK.  This package exposes the runtime transport
-connection classes that implement those contracts:
+All types in this package are **internal** to AOS.  Client applications
+interact only with pre-registered server names and secrets through
+:class:`~aos_client.mcp.MCPServerConfig` in the AOS Client SDK.
 
 Exports (transport implementations):
     MCPStdioTool: Local subprocess MCP transport (stdin/stdout).
     MCPStreamableHTTPTool: Remote HTTP+SSE MCP transport with optional AI Gateway.
     MCPWebsocketTool: Persistent WebSocket MCP transport.
 
-Re-exports (contract types from aos-client-sdk):
-    MCPTransportType: Enum of supported MCP connection transports.
-    MCPToolDefinition: Pydantic model for tool metadata.
+Exports (internal contract types):
+    MCPTransportType: Enum of supported MCP connection transports (internal to AOS).
+    MCPToolDefinition: Tool metadata dataclass returned by MCP servers (internal to AOS).
 """
 
 from aos_mcp_servers.routing import (
@@ -31,7 +30,7 @@ __all__ = [
     "MCPStdioTool",
     "MCPStreamableHTTPTool",
     "MCPWebsocketTool",
-    # Contract types (from aos-client-sdk, re-exported for convenience)
+    # Internal contract types
     "MCPTransportType",
     "MCPToolDefinition",
 ]

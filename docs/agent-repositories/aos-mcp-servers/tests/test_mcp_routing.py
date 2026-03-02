@@ -1,10 +1,10 @@
 """
-Tests for the MCP transport connection classes in aos_mcp_servers.routing.
+Tests for the MCP transport infrastructure in aos_mcp_servers.routing.
 
-MCPTransportType and MCPToolDefinition are defined in the SDK (aos_client.mcp)
-and imported here via aos_mcp_servers.routing.  The transport connection
-classes (MCPStdioTool, MCPStreamableHTTPTool, MCPWebsocketTool) are defined
-in aos_mcp_servers.routing and tested here.
+MCPTransportType, MCPToolDefinition, and the transport connection classes
+(MCPStdioTool, MCPStreamableHTTPTool, MCPWebsocketTool) are all defined
+in aos_mcp_servers.routing.  These are internal AOS types and are NOT
+exposed through the AOS Client SDK.
 """
 
 import pytest
@@ -12,11 +12,9 @@ import pytest
 from aos_mcp_servers.routing import (
     MCPStdioTool,
     MCPStreamableHTTPTool,
-    MCPWebsocketTool,
-)
-from aos_client.mcp import (
     MCPToolDefinition,
     MCPTransportType,
+    MCPWebsocketTool,
 )
 
 

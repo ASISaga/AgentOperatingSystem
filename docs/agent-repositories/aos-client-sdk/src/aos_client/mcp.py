@@ -1,20 +1,25 @@
 """
-MCP (Model Context Protocol) contract types for the AOS Client SDK.
+MCP (Model Context Protocol) client-facing types for the AOS Client SDK.
 
-This module defines the **client-facing** MCP types that are shared across
-the Agent Operating System:
+This module defines the **only** MCP concept exposed to client applications.
+All MCP transport implementation details (transport types, URLs, gateway
+configuration, subprocess commands, etc.) are **internal** to the Agent
+Operating System and are never surfaced here.
 
-* :class:`MCPTransportType` — the three supported transport protocols.
-* :class:`MCPToolDefinition` — metadata for a single tool exposed by an MCP
-  server, serialisable via Pydantic.
-* :class:`MCPServerConfig` — Pydantic configuration model used in
-  :class:`~aos_client.models.OrchestrationRequest` so that client
-  applications can select which MCP servers each agent should connect to
-  when an orchestration is started.
+:class:`MCPServerConfig` lets a client application declare two things per
+registered MCP server:
+
+1. **Which pre-registered server** to connect an agent to (``server_name``).
+2. **Client-managed secrets** for that server (``secrets``), such as API keys
+   or access tokens that AOS should inject at runtime.
+
+MCP servers are registered and configured in AOS (``aos-mcp-servers``).
+The client does not know — and must not need to know — how they are
+connected.
 
 Usage (client side — e.g. *business-infinity*)::
 
-    from aos_client import MCPServerConfig, MCPTransportType, OrchestrationRequest
+    from aos_client import MCPServerConfig, OrchestrationRequest
 
     request = OrchestrationRequest(
         agent_ids=["ceo", "cmo"],
@@ -23,22 +28,12 @@ Usage (client side — e.g. *business-infinity*)::
             "ceo": [
                 MCPServerConfig(
                     server_name="erp",
-                    transport_type=MCPTransportType.STREAMABLE_HTTP,
-                    url="https://erp.example.com/mcp",
-                    gateway_url="https://my-foundry-gateway.azure.com",
+                    secrets={"api_key": "secret-erp-key"},
                 ),
             ],
             "cmo": [
-                MCPServerConfig(
-                    server_name="crm",
-                    transport_type=MCPTransportType.WEBSOCKET,
-                    url="wss://crm.example.com/mcp",
-                ),
-                MCPServerConfig(
-                    server_name="analytics",
-                    transport_type=MCPTransportType.STREAMABLE_HTTP,
-                    url="https://analytics.example.com/mcp",
-                ),
+                MCPServerConfig(server_name="crm"),
+                MCPServerConfig(server_name="analytics"),
             ],
         },
     )
@@ -46,59 +41,9 @@ Usage (client side — e.g. *business-infinity*)::
 
 from __future__ import annotations
 
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Dict
 
 from pydantic import BaseModel, Field
-
-
-# ---------------------------------------------------------------------------
-# MCPTransportType
-# ---------------------------------------------------------------------------
-
-
-class MCPTransportType(str, Enum):
-    """
-    Supported MCP connection transports.
-
-    Values align with the Microsoft Agent Framework's three primary transports.
-    """
-
-    STDIO = "stdio"
-    """Local process using standard input/output (e.g. a Python script)."""
-
-    STREAMABLE_HTTP = "streamable_http"
-    """Remote server over HTTP with Server-Sent Events (SSE)."""
-
-    WEBSOCKET = "websocket"
-    """Persistent WebSocket connection."""
-
-
-# ---------------------------------------------------------------------------
-# MCPToolDefinition
-# ---------------------------------------------------------------------------
-
-
-class MCPToolDefinition(BaseModel):
-    """
-    Metadata for a single tool discovered from an MCP server.
-
-    Pydantic model counterpart of the dataclass used by transport
-    implementations.  Used for serialisable tool listings returned by the
-    :meth:`~aos_client.AOSClient.list_mcp_tools` SDK method and in
-    orchestration responses.
-
-    Attributes:
-        name: Unique tool name used as the routing key.
-        description: Human-readable description of what the tool does.
-        input_schema: JSON-schema dict describing the tool's input parameters.
-    """
-
-    name: str = Field(..., description="Unique tool name (routing key)")
-    description: str = Field(default="", description="Human-readable tool description")
-    input_schema: Dict[str, Any] = Field(
-        default_factory=dict, description="JSON-schema for tool input parameters"
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -108,67 +53,32 @@ class MCPToolDefinition(BaseModel):
 
 class MCPServerConfig(BaseModel):
     """
-    MCP server configuration for inclusion in an
+    Per-agent MCP server selection for use in
     :class:`~aos_client.models.OrchestrationRequest`.
 
-    Client applications (e.g. *business-infinity*) create
-    :class:`MCPServerConfig` instances to declare which MCP servers each
-    participating agent should connect to when the orchestration starts.
-    AOS resolves these configs and passes them to each agent at runtime.
+    Client applications declare which pre-registered MCP servers each
+    participating agent should use.  AOS looks up the server in its internal
+    registry, applies the client-supplied secrets, and connects the agent at
+    orchestration start.
+
+    Transport details (protocol, URLs, gateway configuration, etc.) are
+    managed entirely by AOS and are **not** part of this model.
 
     Attributes:
-        server_name: Logical name identifying this MCP server (used as the
-            server registry key within the agent).
-        transport_type: One of :class:`MCPTransportType`
-            (``"stdio"``, ``"streamable_http"``, or ``"websocket"``).
-        url: Server URL.  Required for ``streamable_http`` and ``websocket``
-            transports; unused for ``stdio``.
-        gateway_url: Optional AI Gateway URL for ``streamable_http``
-            transport.  When set, requests are routed through the gateway for
-            centralised authentication, rate limiting, and audit logging.
-        headers: Additional HTTP headers for ``streamable_http`` requests
-            (e.g. ``{"Authorization": "Bearer ..."}``.
-        command: Executable path for ``stdio`` transport.
-        args: Command-line arguments for the ``stdio`` executable.
-        env: Environment variables injected into the ``stdio`` subprocess.
-        tags: Capability tags used for dynamic server selection within the
-            agent (e.g. ``["files", "search"]``).
-        enabled: Whether the server starts in an enabled state inside the
-            agent.  Defaults to ``False`` so newly registered servers do not
-            immediately expand the LLM context window.
+        server_name: Name of a pre-registered MCP server in the AOS registry.
+            AOS will look this up and configure the agent's connection.
+        secrets: Client-managed secrets to inject for this server at runtime
+            (e.g. ``{"api_key": "...", "api_secret": "..."``}).  These are
+            merged with any AOS-managed credentials before the connection is
+            established.  Treat values as sensitive — do not log them.
     """
 
-    server_name: str = Field(..., description="Logical name for this MCP server")
-    transport_type: MCPTransportType = Field(
-        ..., description="Transport protocol used to connect to the MCP server"
+    server_name: str = Field(
+        ...,
+        description="Name of a pre-registered MCP server in the AOS registry",
     )
-    url: Optional[str] = Field(
-        None,
-        description="Server URL (required for streamable_http and websocket transports)",
-    )
-    gateway_url: Optional[str] = Field(
-        None,
-        description="AI Gateway URL for governed routing (streamable_http only)",
-    )
-    headers: Dict[str, str] = Field(
+    secrets: Dict[str, str] = Field(
         default_factory=dict,
-        description="HTTP headers for streamable_http requests",
-    )
-    command: Optional[str] = Field(
-        None, description="Executable path for stdio transport"
-    )
-    args: List[str] = Field(
-        default_factory=list, description="Command-line arguments for stdio transport"
-    )
-    env: Dict[str, str] = Field(
-        default_factory=dict,
-        description="Environment variables for the stdio subprocess",
-    )
-    tags: List[str] = Field(
-        default_factory=list,
-        description="Capability tags for dynamic server selection within the agent",
-    )
-    enabled: bool = Field(
-        default=False,
-        description="Whether the server starts enabled inside the agent",
+        description="Client-managed secrets for this server (e.g. API keys). "
+                    "Merged with AOS-managed credentials at runtime.",
     )

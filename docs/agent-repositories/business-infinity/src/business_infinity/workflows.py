@@ -23,7 +23,6 @@ from aos_client import (
     AOSClient,
     AgentDescriptor,
     MCPServerConfig,
-    MCPTransportType,
     OrchestrationPurpose,
     OrchestrationRequest,
     WorkflowRequest,
@@ -303,17 +302,19 @@ async def handle_strategic_review_update(update) -> None:
 async def mcp_orchestration(request: WorkflowRequest) -> Dict[str, Any]:
     """Start a purpose-driven orchestration with per-agent MCP server selection.
 
-    Demonstrates using :class:`~aos_client.MCPServerConfig` from the SDK to
-    declare which MCP servers each agent should connect to.  AOS resolves the
-    configs and passes them to each agent at orchestration start.
+    Clients declare which pre-registered MCP servers each agent should use by
+    providing :class:`~aos_client.MCPServerConfig` objects with a server name
+    and optional client-managed secrets.  AOS looks up each server in its
+    internal registry, injects the secrets, and connects the agents.  Transport
+    details (URLs, protocols, gateway configuration) are managed by AOS and are
+    never part of this request.
 
     Request body::
 
         {
             "purpose": "Drive strategic growth with real-time data",
-            "erp_url": "https://erp.example.com/mcp",
-            "crm_url": "wss://crm.example.com/mcp",
-            "gateway_url": "https://my-foundry-gateway.azure.com"
+            "erp_api_key": "secret-erp-key",
+            "crm_token": "secret-crm-token"
         }
     """
     agents = await select_c_suite_agents(request.client)
@@ -323,33 +324,21 @@ async def mcp_orchestration(request: WorkflowRequest) -> Dict[str, Any]:
     if not agent_ids:
         raise ValueError("CEO and/or CMO agents not available in the catalog")
 
-    erp_url = request.body.get("erp_url", "https://erp.example.com/mcp")
-    crm_url = request.body.get("crm_url", "wss://crm.example.com/mcp")
-    gateway_url = request.body.get("gateway_url")
     purpose_text = request.body.get(
         "purpose", "Drive strategic growth with real-time ERP and CRM data"
     )
 
-    # Build per-agent MCP server configs using the SDK registry types.
+    # Declare per-agent MCP server selection.
+    # Only server names and client secrets are provided; AOS handles everything else.
     mcp_servers: Dict[str, List[MCPServerConfig]] = {}
     for aid in ceo_ids:
-        mcp_servers[aid] = [
-            MCPServerConfig(
-                server_name="erp",
-                transport_type=MCPTransportType.STREAMABLE_HTTP,
-                url=erp_url,
-                gateway_url=gateway_url,
-                tags=["erp", "finance"],
-            )
-        ]
+        erp_secrets = {"api_key": request.body["erp_api_key"]} if request.body.get("erp_api_key") else {}
+        mcp_servers[aid] = [MCPServerConfig(server_name="erp", secrets=erp_secrets)]
     for aid in cmo_ids:
+        crm_secrets = {"token": request.body["crm_token"]} if request.body.get("crm_token") else {}
         mcp_servers[aid] = [
-            MCPServerConfig(
-                server_name="crm",
-                transport_type=MCPTransportType.WEBSOCKET,
-                url=crm_url,
-                tags=["crm", "marketing"],
-            )
+            MCPServerConfig(server_name="crm", secrets=crm_secrets),
+            MCPServerConfig(server_name="analytics"),
         ]
 
     req = OrchestrationRequest(

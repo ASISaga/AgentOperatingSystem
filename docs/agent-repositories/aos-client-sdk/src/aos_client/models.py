@@ -55,15 +55,17 @@ class OrchestrationRequest(BaseModel):
     data that informs the agents' work.
 
     The optional ``mcp_servers`` field lets client applications declare which
-    MCP servers each participating agent should connect to.  Keys are agent
-    IDs; values are lists of :class:`~aos_client.mcp.MCPServerConfig` objects.
-    AOS resolves the configs and passes them to each agent at orchestration
-    start so agents can register the appropriate MCP servers without any
-    client-side transport implementation.
+    pre-registered MCP servers each participating agent should use.  Keys are
+    agent IDs; values are lists of :class:`~aos_client.mcp.MCPServerConfig`
+    objects.  Each config identifies a server by name and optionally provides
+    client-managed secrets.  AOS looks up the server in its internal registry,
+    injects the secrets, and connects the agent at orchestration start.
+    Transport details (URLs, protocols, gateway configuration) are managed
+    entirely by AOS and are never part of the client request.
 
     Example::
 
-        from aos_client import MCPServerConfig, MCPTransportType, OrchestrationRequest
+        from aos_client import MCPServerConfig, OrchestrationRequest
 
         request = OrchestrationRequest(
             agent_ids=["ceo", "cmo"],
@@ -72,16 +74,12 @@ class OrchestrationRequest(BaseModel):
                 "ceo": [
                     MCPServerConfig(
                         server_name="erp",
-                        transport_type=MCPTransportType.STREAMABLE_HTTP,
-                        url="https://erp.example.com/mcp",
+                        secrets={"api_key": "secret-erp-key"},
                     )
                 ],
                 "cmo": [
-                    MCPServerConfig(
-                        server_name="crm",
-                        transport_type=MCPTransportType.WEBSOCKET,
-                        url="wss://crm.example.com/mcp",
-                    )
+                    MCPServerConfig(server_name="crm"),
+                    MCPServerConfig(server_name="analytics"),
                 ],
             },
         )
@@ -96,9 +94,9 @@ class OrchestrationRequest(BaseModel):
     callback_url: Optional[str] = Field(None, description="Webhook URL for status notifications")
     mcp_servers: Dict[str, List[MCPServerConfig]] = Field(
         default_factory=dict,
-        description="MCP servers to configure per agent (agent_id → list of MCPServerConfig). "
-                    "Clients use this to select which MCP servers each agent should connect to "
-                    "when the orchestration starts.",
+        description="Per-agent MCP server selection (agent_id → list of MCPServerConfig). "
+                    "Each MCPServerConfig names a pre-registered AOS MCP server and optionally "
+                    "provides client-managed secrets. Transport details are internal to AOS.",
     )
 
 

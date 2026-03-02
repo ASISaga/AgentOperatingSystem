@@ -2,32 +2,31 @@
 MCP transport connection classes for the Agent Operating System.
 
 This module provides the runtime transport implementations that connect to MCP
-servers over the three supported protocols.  The contract types (enum values
-and tool metadata) are defined centrally in :mod:`aos_client.mcp` and imported
-here to avoid duplication.
+servers over the three supported protocols.  It also defines the internal
+contract types used by AOS infrastructure and agent packages:
 
-The module provides:
-
+* :class:`MCPTransportType` — the three supported transport protocols.
+* :class:`MCPToolDefinition` — metadata for a single tool discovered from an
+  MCP server.
 * :class:`MCPStdioTool` — local subprocess transport (stdin/stdout).
 * :class:`MCPStreamableHTTPTool` — remote HTTP transport with Server-Sent
   Events, with optional AI Gateway governance.
 * :class:`MCPWebsocketTool` — persistent WebSocket transport.
 
-The contract types re-exported from :mod:`aos_client.mcp`:
+These types are **internal** to the Agent Operating System.  Client
+applications use only :class:`~aos_client.mcp.MCPServerConfig` from the
+AOS Client SDK to declare which pre-registered MCP servers each agent should
+use.
 
-* :class:`~aos_client.mcp.MCPTransportType` — the three supported transport
-  protocols.
-* :class:`~aos_client.mcp.MCPToolDefinition` — metadata for a single tool
-  discovered from an MCP server.
-
-Usage (from any agent or infrastructure package)::
+Usage (AOS infrastructure and agent packages only)::
 
     from aos_mcp_servers.routing import (
         MCPStdioTool,
         MCPStreamableHTTPTool,
         MCPWebsocketTool,
+        MCPToolDefinition,
+        MCPTransportType,
     )
-    from aos_client.mcp import MCPToolDefinition, MCPTransportType
 
     # Local process server (e.g. a Python MCP script)
     stdio_server = MCPStdioTool(
@@ -53,12 +52,63 @@ Usage (from any agent or infrastructure package)::
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
-# Contract types are defined once in the SDK and imported here.
-from aos_client.mcp import MCPToolDefinition, MCPTransportType  # noqa: F401
-
 _logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# MCPTransportType
+# ---------------------------------------------------------------------------
+
+
+class MCPTransportType(str, Enum):
+    """
+    Supported MCP connection transports.
+
+    Values align with the Microsoft Agent Framework's three primary transports.
+
+    This type is **internal** to AOS.  It is never exposed to client
+    applications through the AOS Client SDK.
+    """
+
+    STDIO = "stdio"
+    """Local process using standard input/output (e.g. a Python script)."""
+
+    STREAMABLE_HTTP = "streamable_http"
+    """Remote server over HTTP with Server-Sent Events (SSE)."""
+
+    WEBSOCKET = "websocket"
+    """Persistent WebSocket connection."""
+
+
+# ---------------------------------------------------------------------------
+# MCPToolDefinition
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class MCPToolDefinition:
+    """
+    Metadata for a single tool discovered from an MCP server.
+
+    This mirrors the tool description returned by a server's ``ListTools``
+    call in the Microsoft Agent Framework.
+
+    This type is **internal** to AOS.  It is never exposed to client
+    applications through the AOS Client SDK.
+
+    Attributes:
+        name: Unique tool name used as the routing key.
+        description: Human-readable description of what the tool does.
+        input_schema: JSON-schema dict describing the tool's input parameters.
+    """
+
+    name: str
+    description: str = ""
+    input_schema: Dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
