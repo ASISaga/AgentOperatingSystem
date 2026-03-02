@@ -46,9 +46,21 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   }
 }
 
+resource tableService 'Microsoft.Storage/storageAccounts/tableServices@2023-05-01' = {
+  parent: storageAccount
+  name: 'default'
+}
+
+// Shared state store table — used by all AOS modules for cross-module state tracking
+resource aosStateStoreTable 'Microsoft.Storage/storageAccounts/tableServices/tables@2023-05-01' = {
+  parent: tableService
+  name: 'AOSStateStore'
+}
+
 // ====================================================================
 // Outputs
 // ====================================================================
 
 output storageAccountName string = storageAccount.name
 output storageAccountId string = storageAccount.id
+output tableServiceUri string = 'https://${storageAccount.name}.table.core.windows.net'

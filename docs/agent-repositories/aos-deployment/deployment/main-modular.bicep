@@ -34,6 +34,9 @@ param tags object = {
   managedBy: 'bicep'
 }
 
+@description('GitHub organization or user name that owns the AOS repositories (e.g. ASISaga). Used to construct the OIDC subject for Workload Identity Federation.')
+param githubOrg string = 'ASISaga'
+
 @description('List of AOS application module names — one dedicated Flex Consumption plan and Function App is created per entry. These are the 10 canonical AOS repository modules; override only when adding or retiring a module.')
 param appNames array = [
   'purpose-driven-agent'
@@ -54,6 +57,12 @@ param appNames array = [
 
 var suffix = '${projectName}-${environment}'
 var uniqueSuffix = uniqueString(resourceGroup().id, projectName, environment)
+
+// Core AOS orchestration hub — its URL is injected into every module's env vars for peer discovery.
+// The hostname follows the same naming formula used in functionapp.bicep:
+//   func-{appName}-{environment}-{take(uniqueSuffix,6)}.azurewebsites.net
+var coreAppName = 'aos-function-app'
+var coreAppUrl = 'https://func-${coreAppName}-${environment}-${take(uniqueSuffix, 6)}.azurewebsites.net'
 
 // ====================================================================
 // Modules
@@ -117,6 +126,10 @@ module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
     serviceBusId: serviceBus.outputs.namespaceId
     keyVaultName: keyVault.outputs.keyVaultName
     keyVaultId: keyVault.outputs.keyVaultId
+    tableServiceUri: storage.outputs.tableServiceUri
+    coreAppUrl: coreAppUrl
+    githubOrg: githubOrg
+    githubEnvironment: environment
   }
 }]
 
@@ -126,6 +139,8 @@ module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
 
 output resourceGroupName string = resourceGroup().name
 output functionAppNames array = [for (appName, i) in appNames: functionApps[i].outputs.functionAppName]
+// clientId per app — use as the AZURE_CLIENT_ID GitHub Actions secret in each repository's deployment workflow
+output functionAppClientIds array = [for (appName, i) in appNames: functionApps[i].outputs.clientId]
 output storageAccountName string = storage.outputs.storageAccountName
 output serviceBusNamespace string = serviceBus.outputs.namespaceName
 output keyVaultName string = keyVault.outputs.keyVaultName
