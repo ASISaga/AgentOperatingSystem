@@ -455,3 +455,267 @@ class TestAlignPurposeToOrchestration:
     ) -> None:
         result = await initialised_agent.restore_original_purpose()
         assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Dynamic MCP server routing
+# ---------------------------------------------------------------------------
+
+
+class StubMCPServer:
+    """Minimal MCP server stub with a call_tool coroutine."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.calls: list = []
+
+    async def call_tool(self, tool_name: str, params: dict) -> dict:
+        self.calls.append({"tool": tool_name, "params": params})
+        return {"server": self.name, "tool": tool_name, "result": "ok"}
+
+
+class TestMCPServerRegistration:
+    def test_initial_mcp_servers_empty(self, basic_agent: GenericPurposeDrivenAgent) -> None:
+        assert basic_agent.mcp_servers == {}
+
+    def test_register_mcp_server_stores_entry(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        server = StubMCPServer("s1")
+        basic_agent.register_mcp_server("search", server, tags=["web_search"])
+        assert "search" in basic_agent.mcp_servers
+
+    def test_register_stores_tags(self, basic_agent: GenericPurposeDrivenAgent) -> None:
+        server = StubMCPServer("s1")
+        basic_agent.register_mcp_server("search", server, tags=["web_search", "query"])
+        assert basic_agent.mcp_servers["search"]["tags"] == ["web_search", "query"]
+
+    def test_register_disabled_by_default(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        server = StubMCPServer("s1")
+        basic_agent.register_mcp_server("search", server)
+        assert basic_agent.mcp_servers["search"]["enabled"] is False
+
+    def test_register_enabled_when_requested(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        server = StubMCPServer("s1")
+        basic_agent.register_mcp_server("search", server, enabled=True)
+        assert basic_agent.mcp_servers["search"]["enabled"] is True
+
+    def test_register_multiple_servers(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server("s1", StubMCPServer("s1"))
+        basic_agent.register_mcp_server("s2", StubMCPServer("s2"))
+        assert len(basic_agent.mcp_servers) == 2
+
+
+class TestEnableDisableMCPServer:
+    @pytest.mark.asyncio
+    async def test_enable_known_server_returns_true(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server("db", StubMCPServer("db"))
+        result = await basic_agent.enable_mcp_server("db")
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_enable_sets_enabled_flag(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server("db", StubMCPServer("db"))
+        await basic_agent.enable_mcp_server("db")
+        assert basic_agent.mcp_servers["db"]["enabled"] is True
+
+    @pytest.mark.asyncio
+    async def test_enable_unknown_server_returns_false(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        result = await basic_agent.enable_mcp_server("nonexistent")
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_disable_known_server_returns_true(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server("db", StubMCPServer("db"), enabled=True)
+        result = await basic_agent.disable_mcp_server("db")
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_disable_clears_enabled_flag(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server("db", StubMCPServer("db"), enabled=True)
+        await basic_agent.disable_mcp_server("db")
+        assert basic_agent.mcp_servers["db"]["enabled"] is False
+
+    @pytest.mark.asyncio
+    async def test_disable_unknown_server_returns_false(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        result = await basic_agent.disable_mcp_server("nonexistent")
+        assert result is False
+
+
+class TestGetActiveMCPServers:
+    def test_no_active_servers_when_all_disabled(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server("a", StubMCPServer("a"))
+        basic_agent.register_mcp_server("b", StubMCPServer("b"))
+        assert basic_agent.get_active_mcp_servers() == {}
+
+    def test_only_enabled_servers_returned(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        s1 = StubMCPServer("s1")
+        s2 = StubMCPServer("s2")
+        basic_agent.register_mcp_server("s1", s1, enabled=True)
+        basic_agent.register_mcp_server("s2", s2, enabled=False)
+        active = basic_agent.get_active_mcp_servers()
+        assert "s1" in active
+        assert "s2" not in active
+
+    def test_active_servers_returns_server_instances(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        s1 = StubMCPServer("s1")
+        basic_agent.register_mcp_server("s1", s1, enabled=True)
+        active = basic_agent.get_active_mcp_servers()
+        assert active["s1"] is s1
+
+
+class TestRouteMCPRequest:
+    @pytest.mark.asyncio
+    async def test_route_to_enabled_server(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        server = StubMCPServer("web")
+        basic_agent.register_mcp_server("web", server, enabled=True)
+        result = await basic_agent.route_mcp_request("web", "search", {"query": "test"})
+        assert result["result"] == "ok"
+        assert result["server"] == "web"
+
+    @pytest.mark.asyncio
+    async def test_route_passes_params_to_server(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        server = StubMCPServer("web")
+        basic_agent.register_mcp_server("web", server, enabled=True)
+        await basic_agent.route_mcp_request("web", "search", {"query": "AOS"})
+        assert server.calls[0]["params"] == {"query": "AOS"}
+
+    @pytest.mark.asyncio
+    async def test_route_raises_for_unknown_server(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        with pytest.raises(ValueError, match="not registered"):
+            await basic_agent.route_mcp_request("unknown", "tool", {})
+
+    @pytest.mark.asyncio
+    async def test_route_raises_for_disabled_server(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server("db", StubMCPServer("db"), enabled=False)
+        with pytest.raises(RuntimeError, match="disabled"):
+            await basic_agent.route_mcp_request("db", "query", {})
+
+
+class TestSelectMCPServersForEvent:
+    @pytest.mark.asyncio
+    async def test_no_tags_enables_all_servers(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server("a", StubMCPServer("a"), tags=["x"])
+        basic_agent.register_mcp_server("b", StubMCPServer("b"), tags=["y"])
+        activated = await basic_agent.select_mcp_servers_for_event({"type": "ping"})
+        assert set(activated) == {"a", "b"}
+
+    @pytest.mark.asyncio
+    async def test_matching_tag_enables_server(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server("search", StubMCPServer("s"), tags=["web_search"])
+        basic_agent.register_mcp_server("db", StubMCPServer("d"), tags=["database"])
+        activated = await basic_agent.select_mcp_servers_for_event(
+            {"type": "query", "tags": ["web_search"]}
+        )
+        assert "search" in activated
+        assert "db" not in activated
+
+    @pytest.mark.asyncio
+    async def test_non_matching_tag_disables_server(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server("db", StubMCPServer("d"), tags=["database"], enabled=True)
+        await basic_agent.select_mcp_servers_for_event(
+            {"type": "search", "tags": ["web_search"]}
+        )
+        assert basic_agent.mcp_servers["db"]["enabled"] is False
+
+    @pytest.mark.asyncio
+    async def test_event_type_matches_server_tag(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        basic_agent.register_mcp_server(
+            "file_tool", StubMCPServer("f"), tags=["file_system"]
+        )
+        activated = await basic_agent.select_mcp_servers_for_event(
+            {"type": "file_system", "tags": ["other"]}
+        )
+        assert "file_tool" in activated
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_list_when_no_servers(
+        self, basic_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        activated = await basic_agent.select_mcp_servers_for_event({"type": "test"})
+        assert activated == []
+
+    @pytest.mark.asyncio
+    async def test_handle_event_invokes_dynamic_selection(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        """handle_event automatically activates matching MCP servers."""
+        initialised_agent.register_mcp_server(
+            "search", StubMCPServer("s"), tags=["web_search"]
+        )
+        initialised_agent.register_mcp_server(
+            "db", StubMCPServer("d"), tags=["database"]
+        )
+        await initialised_agent.handle_event(
+            {"type": "lookup", "tags": ["web_search"]}
+        )
+        assert initialised_agent.mcp_servers["search"]["enabled"] is True
+        assert initialised_agent.mcp_servers["db"]["enabled"] is False
+
+
+class TestGetStateMCPServers:
+    @pytest.mark.asyncio
+    async def test_state_contains_mcp_server_keys(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        state = await initialised_agent.get_state()
+        assert "registered_mcp_servers" in state
+        assert "active_mcp_servers" in state
+
+    @pytest.mark.asyncio
+    async def test_state_lists_registered_servers(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        initialised_agent.register_mcp_server("s1", StubMCPServer("s1"))
+        state = await initialised_agent.get_state()
+        assert "s1" in state["registered_mcp_servers"]
+
+    @pytest.mark.asyncio
+    async def test_state_lists_active_servers(
+        self, initialised_agent: GenericPurposeDrivenAgent
+    ) -> None:
+        initialised_agent.register_mcp_server("s1", StubMCPServer("s1"), enabled=True)
+        initialised_agent.register_mcp_server("s2", StubMCPServer("s2"), enabled=False)
+        state = await initialised_agent.get_state()
+        assert "s1" in state["active_mcp_servers"]
+        assert "s2" not in state["active_mcp_servers"]

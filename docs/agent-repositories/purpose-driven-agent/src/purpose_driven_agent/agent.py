@@ -30,7 +30,7 @@ import logging
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Protocol
 
 from purpose_driven_agent.context_server import ContextMCPServer
 from purpose_driven_agent.ml_interface import IMLService, NoOpMLService
@@ -50,6 +50,24 @@ except ImportError:  # pragma: no cover
         """Stub for agent_framework.Agent when the package is not available."""
 
     _AGENT_FRAMEWORK_AVAILABLE = False
+
+
+# ---------------------------------------------------------------------------
+# MCPServerProtocol
+# ---------------------------------------------------------------------------
+
+
+class MCPServerProtocol(Protocol):
+    """
+    Structural protocol for MCP servers registered with :class:`PurposeDrivenAgent`.
+
+    Any object that provides an async ``call_tool`` method satisfies this
+    protocol and can be registered via :meth:`PurposeDrivenAgent.register_mcp_server`.
+    """
+
+    async def call_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
+        """Invoke *tool_name* with *params* and return the result."""
+        ...  # pragma: no cover
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +197,10 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
 
         # Context is preserved via ContextMCPServer (one instance per agent)
         self.mcp_context_server: Optional[ContextMCPServer] = None
+
+        # Dynamic MCP server registry: name -> {server, tags, enabled}
+        # Only enabled servers contribute tools to the LLM context window.
+        self.mcp_servers: Dict[str, Dict[str, Any]] = {}
 
         # ---- Purpose attributes --------------------------------------------
         self.purpose: str = purpose
@@ -416,6 +438,7 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
                 self.purpose_metrics["purpose_aligned_actions"] += 1
 
             await self._awaken()
+            await self.select_mcp_servers_for_event(event)
 
             event_type = event.get("type")
             self.logger.info(
@@ -683,6 +706,183 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
                 return True
         return False
 
+    # ------------------------------------------------------------------
+    # Dynamic MCP server registration and routing
+    # ------------------------------------------------------------------
+
+    def register_mcp_server(
+        self,
+        name: str,
+        server: MCPServerProtocol,
+        tags: Optional[List[str]] = None,
+        enabled: bool = False,
+    ) -> None:
+        """
+        Register an external MCP server with this agent.
+
+        Registered servers are disabled by default to avoid consuming LLM
+        context window with tools that may not be needed for every event.
+        Call :meth:`enable_mcp_server` explicitly, or use
+        :meth:`select_mcp_servers_for_event` to activate servers dynamically.
+
+        Args:
+            name: Unique name identifying this MCP server.
+            server: MCP server instance.  Must expose ``call_tool(tool_name,
+                params)`` as an async callable for use with
+                :meth:`route_mcp_request`.
+            tags: Capability tags used for dynamic server selection
+                (e.g. ``["file_system", "search"]``).  During
+                :meth:`select_mcp_servers_for_event` a server is enabled when
+                its tags overlap with the event's ``"tags"`` list or when an
+                event ``"type"`` matches one of its tags.
+            enabled: Whether the server starts in an enabled state.  Defaults
+                to ``False`` so newly registered servers do not immediately
+                expand the context window.
+        """
+        self.mcp_servers[name] = {
+            "server": server,
+            "tags": list(tags or []),
+            "enabled": enabled,
+        }
+        self.logger.info(
+            "Registered MCP server '%s' | tags=%s | enabled=%s",
+            name,
+            tags,
+            enabled,
+        )
+
+    async def enable_mcp_server(self, name: str) -> bool:
+        """
+        Enable a registered MCP server so its tools enter the LLM context.
+
+        Args:
+            name: Name of the registered server to enable.
+
+        Returns:
+            ``True`` if the server was found and enabled, ``False`` if no
+            server with *name* is registered.
+        """
+        if name not in self.mcp_servers:
+            self.logger.warning("Cannot enable unknown MCP server '%s'", name)
+            return False
+        self.mcp_servers[name]["enabled"] = True
+        self.logger.info("Enabled MCP server '%s'", name)
+        return True
+
+    async def disable_mcp_server(self, name: str) -> bool:
+        """
+        Disable a registered MCP server, removing its tools from the LLM context.
+
+        Args:
+            name: Name of the registered server to disable.
+
+        Returns:
+            ``True`` if the server was found and disabled, ``False`` if no
+            server with *name* is registered.
+        """
+        if name not in self.mcp_servers:
+            self.logger.warning("Cannot disable unknown MCP server '%s'", name)
+            return False
+        self.mcp_servers[name]["enabled"] = False
+        self.logger.info("Disabled MCP server '%s'", name)
+        return True
+
+    def get_active_mcp_servers(self) -> Dict[str, MCPServerProtocol]:
+        """
+        Return only the currently enabled MCP server instances.
+
+        Use this to expose tools to the LLM — pass the result to the LLM
+        tool-calling layer so only relevant tools occupy the context window.
+
+        Returns:
+            Dict mapping server name to server instance for every enabled server.
+        """
+        return {
+            name: entry["server"]
+            for name, entry in self.mcp_servers.items()
+            if entry["enabled"]
+        }
+
+    async def route_mcp_request(
+        self,
+        server_name: str,
+        tool_name: str,
+        params: Dict[str, Any],
+    ) -> Any:
+        """
+        Route a tool call to a specific named MCP server.
+
+        Raises:
+            ValueError: If *server_name* is not registered.
+            RuntimeError: If the target server is currently disabled.
+
+        Args:
+            server_name: Name of the target MCP server.
+            tool_name: Tool to invoke on that server.
+            params: Tool parameters.
+
+        Returns:
+            Result returned by ``server.call_tool(tool_name, params)``.
+        """
+        entry = self.mcp_servers.get(server_name)
+        if entry is None:
+            raise ValueError(f"MCP server '{server_name}' is not registered")
+        if not entry["enabled"]:
+            raise RuntimeError(
+                f"MCP server '{server_name}' is disabled; enable it before routing requests"
+            )
+        self.logger.debug(
+            "Routing tool '%s' to MCP server '%s'", tool_name, server_name
+        )
+        return await entry["server"].call_tool(tool_name, params)
+
+    async def select_mcp_servers_for_event(
+        self, event: Dict[str, Any]
+    ) -> List[str]:
+        """
+        Dynamically enable only the MCP servers relevant to *event*.
+
+        Compares the event's ``"tags"`` list and ``"type"`` string against each
+        server's registered tags.  A server is enabled when:
+
+        - the event carries no ``"tags"`` (no filter → all servers enabled), or
+        - the server's tags and the event's tags share at least one element, or
+        - the event's ``"type"`` appears in the server's tags.
+
+        All non-matching servers are disabled.  This keeps the LLM context
+        window focused on the tools relevant to the current event.
+
+        Args:
+            event: Event payload dict.  Recognised keys:
+                ``"tags"`` (list of str) and ``"type"`` (str).
+
+        Returns:
+            List of server names that were activated.
+        """
+        event_tags: set = set(event.get("tags", []))
+        event_type: str = event.get("type", "")
+        activated: List[str] = []
+
+        for name, entry in self.mcp_servers.items():
+            server_tags: set = set(entry["tags"])
+            if (
+                not event_tags  # no filter: enable all registered servers
+                or bool(event_tags & server_tags)  # tag overlap
+                or (event_type and event_type in server_tags)  # type matches a tag
+            ):
+                entry["enabled"] = True
+                activated.append(name)
+            else:
+                entry["enabled"] = False
+
+        if self.mcp_servers:
+            self.logger.info(
+                "Dynamic MCP selection for event type '%s': activated=%s",
+                event_type,
+                activated,
+            )
+        return activated
+
     async def make_purpose_driven_decision(
         self, decision_context: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -841,6 +1041,10 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             "total_events_processed": self.total_events_processed,
             "subscriptions": list(self.event_subscriptions.keys()),
             "mcp_context_preserved": self.mcp_context_server is not None,
+            "registered_mcp_servers": list(self.mcp_servers.keys()),
+            "active_mcp_servers": [
+                name for name, entry in self.mcp_servers.items() if entry["enabled"]
+            ],
         }
 
     async def health_check(self) -> Dict[str, Any]:
