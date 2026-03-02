@@ -2,11 +2,11 @@
 //
 // Deploys the full Agent Operating System infrastructure:
 //   - Log Analytics + Application Insights (monitoring)
-//   - Storage Account (function app backing store)
+//   - Storage Account (function app backing store + deployment packages)
 //   - Service Bus namespace + queue (orchestration messaging)
 //   - Key Vault (secrets management)
-//   - App Service Plan + Function App with managed identity
-//   - RBAC role assignments
+//   - One dedicated FC1 Flex Consumption Plan + Function App per AOS module (10 total)
+//   - RBAC role assignments (identity-based connections, no secrets in env vars)
 
 targetScope = 'resourceGroup'
 
@@ -33,6 +33,20 @@ param tags object = {
   environment: environment
   managedBy: 'bicep'
 }
+
+@description('List of AOS application module names — one dedicated Flex Consumption plan and Function App is created per entry. These are the 10 canonical AOS repository modules; override only when adding or retiring a module.')
+param appNames array = [
+  'purpose-driven-agent'
+  'leadership-agent'
+  'cmo-agent'
+  'aos-kernel'
+  'aos-intelligence'
+  'aos-realm-of-agents'
+  'aos-mcp-servers'
+  'aos-client-sdk'
+  'business-infinity'
+  'aos-function-app'
+]
 
 // ====================================================================
 // Variables
@@ -87,32 +101,31 @@ module keyVault 'modules/keyvault.bicep' = {
   }
 }
 
-module functionApp 'modules/functionapp.bicep' = {
-  name: 'functionapp-${suffix}'
+// One dedicated FC1 Flex Consumption plan + Function App per AOS module
+module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
+  name: 'functionapp-${appName}-${suffix}'
   params: {
     location: location
     environment: environment
-    projectName: projectName
+    appName: appName
     uniqueSuffix: uniqueSuffix
     tags: tags
     storageAccountName: storage.outputs.storageAccountName
     storageAccountId: storage.outputs.storageAccountId
-    appInsightsInstrumentationKey: monitoring.outputs.instrumentationKey
     appInsightsConnectionString: monitoring.outputs.connectionString
     serviceBusNamespace: serviceBus.outputs.namespaceName
     serviceBusId: serviceBus.outputs.namespaceId
     keyVaultName: keyVault.outputs.keyVaultName
     keyVaultId: keyVault.outputs.keyVaultId
   }
-}
+}]
 
 // ====================================================================
 // Outputs
 // ====================================================================
 
 output resourceGroupName string = resourceGroup().name
-output functionAppName string = functionApp.outputs.functionAppName
-output functionAppHostName string = functionApp.outputs.defaultHostName
+output functionAppNames array = [for (appName, i) in appNames: functionApps[i].outputs.functionAppName]
 output storageAccountName string = storage.outputs.storageAccountName
 output serviceBusNamespace string = serviceBus.outputs.namespaceName
 output keyVaultName string = keyVault.outputs.keyVaultName

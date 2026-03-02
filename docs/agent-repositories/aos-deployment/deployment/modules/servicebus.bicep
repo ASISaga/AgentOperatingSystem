@@ -18,7 +18,8 @@ param tags object
 // ====================================================================
 
 var namespaceName = 'sb-${projectName}-${environment}'
-var skuName = environment == 'prod' ? 'Premium' : (environment == 'staging' ? 'Standard' : 'Basic')
+// Standard for prod (supports target-based scaling); Basic for non-prod to eliminate fixed base fee
+var skuName = environment == 'prod' ? 'Standard' : 'Basic'
 var skuTier = skuName
 
 // ====================================================================
