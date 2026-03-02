@@ -1,6 +1,8 @@
-// Function App module — FC1 Flex Consumption plan + Function App + managed identity + RBAC
+// Function App module — FC1 Flex Consumption plan + Function App + User-Assigned Managed Identity + GitHub OIDC + Scoped RBAC
 // One-app-per-plan pattern required by Flex Consumption.
-// Code is deployed from a per-app blob container using Managed Identity.
+// Each app has its own User-Assigned Identity used both as the runtime identity and as the GitHub Actions
+// deployment agent. Workload Identity Federation (OIDC) restricts each identity to exactly one
+// GitHub repository + environment, creating a hard security boundary between the 10 AOS modules.
 
 @description('Azure region')
 param location string
@@ -40,6 +42,12 @@ param keyVaultName string
 @description('Key Vault resource ID')
 param keyVaultId string
 
+@description('GitHub organization or user name that owns the AOS repositories (e.g. ASISaga)')
+param githubOrg string
+
+@description('GitHub Actions environment name used as the OIDC subject bound to this app. Defaults to the deployment environment value.')
+param githubEnvironment string = environment
+
 // ====================================================================
 // Variables
 // ====================================================================
@@ -47,11 +55,14 @@ param keyVaultId string
 // One dedicated plan per app (required by Flex Consumption)
 var planName = 'plan-${appName}-${environment}'
 var functionAppName = 'func-${appName}-${environment}-${take(uniqueSuffix, 6)}'
+var identityName = 'id-${appName}-${environment}'
 // Blob container holding the deployment package for this app
 var deploymentContainerName = 'deploy-${appName}'
 
 // RBAC role definition IDs
 var storageBlobDataOwnerRole = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+var storageBlobDataContributorRole = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+var websiteContributorRole = 'de139f84-1756-47ae-9be6-808fbbe84772'
 var keyVaultSecretsUserRole = '4633458b-17de-408a-b874-0445c86b69e6'
 var serviceBusDataSenderRole = '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'
 var serviceBusDataReceiverRole = '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'
@@ -59,6 +70,33 @@ var serviceBusDataReceiverRole = '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'
 // ====================================================================
 // Resources
 // ====================================================================
+
+// User-Assigned Managed Identity — one per app, acts as both the runtime identity and the
+// GitHub Actions deployment agent for the corresponding AOS repository.
+resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: identityName
+  location: location
+  tags: tags
+}
+
+// Workload Identity Federation — binds the identity strictly to one GitHub repository + environment.
+// Only a GitHub Actions workflow running in that exact repo/environment can exchange an OIDC token
+// for an Azure credential, preventing cross-module deployments.
+// NOTE: The GitHub OIDC subject for environment-based deployments is always
+//   repo:{org}/{repo}:environment:{env}
+// The 'ref' sub-claim is not part of the subject when an environment is set; the environment
+// constraint itself is the security boundary (GitHub docs: "Configuring OpenID Connect in Azure").
+resource federatedCredential 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2023-01-31' = {
+  parent: userAssignedIdentity
+  name: 'github-${appName}-${environment}'
+  properties: {
+    issuer: 'https://token.actions.githubusercontent.com'
+    subject: 'repo:${githubOrg}/${appName}:environment:${githubEnvironment}'
+    audiences: [
+      'api://AzureADTokenExchange'
+    ]
+  }
+}
 
 // Dedicated Flex Consumption plan — one per app
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
@@ -84,6 +122,17 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01'
   name: 'default'
 }
 
+// References to shared resources used for RBAC scoping
+resource existingKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: keyVaultName
+}
+
+// The Service Bus namespace name is <projectName>-sb-<environment>; derive it from the namespace FQDN
+// parameter by using the namespace name directly.
+resource existingServiceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' existing = {
+  name: serviceBusNamespace
+}
+
 // Per-app blob container for deployment packages (Managed Identity access)
 resource deploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
   parent: blobService
@@ -99,7 +148,10 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   kind: 'functionapp,linux'
   tags: tags
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userAssignedIdentity.id}': {}
+    }
   }
   properties: {
     serverFarmId: appServicePlan.id
@@ -111,7 +163,8 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           type: 'blobContainer'
           value: 'https://${storageAccountName}.blob.core.windows.net/${deploymentContainerName}'
           authentication: {
-            type: 'SystemAssignedIdentity'
+            type: 'UserAssignedIdentity'
+            userAssignedIdentityResourceId: userAssignedIdentity.id
           }
         }
       }
@@ -135,57 +188,86 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       appSettings: [
         { name: 'AzureWebJobsStorage__accountName', value: storageAccountName }
         { name: 'AzureWebJobsStorage__blobServiceUri', value: 'https://${storageAccountName}.blob.core.windows.net' }
+        { name: 'AzureWebJobsStorage__credential', value: 'managedidentity' }
+        { name: 'AzureWebJobsStorage__clientId', value: userAssignedIdentity.properties.clientId }
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
         { name: 'ServiceBusConnection__fullyQualifiedNamespace', value: '${serviceBusNamespace}.servicebus.windows.net' }
+        { name: 'ServiceBusConnection__credential', value: 'managedidentity' }
+        { name: 'ServiceBusConnection__clientId', value: userAssignedIdentity.properties.clientId }
         { name: 'KEY_VAULT_URI', value: 'https://${keyVaultName}.vault.azure.net/' }
         { name: 'ENVIRONMENT', value: environment }
+        { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.properties.clientId }
       ]
     }
   }
   dependsOn: [deploymentContainer]
 }
 
-// RBAC — Storage Blob Data Owner (required for Flex Consumption deployment container access)
+// RBAC — Storage Blob Data Owner on the storage account (runtime: AzureWebJobsStorage identity-based connection)
 resource storageBlobOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountId, functionApp.id, storageBlobDataOwnerRole)
-  scope: resourceGroup()
+  name: guid(storageAccountId, userAssignedIdentity.id, storageBlobDataOwnerRole)
+  scope: existingStorageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwnerRole)
-    principalId: functionApp.identity.principalId
+    principalId: userAssignedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
-// RBAC — Key Vault Secrets User
+// RBAC — Storage Blob Data Contributor on the per-app deployment container (deployment package upload/read)
+// Scoped to the individual container — no cross-app storage access.
+resource deploymentContainerContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(deploymentContainer.id, userAssignedIdentity.id, storageBlobDataContributorRole)
+  scope: deploymentContainer
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRole)
+    principalId: userAssignedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC — Website Contributor on this Function App only (GitHub Actions deployment)
+// Scoped to the specific Function App resource — a credential for one repo cannot touch another app.
+resource websiteContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(functionApp.id, userAssignedIdentity.id, websiteContributorRole)
+  scope: functionApp
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', websiteContributorRole)
+    principalId: userAssignedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC — Key Vault Secrets User (scoped to this Key Vault only)
 resource keyVaultSecretsRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVaultId, functionApp.id, keyVaultSecretsUserRole)
-  scope: resourceGroup()
+  name: guid(keyVaultId, userAssignedIdentity.id, keyVaultSecretsUserRole)
+  scope: existingKeyVault
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRole)
-    principalId: functionApp.identity.principalId
+    principalId: userAssignedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
-// RBAC — Service Bus Data Sender
+// RBAC — Service Bus Data Sender (scoped to this Service Bus namespace only)
 resource serviceBusSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(serviceBusId, functionApp.id, serviceBusDataSenderRole)
-  scope: resourceGroup()
+  name: guid(serviceBusId, userAssignedIdentity.id, serviceBusDataSenderRole)
+  scope: existingServiceBusNamespace
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', serviceBusDataSenderRole)
-    principalId: functionApp.identity.principalId
+    principalId: userAssignedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
-// RBAC — Service Bus Data Receiver (needed for trigger-based scaling)
+// RBAC — Service Bus Data Receiver (scoped to this Service Bus namespace only; needed for trigger-based scaling)
 resource serviceBusReceiverRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(serviceBusId, functionApp.id, serviceBusDataReceiverRole)
-  scope: resourceGroup()
+  name: guid(serviceBusId, userAssignedIdentity.id, serviceBusDataReceiverRole)
+  scope: existingServiceBusNamespace
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', serviceBusDataReceiverRole)
-    principalId: functionApp.identity.principalId
+    principalId: userAssignedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -196,4 +278,6 @@ resource serviceBusReceiverRole 'Microsoft.Authorization/roleAssignments@2022-04
 
 output functionAppName string = functionApp.name
 output defaultHostName string = functionApp.properties.defaultHostName
-output principalId string = functionApp.identity.principalId
+output principalId string = userAssignedIdentity.properties.principalId
+// clientId is used as the AZURE_CLIENT_ID GitHub Actions secret for this repository's deployment workflow
+output clientId string = userAssignedIdentity.properties.clientId

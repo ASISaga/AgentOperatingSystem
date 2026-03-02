@@ -34,6 +34,9 @@ param tags object = {
   managedBy: 'bicep'
 }
 
+@description('GitHub organization or user name that owns the AOS repositories (e.g. ASISaga). Used to construct the OIDC subject for Workload Identity Federation.')
+param githubOrg string = 'ASISaga'
+
 @description('List of AOS application module names — one dedicated Flex Consumption plan and Function App is created per entry. These are the 10 canonical AOS repository modules; override only when adding or retiring a module.')
 param appNames array = [
   'purpose-driven-agent'
@@ -117,6 +120,8 @@ module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
     serviceBusId: serviceBus.outputs.namespaceId
     keyVaultName: keyVault.outputs.keyVaultName
     keyVaultId: keyVault.outputs.keyVaultId
+    githubOrg: githubOrg
+    githubEnvironment: environment
   }
 }]
 
@@ -126,6 +131,8 @@ module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
 
 output resourceGroupName string = resourceGroup().name
 output functionAppNames array = [for (appName, i) in appNames: functionApps[i].outputs.functionAppName]
+// clientId per app — use as the AZURE_CLIENT_ID GitHub Actions secret in each repository's deployment workflow
+output functionAppClientIds array = [for (appName, i) in appNames: functionApps[i].outputs.clientId]
 output storageAccountName string = storage.outputs.storageAccountName
 output serviceBusNamespace string = serviceBus.outputs.namespaceName
 output keyVaultName string = keyVault.outputs.keyVaultName
