@@ -43,9 +43,8 @@ rag = [
     "chromadb>=0.6.0",
 ]
 foundry = [
-    "azure-ai-agents>=1.1.0",
-    "azure-ai-projects>=1.0.0",
-    "azure-identity>=1.25.0",
+    "azure-ai-projects>=2.0.0b4",
+    "azure-identity>=1.19.0",
 ]
 full = [
     "aos-intelligence[ml]",
