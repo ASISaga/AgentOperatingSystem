@@ -119,19 +119,7 @@ class LoRAxAdapterRegistry:
         version: str = "1.0.0",
         metadata: Optional[Dict[str, Any]] = None
     ) -> AdapterInfo:
-        """
-        Register a new LoRA adapter.
-
-        Args:
-            adapter_id: Unique identifier for the adapter
-            agent_role: Agent role this adapter is for (e.g., "CEO", "CFO")
-            adapter_path: Path to the adapter files
-            version: Version string
-            metadata: Optional metadata
-
-        Returns:
-            AdapterInfo object
-        """
+        """Register a new LoRA adapter."""
         if adapter_id in self.adapters:
             self.logger.warning(f"Adapter {adapter_id} already registered, updating...")
 
@@ -148,6 +136,16 @@ class LoRAxAdapterRegistry:
 
         self.logger.info(f"Registered adapter {adapter_id} for agent {agent_role}")
         return adapter_info
+
+    def unregister_adapter(self, adapter_id: str) -> None:
+        """Remove a registered adapter by ID."""
+        adapter = self.adapters.pop(adapter_id, None)
+        if adapter is not None:
+            if self.agent_to_adapter.get(adapter.agent_role) == adapter_id:
+                del self.agent_to_adapter[adapter.agent_role]
+            self.logger.info(f"Unregistered adapter {adapter_id}")
+        else:
+            self.logger.warning(f"Adapter {adapter_id} not found for unregistration")
 
     def get_adapter(self, adapter_id: str) -> Optional[AdapterInfo]:
         """Get adapter info by ID."""
@@ -217,7 +215,7 @@ class LoRAxServer:
         """
         self.config = config
         self.logger = logging.getLogger("AOS.LoRAxServer")
-        self.registry = LoRAxAdapterRegistry()
+        self.adapter_registry = LoRAxAdapterRegistry()
 
         # Server state
         self.running = False
@@ -342,9 +340,9 @@ class LoRAxServer:
             Inference result with generated text and metadata
         """
         if not self.running:
-            raise RuntimeError("LoRAx server is not running")
+            return {"error": "LoRAx server is not running", "adapter_id": adapter_id}
 
-        adapter_info = self.registry.get_adapter(adapter_id)
+        adapter_info = self.adapter_registry.get_adapter(adapter_id)
         if not adapter_info:
             raise ValueError(f"Adapter {adapter_id} not found in registry")
 
@@ -394,7 +392,7 @@ class LoRAxServer:
             await asyncio.sleep(0.2)
 
             # Update usage stats
-            self.registry.update_usage_stats(adapter_id, loaded=True)
+            self.adapter_registry.update_usage_stats(adapter_id, loaded=True)
 
             # Calculate latency
             latency_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
@@ -449,7 +447,7 @@ class LoRAxServer:
         Returns:
             Inference result
         """
-        adapter_info = self.registry.get_adapter_for_agent(agent_role)
+        adapter_info = self.adapter_registry.get_adapter_for_agent(agent_role)
         if not adapter_info:
             raise ValueError(f"No adapter registered for agent role: {agent_role}")
 
@@ -472,7 +470,7 @@ class LoRAxServer:
             List of inference results
         """
         if not self.running:
-            raise RuntimeError("LoRAx server is not running")
+            return [{"error": "LoRAx server is not running"}] * len(requests)
 
         self.logger.info(f"Processing batch of {len(requests)} inference requests")
 
@@ -497,13 +495,13 @@ class LoRAxServer:
     async def _preload_adapters(self):
         """Preload most frequently used adapters into cache."""
         # Get most used adapters
-        top_adapters = self.registry.get_most_used_adapters(
-            limit=min(self.config.adapter_cache_size, len(self.registry.adapters))
+        top_adapters = self.adapter_registry.get_most_used_adapters(
+            limit=min(self.config.adapter_cache_size, len(self.adapter_registry.adapters))
         )
 
         # If no usage history, load all up to cache size
         if not top_adapters or all(a.inference_count == 0 for a in top_adapters):
-            top_adapters = self.registry.list_adapters()[:self.config.adapter_cache_size]
+            top_adapters = self.adapter_registry.list_adapters()[:self.config.adapter_cache_size]
 
         for adapter in top_adapters:
             if not adapter.loaded:
@@ -516,7 +514,7 @@ class LoRAxServer:
 
     async def _unload_all_adapters(self):
         """Unload all adapters from memory."""
-        for adapter in self.registry.list_adapters():
+        for adapter in self.adapter_registry.list_adapters():
             if adapter.loaded:
                 adapter.loaded = False
 
@@ -530,13 +528,13 @@ class LoRAxServer:
         Returns:
             Status dictionary with server info and metrics
         """
-        loaded_adapters = self.registry.get_loaded_adapters()
+        loaded_adapters = self.adapter_registry.get_loaded_adapters()
 
         return {
             "running": self.running,
             "base_model": self.config.base_model,
             "server_address": f"{self.config.host}:{self.config.port}",
-            "total_adapters": len(self.registry.adapters),
+            "total_adapters": len(self.adapter_registry.adapters),
             "loaded_adapters": len(loaded_adapters),
             "cache_size": self.config.adapter_cache_size,
             "active_requests": len(self.active_requests),
@@ -559,7 +557,7 @@ class LoRAxServer:
         Returns:
             Adapter statistics or None if not found
         """
-        adapter = self.registry.get_adapter(adapter_id)
+        adapter = self.adapter_registry.get_adapter(adapter_id)
         if not adapter:
             return None
 

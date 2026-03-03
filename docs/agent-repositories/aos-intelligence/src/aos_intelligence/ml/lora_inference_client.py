@@ -1,4 +1,4 @@
-"""LoRAInferenceClient — high-level inference client for Multi-LoRA inference.
+"""LoRAInferenceClient — high-level inference client for Azure AI Multi-LoRA inference.
 
 Abstracts the Azure AI Model Inference API so that callers only need to
 specify a *persona* name.  The client:
@@ -21,7 +21,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from AgentOperatingSystem.lora.registry import LoRAAdapterRegistry
+from aos_intelligence.ml.lora_adapter_registry import LoRAAdapterRegistry
 
 logger = logging.getLogger(__name__)
 

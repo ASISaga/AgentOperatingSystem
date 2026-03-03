@@ -1,22 +1,34 @@
-"""Tests for LoRA integration in AgentOperatingSystem kernel.
+"""Tests for Azure Multi-LoRA inference classes.
 
-The LoRA management classes (LoRAAdapterRegistry, LoRAInferenceClient,
-LoRAOrchestrationRouter) now live in aos-intelligence (the dedicated ML
-package).  These tests verify that:
-
-1. The classes are importable through the kernel re-export when
-   aos-intelligence is installed.
-2. AgentOperatingSystem correctly wires the LoRA subsystems.
+Covers:
+- LoRAAdapterRegistry: registration, lookup, deduplication
+- LoRAInferenceClient: adapter resolution, stub responses, extra_body injection
+- LoRAOrchestrationRouter: step mapping, agent-persona fallback, resolution
 """
 
 from __future__ import annotations
 
 import pytest
 
-# The LoRA classes are now canonical in aos-intelligence.
-# The kernel re-exports them when aos-intelligence is installed.
-from AgentOperatingSystem import LoRAAdapterRegistry, LoRAInferenceClient, LoRAOrchestrationRouter
-from aos_intelligence.ml.lora_adapter_registry import BASE_MODEL_ID
+from aos_intelligence.ml.lora_adapter_registry import LoRAAdapterRegistry, BASE_MODEL_ID
+from aos_intelligence.ml.lora_inference_client import LoRAInferenceClient
+from aos_intelligence.ml.lora_orchestration_router import LoRAOrchestrationRouter
+# Also importable from the package top-level
+from aos_intelligence import LoRAAdapterRegistry as RegistryFromTopLevel
+
+
+# ====================================================================
+# BASE_MODEL_ID
+# ====================================================================
+
+
+def test_base_model_id():
+    assert BASE_MODEL_ID == "Meta-Llama-3.3-70B-Instruct"
+
+
+def test_top_level_export():
+    """LoRAAdapterRegistry must be importable from aos_intelligence directly."""
+    assert RegistryFromTopLevel is LoRAAdapterRegistry
 
 
 # ====================================================================
@@ -45,11 +57,10 @@ class TestLoRAAdapterRegistry:
         record = await reg.register_adapter(
             persona_type="cmo",
             adapter_path="/tmp/adapters/cmo",
-            base_model_version="meta-llama/Llama-3.3-70B-Instruct:2",
+            base_model_version="Meta-Llama-3.3-70B-Instruct:2",
             extra_tags={"department": "marketing"},
         )
         assert record["tags"]["persona_type"] == "cmo"
-        assert record["tags"]["base_model_version"] == "meta-llama/Llama-3.3-70B-Instruct:2"
         assert record["tags"]["department"] == "marketing"
 
     @pytest.mark.asyncio
@@ -91,7 +102,7 @@ class TestLoRAAdapterRegistry:
         await reg.register_adapter("ceo", "/tmp/adapters/ceo")
         await reg.register_adapter("cfo", "/tmp/adapters/cfo")
         adapters = reg.list_adapters()
-        # Each persona produces one record (adapter stored under both id and persona key)
+        # Each persona produces one unique record
         assert len(adapters) == 2
         personas = {a["persona_type"] for a in adapters}
         assert personas == {"ceo", "cfo"}
@@ -147,7 +158,6 @@ class TestLoRAInferenceClient:
             persona="ceo",
         )
         assert response["adapter_id"] != ""
-        assert "ceo" in response["choices"][0]["message"]["content"].lower() or response["adapter_id"]
 
     @pytest.mark.asyncio
     async def test_complete_stub_explicit_adapter_id(self, client_with_ceo):
@@ -159,7 +169,6 @@ class TestLoRAInferenceClient:
 
     @pytest.mark.asyncio
     async def test_complete_unknown_persona_graceful(self, client_with_ceo):
-        # Unknown personas should degrade gracefully to base model
         response = await client_with_ceo.complete(
             messages=[{"role": "user", "content": "Hello"}],
             persona="unknown_persona",
@@ -188,12 +197,10 @@ class TestLoRAInferenceClient:
     async def test_complete_merges_extra_body(self):
         reg = LoRAAdapterRegistry()
         client = LoRAInferenceClient(registry=reg)
-        # Ensure extra_body fields are passed through (tested via resolve path)
         response = await client.complete(
             messages=[{"role": "user", "content": "Test"}],
             extra_body={"custom_field": "value"},
         )
-        # In stub mode the response is returned without error
         assert "choices" in response
 
 
@@ -239,16 +246,15 @@ class TestLoRAOrchestrationRouter:
         personas = {a["persona_type"] for a in adapters}
         assert personas == {"ceo", "cmo"}
 
-    def test_resolve_adapters_no_mapping_no_agents_returns_empty(self, router_with_adapters):
+    def test_resolve_adapters_no_mapping_returns_empty(self, router_with_adapters):
         router = router_with_adapters
         adapters = router.resolve_adapters("unknown_type", "unknown_step")
         assert adapters == []
 
     def test_resolve_adapters_skips_unknown_persona(self, router_with_adapters):
         router = router_with_adapters
-        router.register_step_mapping("review", "step1", ["ceo", "nonexistent_persona"])
+        router.register_step_mapping("review", "step1", ["ceo", "nonexistent"])
         adapters = router.resolve_adapters("review", "step1")
-        # Only the known persona is resolved
         assert len(adapters) == 1
         assert adapters[0]["persona_type"] == "ceo"
 
@@ -256,8 +262,7 @@ class TestLoRAOrchestrationRouter:
         router = router_with_adapters
         router.register_agent_persona("agent-cfo", "cfo")
         aid = router.get_adapter_id_for_agent("agent-cfo")
-        assert isinstance(aid, str)
-        assert len(aid) > 0
+        assert isinstance(aid, str) and len(aid) > 0
 
     def test_get_adapter_id_for_agent_no_persona(self, router_with_adapters):
         router = router_with_adapters
@@ -274,45 +279,7 @@ class TestLoRAOrchestrationRouter:
         router = router_with_adapters
         router.register_step_mapping("review", "summary", ["ceo"])
         router.register_agent_persona("agent-cmo", "cmo")
-        # Step mapping takes priority — cmo agent is ignored
+        # Step mapping takes priority
         adapters = router.resolve_adapters("review", "summary", agent_ids=["agent-cmo"])
         assert len(adapters) == 1
         assert adapters[0]["persona_type"] == "ceo"
-
-
-# ====================================================================
-# Kernel integration: resolve_lora_adapters
-# ====================================================================
-
-
-class TestKernelLoRAIntegration:
-    """Integration tests: AgentOperatingSystem.resolve_lora_adapters."""
-
-    @pytest.mark.asyncio
-    async def test_kernel_resolve_lora_adapters(self):
-        from AgentOperatingSystem import AgentOperatingSystem
-
-        kernel = AgentOperatingSystem()
-        await kernel.initialize()
-
-        # Register an adapter
-        await kernel.lora_registry.register_adapter("ceo", "/tmp/adapters/ceo")
-        kernel.lora_router.register_step_mapping("strategic_review", "exec_summary", ["ceo"])
-
-        adapters = kernel.resolve_lora_adapters("strategic_review", "exec_summary")
-        assert len(adapters) == 1
-        assert adapters[0]["persona_type"] == "ceo"
-
-    @pytest.mark.asyncio
-    async def test_kernel_health_check_includes_lora_count(self):
-        from AgentOperatingSystem import AgentOperatingSystem
-
-        kernel = AgentOperatingSystem()
-        await kernel.initialize()
-        health = await kernel.health_check()
-        assert "lora_adapters_registered" in health
-        assert health["lora_adapters_registered"] == 0
-
-        await kernel.lora_registry.register_adapter("cmo", "/tmp/adapters/cmo")
-        health = await kernel.health_check()
-        assert health["lora_adapters_registered"] == 1

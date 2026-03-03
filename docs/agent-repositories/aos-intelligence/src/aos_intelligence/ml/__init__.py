@@ -2,11 +2,14 @@
 aos_intelligence.ml — Machine Learning Module
 
 ML pipeline management, LoRAx multi-adapter serving, DPO training,
-self-learning system, and Azure Foundry Agent Service integration.
-All ML operations use Llama 3.3 70B as the base model.
+self-learning system, Azure LoRA inference, and Azure Foundry Agent Service
+integration.  All ML operations use Llama 3.3 70B as the base model.
 """
 
 from .pipeline import MLPipelineManager
+from .lora_adapter_registry import LoRAAdapterRegistry, BASE_MODEL_ID
+from .lora_inference_client import LoRAInferenceClient
+from .lora_orchestration_router import LoRAOrchestrationRouter
 
 try:
     from .self_learning_system import (
@@ -44,6 +47,11 @@ except ImportError:
 
 __all__ = [
     "MLPipelineManager",
+    # Azure Multi-LoRA inference (Foundry Model Registry + Azure AI Inference)
+    "LoRAAdapterRegistry",
+    "LoRAInferenceClient",
+    "LoRAOrchestrationRouter",
+    "BASE_MODEL_ID",
 ]
 
 if SELF_LEARNING_AVAILABLE:

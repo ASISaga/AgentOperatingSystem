@@ -8,7 +8,7 @@ The router works from two data sources (checked in order):
 
 1. An explicit **step mapping** registered via :meth:`register_step_mapping`
    that directly maps ``(orchestration_type, step_name)`` pairs to adapter
-   names.
+   persona names.
 2. An **agent-to-persona** mapping that derives the adapter from the persona
    associated with each agent ID.
 
@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from AgentOperatingSystem.lora.registry import LoRAAdapterRegistry
+from aos_intelligence.ml.lora_adapter_registry import LoRAAdapterRegistry
 
 logger = logging.getLogger(__name__)
 

@@ -10,8 +10,8 @@ Model Registry.  Each registration is tagged with:
 
 * ``persona_type`` — e.g. ``"ceo"``, ``"cmo"``, ``"financial_analyst"``
 * ``base_model_version`` — the exact base model tag the adapter was trained on
-  (e.g. ``"meta-llama/Llama-3.3-70B-Instruct:1"``) to enforce lineage
-  compatibility checks.
+  (e.g. ``"Meta-Llama-3.3-70B-Instruct"``) to enforce lineage compatibility
+  checks before deployment.
 """
 
 from __future__ import annotations
@@ -19,20 +19,25 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
-# Canonical base model identifier — matches the Azure ML model asset name used in lora-inference.bicep
+# Canonical base model identifier — matches the Azure ML model asset name used in
+# the lora-inference.bicep Managed Online Endpoint deployment.
 BASE_MODEL_ID = "Meta-Llama-3.3-70B-Instruct"
 
 
 class LoRAAdapterRegistry:
     """Register and look up LoRA adapters in the Foundry Model Registry.
 
+    Adapter artefacts (``adapter_model.bin`` + ``adapter_config.json``) are
+    registered as MLflow Model Assets so that every adapter has a traceable
+    lineage back to its base model and the persona it was trained for.
+
     :param ml_client: An ``azure.ai.ml.MLClient`` connected to the target
-        registry (optional — when absent the registry operates in local/stub
-        mode).
+        Azure ML Registry (optional — when absent the registry operates in
+        local/stub mode, which is suitable for unit tests and development).
     :param registry_name: Name of the Azure ML Registry that stores adapters.
     """
 
@@ -157,7 +162,7 @@ class LoRAAdapterRegistry:
 
     def list_adapters(self) -> List[Dict[str, Any]]:
         """Return all unique adapter records (deduplicated by adapter_id)."""
-        seen: set[str] = set()
+        seen: Set[str] = set()
         result: List[Dict[str, Any]] = []
         for record in self._adapters.values():
             aid = record["adapter_id"]

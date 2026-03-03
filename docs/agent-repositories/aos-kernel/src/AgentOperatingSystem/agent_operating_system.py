@@ -41,7 +41,14 @@ from AgentOperatingSystem.config import KernelConfig
 from AgentOperatingSystem.agents import FoundryAgentManager
 from AgentOperatingSystem.orchestration import FoundryOrchestrationEngine
 from AgentOperatingSystem.messaging import FoundryMessageBridge
-from AgentOperatingSystem.lora import LoRAAdapterRegistry, LoRAInferenceClient, LoRAOrchestrationRouter
+
+# Multi-LoRA classes live in aos-intelligence (the dedicated ML package).
+# Import gracefully so the kernel works even when aos-intelligence is not installed.
+try:
+    from aos_intelligence.ml import LoRAAdapterRegistry, LoRAInferenceClient, LoRAOrchestrationRouter
+    _LORA_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _LORA_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +67,7 @@ class AgentOperatingSystem:
         self,
         config: Optional[KernelConfig] = None,
         project_client: Any = None,
-        lora_registry: Optional[LoRAAdapterRegistry] = None,
+        lora_registry: Any = None,
         inference_client: Any = None,
     ) -> None:
         self.config = config or KernelConfig.from_env()
@@ -82,13 +89,18 @@ class AgentOperatingSystem:
             orchestration_engine=self.orchestration_engine,
         )
 
-        # Multi-LoRA subsystems
-        self.lora_registry = lora_registry or LoRAAdapterRegistry()
-        self.lora_inference = LoRAInferenceClient(
-            registry=self.lora_registry,
-            inference_client=inference_client,
-        )
-        self.lora_router = LoRAOrchestrationRouter(registry=self.lora_registry)
+        # Multi-LoRA subsystems (require aos-intelligence to be installed)
+        if _LORA_AVAILABLE:
+            self.lora_registry: Any = lora_registry or LoRAAdapterRegistry()
+            self.lora_inference: Any = LoRAInferenceClient(
+                registry=self.lora_registry,
+                inference_client=inference_client,
+            )
+            self.lora_router: Any = LoRAOrchestrationRouter(registry=self.lora_registry)
+        else:  # pragma: no cover
+            self.lora_registry = None
+            self.lora_inference = None
+            self.lora_router = None
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -226,14 +238,20 @@ class AgentOperatingSystem:
 
         Used by the Foundry Agent Service to determine which adapters to
         activate before executing a step.  Delegates to
-        :class:`LoRAOrchestrationRouter`.
+        :class:`~aos_intelligence.ml.LoRAOrchestrationRouter`.
 
-        :param orchestration_type: Orchestration category (e.g.
-            ``"strategic_review"``).
+        Requires ``aos-intelligence`` to be installed (see the ``[full]``
+        extras of ``aos-kernel``).
+
+        :param orchestration_type: Orchestration category.
         :param step_name: Step within the orchestration.
         :param agent_ids: Participating agent IDs for persona-based fallback.
-        :returns: List of adapter record dicts (empty if no adapters apply).
+        :returns: List of adapter record dicts (empty if no adapters apply or
+            if ``aos-intelligence`` is not installed).
         """
+        if self.lora_router is None:
+            logger.debug("LoRA router not available — aos-intelligence not installed")
+            return []
         return self.lora_router.resolve_adapters(
             orchestration_type=orchestration_type,
             step_name=step_name,
@@ -296,5 +314,7 @@ class AgentOperatingSystem:
             "agents_registered": self.agent_manager.agent_count,
             "active_orchestrations": self.orchestration_engine.orchestration_count,
             "messages_bridged": self.message_bridge.message_count,
-            "lora_adapters_registered": self.lora_registry.adapter_count,
+            "lora_adapters_registered": (
+                self.lora_registry.adapter_count if self.lora_registry is not None else 0
+            ),
         }
