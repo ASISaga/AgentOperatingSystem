@@ -1,12 +1,13 @@
 """Deployment configuration models.
 
 Pydantic models that capture every tuneable knob for an AOS infrastructure
-deployment.  The ``DeploymentConfig.from_args()`` factory builds a config
-from an argparse ``Namespace``, making it easy to bridge the CLI layer with
-the core orchestration engine.
+lifecycle operation.  The ``DeploymentConfig.from_args()`` factory builds a
+config from an argparse ``Namespace``, making it easy to bridge the CLI layer
+with the core orchestration engine.
 
 Three-pillar lifecycle settings are grouped under optional sub-configs:
 - ``GovernanceConfig`` — policy, cost, and RBAC settings
+- ``AutomationConfig`` — pipeline and infrastructure lifecycle settings
 - ``ReliabilityConfig`` — drift detection and health monitoring settings
 """
 
@@ -40,6 +41,31 @@ class GovernanceConfig(BaseModel):
     """Run a privileged-access review after deployment."""
 
 
+class AutomationConfig(BaseModel):
+    """Automation pillar configuration."""
+
+    deploy_function_apps: bool = False
+    """After Bicep provisioning, deploy AOS Function Apps via the SDK bridge."""
+
+    app_names: list[str] = Field(default_factory=list)
+    """Specific app names to deploy (empty = all canonical AOS apps)."""
+
+    sync_kernel_config: bool = False
+    """After deployment, sync KernelConfig env vars to all Function Apps."""
+
+    enable_lifecycle_ops: bool = False
+    """Expose lifecycle operations (deprovision/shift/modify/upgrade/scale)."""
+
+    target_version: str = ""
+    """Infrastructure version tag used for upgrade tracking."""
+
+    scale_overrides: dict[str, str] = Field(default_factory=dict)
+    """Mapping of ``resource_name → target_SKU`` for upgrade/scale operations."""
+
+    region_shift_target: str = ""
+    """Target region for a shift operation (empty = disabled)."""
+
+
 class ReliabilityConfig(BaseModel):
     """Reliability pillar configuration."""
 
@@ -58,7 +84,7 @@ class ReliabilityConfig(BaseModel):
 
 
 class DeploymentConfig(BaseModel):
-    """Configuration for an AOS infrastructure lifecycle deployment."""
+    """Configuration for an AOS infrastructure lifecycle operation."""
 
     environment: Literal["dev", "staging", "prod"]
     resource_group: str = Field(min_length=1)
@@ -74,6 +100,7 @@ class DeploymentConfig(BaseModel):
 
     # --- Three-pillar lifecycle extensions ---
     governance: GovernanceConfig = Field(default_factory=GovernanceConfig)
+    automation: AutomationConfig = Field(default_factory=AutomationConfig)
     reliability: ReliabilityConfig = Field(default_factory=ReliabilityConfig)
 
     @model_validator(mode="after")
@@ -94,6 +121,12 @@ class DeploymentConfig(BaseModel):
             required_tags=getattr(args, "required_tags", {}),
             review_rbac=getattr(args, "review_rbac", False),
         )
+        automation = AutomationConfig(
+            deploy_function_apps=getattr(args, "deploy_function_apps", False),
+            sync_kernel_config=getattr(args, "sync_kernel_config", False),
+            enable_lifecycle_ops=getattr(args, "enable_lifecycle_ops", False),
+            region_shift_target=getattr(args, "region_shift_target", ""),
+        )
         reliability = ReliabilityConfig(
             enable_drift_detection=getattr(args, "enable_drift_detection", False),
             check_dr_readiness=getattr(args, "check_dr_readiness", False),
@@ -111,5 +144,6 @@ class DeploymentConfig(BaseModel):
             skip_health=getattr(args, "skip_health", False),
             dry_run=getattr(args, "no_confirm_deletes", False),
             governance=governance,
+            automation=automation,
             reliability=reliability,
         )

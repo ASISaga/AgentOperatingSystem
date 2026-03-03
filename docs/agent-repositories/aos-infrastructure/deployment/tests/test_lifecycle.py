@@ -252,7 +252,7 @@ class TestRbacManager:
     @mock.patch.object(RbacManager, "_az")
     def test_review_privileged_access_no_findings(self, mock_az: mock.Mock, rm: RbacManager) -> None:
         assignments = [
-            {"principalName": "svc-aos-deployment", "principalId": "oid-1",
+            {"principalName": "svc-aos-infrastructure", "principalId": "oid-1",
              "roleDefinitionName": "Contributor", "principalType": "ServicePrincipal"},
         ]
         mock_az.return_value = json.dumps(assignments)

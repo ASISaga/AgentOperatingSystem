@@ -1,17 +1,19 @@
-"""Infrastructure manager — wraps Azure CLI operations.
+"""Infrastructure manager — orchestrates the full Azure infrastructure lifecycle.
 
 ``InfrastructureManager`` is the single orchestration class that every CLI
 subcommand delegates to.  Each public method maps 1-to-1 with a user-facing
-action (deploy, plan, status, monitor, troubleshoot, delete, list_resources,
-govern, reliability_check) and internally shells out to ``az`` via
-:func:`subprocess.run`.
+action and internally coordinates one or more pillar components.
 
-The manager is organised around three lifecycle pillars:
+The manager is organised around three formal lifecycle pillars, each with its
+own sub-package and a top-level entrypoint method:
 
-* **Governance** — policy enforcement, cost management, RBAC access review
-* **Automation** — lint → validate → what-if → deploy pipeline with retry
-* **Reliability** — drift detection, enhanced health checks, SLA compliance,
-  and DR readiness assessment
+* **Governance** (``govern()``) — policy enforcement, cost management, RBAC
+  access review and least-privilege enforcement
+* **Automation** (``automate()``) — formal pipeline (lint/validate/what-if/
+  deploy), infrastructure lifecycle operations (deprovision/shift/modify/
+  upgrade/scale), and integration with ``aos-client-sdk`` and ``aos-kernel``
+* **Reliability** (``reliability_check()``) — drift detection, SLA-aware
+  health monitoring, and DR readiness assessment
 
 All mutating operations are audit-logged to JSON files under
 ``deployment/audit/``.
@@ -28,9 +30,13 @@ from pathlib import Path
 from typing import Any
 
 from orchestrator.core.config import DeploymentConfig
+from orchestrator.automation.lifecycle import LifecycleManager
+from orchestrator.automation.pipeline import PipelineManager
 from orchestrator.governance.cost_manager import CostManager
 from orchestrator.governance.policy_manager import PolicyManager
 from orchestrator.governance.rbac_manager import RbacManager
+from orchestrator.integration.kernel_bridge import KernelBridge
+from orchestrator.integration.sdk_bridge import SDKBridge
 from orchestrator.reliability.drift_detector import DriftDetector
 from orchestrator.reliability.health_monitor import HealthMonitor, HealthStatus
 
@@ -83,10 +89,29 @@ class InfrastructureManager:
         # --- Post-deploy lifecycle pillars ---
         # Governance and reliability hooks are advisory: their findings are
         # audit-logged and printed, but they do not fail the deployment itself.
-        # To gate deployments on pillar results, call govern() / reliability_check()
-        # as separate pipeline steps with explicit failure conditions.
+        # To gate deployments on pillar results, call govern() / automate() /
+        # reliability_check() as separate pipeline steps with explicit failure
+        # conditions.
         if self.config.governance.enforce_policies:
             self._run_governance_pillar()
+        if self.config.automation.deploy_function_apps or self.config.automation.sync_kernel_config:
+            # Run only the SDK/kernel integration steps (pipeline already completed)
+            auto = self.config.automation
+            if auto.deploy_function_apps:
+                bridge = SDKBridge(
+                    resource_group=self.config.resource_group,
+                    environment=self.config.environment,
+                    subscription_id=self.config.subscription_id,
+                    location=self.config.location,
+                    app_names=auto.app_names or None,
+                )
+                bridge.deploy_function_apps()
+            if auto.sync_kernel_config:
+                kb = KernelBridge(
+                    resource_group=self.config.resource_group,
+                    subscription_id=self.config.subscription_id,
+                )
+                kb.validate_kernel_config(kb.extract_kernel_env())
         if self.config.reliability.enable_drift_detection or self.config.reliability.check_dr_readiness:
             self._run_reliability_pillar()
 
@@ -275,8 +300,83 @@ class InfrastructureManager:
         return self._run_reliability_pillar()
 
     # ------------------------------------------------------------------
+    # Automation pillar — public entrypoint
+    # ------------------------------------------------------------------
+
+    def automate(self) -> bool:
+        """Run the full Automation lifecycle pillar.
+
+        Executes in order:
+        1. Formal pipeline (lint → validate → what-if → deploy → health-check)
+           using :class:`~orchestrator.automation.pipeline.PipelineManager`
+        2. Function App deployment via the SDK bridge (when configured)
+        3. Kernel config sync to all Function Apps (when configured)
+        4. Infrastructure lifecycle operations (deprovision/shift/modify/
+           upgrade/scale) when ``enable_lifecycle_ops`` is set
+
+        Returns ``True`` when all configured steps succeed.
+        """
+        print(f"\n{'=' * 60}")
+        print("  Pillar: Automation")
+        print(f"{'=' * 60}")
+        return self._run_automation_pillar()
+
+    # ------------------------------------------------------------------
     # Private helpers — three-pillar lifecycle
     # ------------------------------------------------------------------
+
+    def _run_automation_pillar(self) -> bool:
+        """Execute the Automation pillar steps."""
+        auto = self.config.automation
+        all_ok = True
+
+        # 1. Formal pipeline via PipelineManager
+        pm = PipelineManager(
+            resource_group=self.config.resource_group,
+            environment=self.config.environment,
+            location=self.config.location,
+            template=self.config.template,
+            parameters_file=self.config.parameters_file,
+            location_ml=self.config.location_ml,
+            git_sha=self.config.git_sha,
+            subscription_id=self.config.subscription_id,
+        )
+        pipeline_ok = pm.full_deploy(
+            allow_warnings=self.config.allow_warnings,
+            skip_health=self.config.skip_health,
+        )
+        if not pipeline_ok:
+            self._audit("automate", {"step": "pipeline", "status": "failed"})
+            return False
+
+        # 2. SDK bridge — deploy Function Apps
+        if auto.deploy_function_apps:
+            bridge = SDKBridge(
+                resource_group=self.config.resource_group,
+                environment=self.config.environment,
+                subscription_id=self.config.subscription_id,
+                location=self.config.location,
+                app_names=auto.app_names or None,
+            )
+            print("\n  📦 Deploying Function Apps via SDK bridge …")
+            statuses = bridge.deploy_function_apps()
+            failed_apps = [s.app_name for s in statuses if s.status == "failed"]
+            if failed_apps:
+                print(f"  ⚠️  {len(failed_apps)} app(s) failed: {', '.join(failed_apps)}")
+                all_ok = False
+
+        # 3. Kernel config sync
+        if auto.sync_kernel_config:
+            kb = KernelBridge(
+                resource_group=self.config.resource_group,
+                subscription_id=self.config.subscription_id,
+            )
+            print("\n  🔗 Syncing kernel config …")
+            env_vars = kb.extract_kernel_env()
+            kb.validate_kernel_config(env_vars)
+
+        self._audit("automate", {"status": "ok" if all_ok else "warnings"})
+        return all_ok
 
     def _run_governance_pillar(self) -> bool:
         """Execute the Governance pillar steps."""

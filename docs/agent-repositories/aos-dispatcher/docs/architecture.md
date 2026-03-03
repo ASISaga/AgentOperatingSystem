@@ -83,4 +83,4 @@ this function app.
 - [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — Agent catalog
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
 - [business-infinity](https://github.com/ASISaga/business-infinity) — Example client app
-- [aos-deployment](https://github.com/ASISaga/aos-deployment) — Deployment
+- [aos-infrastructure](https://github.com/ASISaga/aos-infrastructure) — Deployment

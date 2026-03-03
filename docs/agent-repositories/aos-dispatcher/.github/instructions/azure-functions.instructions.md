@@ -8,7 +8,7 @@
 
 ## Deployment
 
-- Deploy through the aos-deployment orchestrator
+- Deploy through the aos-infrastructure orchestrator
 - Use staging slots for zero-downtime deployments
 - Verify health endpoints after deployment
 

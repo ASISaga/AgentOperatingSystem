@@ -19,7 +19,7 @@ defined in JSON registry files and automatically deployed and managed.
 
 ## Deployment
 
-- Deploy through the aos-deployment orchestrator
+- Deploy through the aos-infrastructure orchestrator
 - Agent registry is read at function app startup
 - Configuration changes require function app restart
 

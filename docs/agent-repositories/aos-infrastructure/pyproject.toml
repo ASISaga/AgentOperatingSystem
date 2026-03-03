@@ -3,8 +3,8 @@ requires = ["setuptools>=75.0.0", "wheel"]
 build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
-name = "aos-deployment"
-version = "4.0.0"
+name = "aos-infrastructure"
+version = "5.0.0"
 description = "Azure infrastructure lifecycle manager for the Agent Operating System — Governance, Automation, and Reliability"
 readme = "README.md"
 license = {text = "Apache-2.0"}

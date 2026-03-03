@@ -18,7 +18,7 @@ _AOS_REQUIRED_ROLES: dict[str, str] = {
     "aos-dispatcher": "Contributor",
     "aos-realm-of-agents": "Contributor",
     "aos-mcp-servers": "Reader",
-    "aos-deployment": "Owner",
+    "aos-infrastructure": "Owner",
 }
 
 # Roles considered over-privileged for non-deployment principals

@@ -19,7 +19,7 @@ param allowedLocations array = [
 @description('Required resource tags enforced by policy')
 param requiredTags object = {
   environment: environment
-  managedBy: 'aos-deployment'
+  managedBy: 'aos-infrastructure'
 }
 
 // ── Built-in policy definition IDs ──────────────────────────────────────────

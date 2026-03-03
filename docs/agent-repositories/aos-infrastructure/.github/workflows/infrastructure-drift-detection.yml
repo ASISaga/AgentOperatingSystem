@@ -19,7 +19,7 @@ on:
       template:
         description: 'Bicep template to compare against (relative to repo root)'
         required: false
-        default: 'docs/agent-repositories/aos-deployment/deployment/main-modular.bicep'
+        default: 'docs/agent-repositories/aos-infrastructure/deployment/main-modular.bicep'
       parameters_file:
         description: 'Bicep parameter file (relative to repo root)'
         required: false
@@ -58,7 +58,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: pip install -r docs/agent-repositories/aos-deployment/deployment/orchestrator/requirements.txt
+        run: pip install -r docs/agent-repositories/aos-infrastructure/deployment/orchestrator/requirements.txt
 
       - name: Azure login
         uses: azure/login@v2
@@ -73,7 +73,7 @@ jobs:
           ENV="${{ inputs.environment || 'dev' }}"
           RG="${{ inputs.resource_group }}"
           [ -z "$RG" ] && RG="rg-aos-${ENV}"
-          TEMPLATE="${{ inputs.template || 'docs/agent-repositories/aos-deployment/deployment/main-modular.bicep' }}"
+          TEMPLATE="${{ inputs.template || 'docs/agent-repositories/aos-infrastructure/deployment/main-modular.bicep' }}"
           PARAMS="${{ inputs.parameters_file }}"
           echo "environment=$ENV" >> "$GITHUB_OUTPUT"
           echo "resource_group=$RG" >> "$GITHUB_OUTPUT"
@@ -85,7 +85,7 @@ jobs:
 
       - name: Snapshot live state
         id: snapshot
-        working-directory: docs/agent-repositories/aos-deployment
+        working-directory: docs/agent-repositories/aos-infrastructure
         run: |
           python - <<'EOF'
           import sys, json
@@ -98,7 +98,7 @@ jobs:
 
       - name: Detect infrastructure drift
         id: drift
-        working-directory: docs/agent-repositories/aos-deployment
+        working-directory: docs/agent-repositories/aos-infrastructure
         run: |
           python - <<'EOF'
           import sys, json
@@ -106,13 +106,13 @@ jobs:
           from reliability.drift_detector import DriftDetector, DriftKind
           dd = DriftDetector('${{ steps.resolve.outputs.resource_group }}')
           template = '${{ steps.resolve.outputs.template }}'
-          # Strip the leading docs/agent-repositories/aos-deployment/ prefix since we are
+          # Strip the leading docs/agent-repositories/aos-infrastructure/ prefix since we are
           # running from within that directory.
-          if template.startswith('docs/agent-repositories/aos-deployment/'):
-              template = template[len('docs/agent-repositories/aos-deployment/'):]
+          if template.startswith('docs/agent-repositories/aos-infrastructure/'):
+              template = template[len('docs/agent-repositories/aos-infrastructure/'):]
           params = '${{ steps.resolve.outputs.parameters_file }}'
-          if params.startswith('docs/agent-repositories/aos-deployment/'):
-              params = params[len('docs/agent-repositories/aos-deployment/'):]
+          if params.startswith('docs/agent-repositories/aos-infrastructure/'):
+              params = params[len('docs/agent-repositories/aos-infrastructure/'):]
           findings = dd.detect_drift(template, params)
           counts = {k.value: 0 for k in DriftKind}
           for f in findings:
@@ -127,7 +127,7 @@ jobs:
           EOF
 
       - name: SLA compliance check
-        working-directory: docs/agent-repositories/aos-deployment
+        working-directory: docs/agent-repositories/aos-infrastructure
         run: |
           python - <<'EOF'
           import sys
@@ -141,7 +141,7 @@ jobs:
 
       - name: DR readiness assessment
         if: ${{ inputs.check_dr_readiness == 'true' || inputs.check_dr_readiness == true }}
-        working-directory: docs/agent-repositories/aos-deployment
+        working-directory: docs/agent-repositories/aos-infrastructure
         run: |
           python - <<'EOF'
           import sys
@@ -159,7 +159,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: drift-findings-${{ steps.resolve.outputs.environment }}
-          path: docs/agent-repositories/aos-deployment/drift-findings.json
+          path: docs/agent-repositories/aos-infrastructure/drift-findings.json
           if-no-files-found: ignore
 
       - name: Drift detection summary

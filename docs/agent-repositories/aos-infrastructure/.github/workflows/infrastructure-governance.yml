@@ -59,7 +59,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: pip install -r docs/agent-repositories/aos-deployment/deployment/orchestrator/requirements.txt
+        run: pip install -r docs/agent-repositories/aos-infrastructure/deployment/orchestrator/requirements.txt
 
       - name: Azure login
         uses: azure/login@v2
@@ -78,7 +78,7 @@ jobs:
           echo "resource_group=$RG" >> "$GITHUB_OUTPUT"
 
       - name: Policy compliance evaluation
-        working-directory: docs/agent-repositories/aos-deployment
+        working-directory: docs/agent-repositories/aos-infrastructure
         run: |
           python - <<'EOF'
           import sys, json
@@ -93,7 +93,7 @@ jobs:
 
       - name: Required tag enforcement
         if: ${{ inputs.required_tags != '' }}
-        working-directory: docs/agent-repositories/aos-deployment
+        working-directory: docs/agent-repositories/aos-infrastructure
         run: |
           python - <<'EOF'
           import sys
@@ -111,7 +111,7 @@ jobs:
 
       - name: Budget status check
         if: ${{ inputs.check_budget == 'true' || inputs.check_budget == true }}
-        working-directory: docs/agent-repositories/aos-deployment
+        working-directory: docs/agent-repositories/aos-infrastructure
         run: |
           python - <<'EOF'
           import sys
@@ -125,7 +125,7 @@ jobs:
 
       - name: Privileged access review
         if: ${{ inputs.review_rbac == 'true' || inputs.review_rbac == true }}
-        working-directory: docs/agent-repositories/aos-deployment
+        working-directory: docs/agent-repositories/aos-infrastructure
         run: |
           python - <<'EOF'
           import sys
@@ -139,7 +139,7 @@ jobs:
 
       - name: Assign AOS governance policies
         if: ${{ inputs.enforce_policies == 'true' || inputs.enforce_policies == true }}
-        working-directory: docs/agent-repositories/aos-deployment
+        working-directory: docs/agent-repositories/aos-infrastructure
         run: |
           python - <<'EOF'
           import sys

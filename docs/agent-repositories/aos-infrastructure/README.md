@@ -1,4 +1,4 @@
-# aos-deployment
+# aos-infrastructure
 
 Complete Azure infrastructure lifecycle manager for the Agent Operating System, providing a robust, scalable, and resilient foundation for AgentOperatingSystem and the applications utilizing it.
 
@@ -7,37 +7,45 @@ The repository is organised around **three pillars**:
 | Pillar | Responsibility |
 |---|---|
 | **Governance** | Policy enforcement, cost management, RBAC access review, tag compliance |
-| **Automation** | Lint → validate → what-if → deploy pipeline, smart retry, regional selection, audit trail |
+| **Automation** | Lint → validate → what-if → deploy pipeline; de-provisioning, region shift, in-place modification, SKU upgrade, scaling; SDK bridge to `aos-client-sdk`; kernel config sync |
 | **Reliability** | Drift detection, SLA-aware health monitoring, DR readiness assessment |
 
 ## Overview
 
-`aos-deployment` contains all deployment infrastructure for AOS:
+`aos-infrastructure` contains all deployment infrastructure for AOS:
 
 - **Bicep Templates** — Modular Azure infrastructure definitions (13 modules, including `policy.bicep` and `budget.bicep`)
 - **Python Orchestrator** — Smart deployment CLI with linting, validation, health checks, and lifecycle management
-- **Governance Pillar** — Azure Policy assignments, cost/budget management, RBAC access review
-- **Reliability Pillar** — Infrastructure drift detection, SLA compliance tracking, DR readiness
+- **Governance Pillar** — Azure Policy assignments, cost/budget management, RBAC access review (`governance/`)
+- **Automation Pillar** — Deployment pipeline, lifecycle operations (deprovision/shift/modify/upgrade/scale), integration with `aos-client-sdk` and `aos-kernel` (`automation/`, `integration/`)
+- **Reliability Pillar** — Infrastructure drift detection, SLA compliance tracking, DR readiness (`reliability/`)
 - **Regional Validation** — Automatic region selection and capability validation
-- **CI/CD Workflows** — Deploy, monitoring, troubleshooting, governance, and drift-detection workflows
+- **CI/CD Workflows** — Deploy, governance, drift-detection, monitoring, and troubleshooting workflows
 
 ## Quick Start
 
 ```bash
 # Deploy to dev environment
-python deployment/deploy.py --environment dev --resource-group my-rg
+python deployment/deploy.py deploy --resource-group my-rg --location eastus --environment dev --template deployment/main-modular.bicep
 
-# Plan deployment (dry run)
-python deployment/deploy.py --environment dev --resource-group my-rg --plan-only
+# Plan deployment (dry run — lint, validate, what-if only)
+python deployment/deploy.py plan --resource-group my-rg --location eastus --environment dev --template deployment/main-modular.bicep
 
-# Run governance checks (policy compliance, cost, RBAC)
-python deployment/deploy.py govern --environment dev --resource-group my-rg
+# Run the Automation pillar (pipeline + optional SDK bridge + kernel sync)
+python deployment/deploy.py automate --resource-group my-rg --location eastus --environment dev --template deployment/main-modular.bicep --deploy-function-apps
 
-# Run reliability checks (health, SLA, drift, DR)
-python deployment/deploy.py reliability --environment dev --resource-group my-rg
+# Run the Governance pillar (policy compliance, cost, RBAC)
+python deployment/deploy.py govern --resource-group my-rg --environment dev
 
-# Validate Bicep templates
-az bicep build --file deployment/main-modular.bicep --stdout
+# Run the Reliability pillar (health, SLA, drift, DR)
+python deployment/deploy.py reliability --resource-group my-rg --environment dev
+
+# Infrastructure lifecycle operations
+python deployment/deploy.py deprovision --resource-group my-rg --resource-name st1 --resource-type Microsoft.Storage/storageAccounts
+python deployment/deploy.py upgrade --resource-group my-rg --resource-name st1 --resource-type microsoft.storage/storageaccounts --new-sku Standard_ZRS
+python deployment/deploy.py scale --resource-group my-rg --resource-name apim --resource-type microsoft.apimanagement/service --scale-settings '{"sku.capacity": 2}'
+python deployment/deploy.py shift --resource-group my-rg --target-rg my-rg-dr --target-region westeurope
+python deployment/deploy.py modify --resource-group my-rg --resource-name func1 --resource-type microsoft.web/sites --properties '{"properties.httpsOnly": true}'
 ```
 
 ## Repository Structure
@@ -51,13 +59,15 @@ deployment/                        # Bicep templates, orchestrator, validators
 │   └── ...                        # monitoring, storage, servicebus, keyvault, ...
 ├── parameters/                    # Environment-specific parameters
 ├── orchestrator/                  # Python deployment orchestrator
-│   ├── core/                      # Config + InfrastructureManager
+│   ├── core/                      # DeploymentConfig (3 pillar sub-configs) + InfrastructureManager
 │   ├── governance/                # PolicyManager, CostManager, RbacManager
+│   ├── automation/                # PipelineManager, LifecycleManager (deprovision/shift/modify/upgrade/scale)
 │   ├── reliability/               # DriftDetector, HealthMonitor
+│   ├── integration/               # SDKBridge (aos-client-sdk), KernelBridge (aos-kernel)
 │   ├── validators/                # RegionalValidator
 │   └── cli/                       # regional_tool, workflow_helper
-├── tests/                         # Deployment tests (64 tests)
-└── deploy.py                      # Entry point
+├── tests/                         # Deployment tests (123 tests)
+└── deploy.py                      # Entry point (all pillar + lifecycle subcommands)
 docs/                              # Deployment documentation
 .github/                           # Workflows, skills, prompts
 └── workflows/

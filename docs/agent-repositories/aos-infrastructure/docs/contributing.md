@@ -1,4 +1,4 @@
-# Contributing to aos-deployment
+# Contributing to aos-infrastructure
 
 ## Prerequisites
 
@@ -9,8 +9,8 @@
 ## Setup
 
 ```bash
-git clone https://github.com/ASISaga/aos-deployment.git
-cd aos-deployment
+git clone https://github.com/ASISaga/aos-infrastructure.git
+cd aos-infrastructure
 python -m venv venv
 source venv/bin/activate
 pip install -e ".[dev]"
