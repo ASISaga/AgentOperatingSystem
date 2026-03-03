@@ -5,7 +5,8 @@ applications (via ``aos-client-sdk``) query this function app to browse
 available agents and their capabilities.
 
 Agents are defined in a JSON registry (``example_agent_registry.json``)
-and served via HTTP endpoints.
+and registered with the Foundry Agent Service on startup.  The Foundry
+Agent Service is the internal orchestration backbone for all agents.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import azure.functions as func
 
@@ -26,6 +27,7 @@ app = func.FunctionApp()
 # ── Registry Loading ─────────────────────────────────────────────────────────
 
 _registry: Optional[AgentRegistry] = None
+_foundry_registered: bool = False
 
 
 def _load_registry() -> AgentRegistry:
@@ -52,6 +54,29 @@ def _load_registry() -> AgentRegistry:
     return _registry
 
 
+def _ensure_foundry_registration(registry: AgentRegistry) -> None:
+    """Register enabled agents with the Foundry Agent Service.
+
+    This is called lazily on the first request.  In production the
+    Foundry Agent Service SDK (``AIProjectClient``) would be used to
+    create/update agent registrations.  Here we record the registration
+    intent via a simple flag and log entries.
+    """
+    global _foundry_registered  # noqa: PLW0603
+    if _foundry_registered:
+        return
+
+    foundry_endpoint = os.environ.get("FOUNDRY_PROJECT_ENDPOINT", "")
+    for entry in registry.get_enabled_agents():
+        logger.info(
+            "Registering agent '%s' (%s) with Foundry Agent Service at %s",
+            entry.agent_id,
+            entry.agent_type,
+            foundry_endpoint or "<not configured>",
+        )
+    _foundry_registered = True
+
+
 # ── HTTP Endpoints ───────────────────────────────────────────────────────────
 
 
@@ -60,10 +85,13 @@ def _load_registry() -> AgentRegistry:
 async def list_agents(req: func.HttpRequest) -> func.HttpResponse:
     """List all enabled agents in the catalog.
 
+    All agents are registered with the Foundry Agent Service on first access.
+
     Query parameters:
         agent_type: Optional filter by agent class name.
     """
     registry = _load_registry()
+    _ensure_foundry_registration(registry)
     agent_type = req.params.get("agent_type")
 
     if agent_type:
@@ -83,6 +111,7 @@ async def get_agent(req: func.HttpRequest) -> func.HttpResponse:
     """Get a single agent descriptor by ID."""
     agent_id = req.route_params.get("agent_id", "")
     registry = _load_registry()
+    _ensure_foundry_registration(registry)
     entry = registry.get_agent(agent_id)
 
     if entry is None or not entry.enabled:

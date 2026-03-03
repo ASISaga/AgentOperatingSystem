@@ -20,15 +20,14 @@ Multi-agent orchestration is managed by the **Foundry Agent Service**. Agents in
 │  Agent Operating System                  ▼                       │
 │  ┌──────────────────┐  ┌────────────────────┐  ┌──────────────┐  │
 │  │ aos-function-app  │  │ Foundry Agent      │  │ AI Gateway   │  │
-│  │ POST /api/        │  │ Service            │  │ (APIM)       │  │
+│  │ POST /api/        │  │ Service (internal) │  │ (APIM)       │  │
 │  │  orchestrations   │  │ AIProjectClient    │  │ Rate limiting│  │
-│  │  foundry/*        │  │ AzureAIAgent       │  │ JWT auth     │  │
-│  │ Service Bus       │  │ Thread mgmt        │  │              │  │
-│  │  trigger          │  │                    │  │              │  │
+│  │ Service Bus       │  │ AzureAIAgent       │  │ JWT auth     │  │
+│  │  trigger          │  │ Thread mgmt        │  │              │  │
 │  └────────┬─────────┘  └────────────────────┘  └──────────────┘  │
 │           │                                                       │
 │  ┌────────▼─────────────────────────────────────────────────────┐ │
-│  │ Azure AI Foundry                                              │ │
+│  │ Azure AI Foundry (internal)                                   │ │
 │  │ Hub · Project · AI Services · Connections · Model Deployments  │ │
 │  │ Entra Agent ID · Managed Identity                             │ │
 │  └──────────────────────────────────────────────────────────────┘ │
@@ -58,20 +57,19 @@ AOS provisions the following Azure resources via Bicep:
 
 ```python
 # workflows.py — define business logic with @app.workflow decorators
-from aos_client import AOSApp, WorkflowRequest, FoundryOrchestrationRequest, OrchestrationPurpose, FoundryAgentConfig
+from aos_client import AOSApp, WorkflowRequest
 
 app = AOSApp(name="business-infinity")
 
-@app.workflow("foundry-orchestration")
-async def foundry_orchestration(request: WorkflowRequest):
+@app.workflow("strategic-review")
+async def strategic_review(request: WorkflowRequest):
     agents = await request.client.list_agents()
-    agent_ids = [a.agent_id for a in agents]
-    req = FoundryOrchestrationRequest(
-        agent_ids=agent_ids,
-        purpose=OrchestrationPurpose(purpose="Drive strategic growth"),
-        agent_configs={aid: FoundryAgentConfig(model="gpt-4o") for aid in agent_ids},
+    c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
+    return await request.client.start_orchestration(
+        agent_ids=c_suite,
+        purpose="Drive strategic growth and continuous organisational improvement",
+        context=request.body,
     )
-    return await request.client.submit_foundry_orchestration(req)
 ```
 
 ```python
@@ -133,12 +131,10 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
           aos-intelligence  │
                     │       │
           aos-function-app  aos-realm-of-agents  aos-mcp-servers
-                    ▲
+                    ▲          (Foundry registration)
                     │
-              aos-client-sdk ◄──────── Foundry Agent Service integration
-                    │                    AIProjectClient · AzureAIAgent
-                    │                    AIGateway · AgentIdentityProvider
-                    ▲
+              aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
+                    ▲                   Foundry is internal to AOS
                     │
             business-infinity ◄──────── lean client app (business logic only)
                                          function_app.py = 7 lines

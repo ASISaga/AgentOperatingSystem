@@ -1,4 +1,4 @@
-"""Tests for Azure AI Foundry Agent Service integration."""
+"""Tests for Azure AI Foundry Agent Service integration (internal to AOS)."""
 
 import pytest
 
@@ -9,6 +9,65 @@ from aos_client.foundry import (
     FoundryRun,
     FoundryThread,
 )
+
+
+class TestFoundryNotExportedFromSDK:
+    """Foundry classes must NOT be in the public SDK API."""
+
+    def test_foundry_classes_not_in_all(self):
+        import aos_client
+
+        for name in [
+            "AIProjectClient", "AzureAIAgent", "FoundryAgentService",
+            "FoundryThread", "FoundryRun", "FoundryAgentConfig",
+            "FoundryOrchestrationRequest", "FoundryConnectionInfo",
+            "AIGateway", "GatewayConfig",
+            "AgentIdentityProvider", "EntraAgentIdentity",
+            "ManagedIdentityConfig", "TokenResult",
+        ]:
+            assert name not in aos_client.__all__, (
+                f"{name} must not be in the public SDK __all__"
+            )
+
+    def test_foundry_classes_not_importable_from_top_level(self):
+        import aos_client
+
+        for name in [
+            "AIProjectClient", "AzureAIAgent", "FoundryAgentService",
+            "FoundryThread", "FoundryRun",
+            "AIGateway", "GatewayConfig",
+            "AgentIdentityProvider", "EntraAgentIdentity",
+            "ManagedIdentityConfig", "TokenResult",
+        ]:
+            assert not hasattr(aos_client, name), (
+                f"{name} must not be importable from aos_client"
+            )
+
+    def test_foundry_models_not_importable_from_top_level(self):
+        import aos_client
+
+        for name in [
+            "FoundryAgentConfig", "FoundryOrchestrationRequest",
+            "FoundryConnectionInfo",
+        ]:
+            assert not hasattr(aos_client, name), (
+                f"{name} must not be importable from aos_client"
+            )
+
+    def test_foundry_client_methods_not_on_sdk_client(self):
+        """submit_foundry_orchestration etc. must not be on AOSClient."""
+        from aos_client.client import AOSClient
+
+        client = AOSClient(endpoint="https://example.com")
+        for method_name in [
+            "submit_foundry_orchestration",
+            "get_foundry_connection",
+            "list_foundry_agents",
+            "create_foundry_agent",
+        ]:
+            assert not hasattr(client, method_name), (
+                f"AOSClient must not have {method_name}"
+            )
 
 
 class TestAzureAIAgent:

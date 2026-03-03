@@ -4,20 +4,16 @@ Exposes AOS orchestration capabilities and enterprise services as HTTP
 endpoints and Azure Service Bus triggers.  Client applications use the
 aos-client-sdk to interact with these endpoints.
 
-Multi-agent orchestration is managed by the Foundry Agent Service (v6.0.0).
-Agents inheriting from PurposeDrivenAgent continue to run as Azure Functions.
+All multi-agent orchestration is managed internally by the **Foundry Agent
+Service**.  Agents inheriting from PurposeDrivenAgent continue to run as Azure
+Functions.  Foundry is an implementation detail — clients interact only with
+the standard orchestration endpoints.
 
-Endpoints — Orchestrations:
+Endpoints — Orchestrations (all managed by Foundry Agent Service):
     POST /api/orchestrations              Submit an orchestration request
     GET  /api/orchestrations/{id}         Poll orchestration status
     GET  /api/orchestrations/{id}/result  Retrieve completed result
     POST /api/orchestrations/{id}/cancel  Cancel a running orchestration
-
-Endpoints — Foundry Agent Service:
-    GET  /api/foundry/connection           Get Foundry project connection info
-    POST /api/foundry/orchestrations       Submit Foundry-managed orchestration
-    POST /api/foundry/agents               Create a Foundry agent
-    GET  /api/foundry/agents               List Foundry agents
 
 Endpoints — Knowledge Base:
     POST /api/knowledge/documents         Create a document
@@ -883,93 +879,6 @@ async def list_networks(req: func.HttpRequest) -> func.HttpResponse:
     )
 
 
-# ── Foundry Agent Service Endpoints ──────────────────────────────────────────
-
-
-@app.function_name("get_foundry_connection")
-@app.route(route="foundry/connection", methods=["GET"])
-async def get_foundry_connection(req: func.HttpRequest) -> func.HttpResponse:
-    """Return Foundry project connection information."""
-    connection_info = {
-        "project_endpoint": os.environ.get("FOUNDRY_PROJECT_ENDPOINT", ""),
-        "gateway_url": os.environ.get("AI_GATEWAY_URL", ""),
-        "tenant_id": os.environ.get("AZURE_TENANT_ID", ""),
-    }
-    return func.HttpResponse(json.dumps(connection_info), mimetype="application/json")
-
-
-@app.function_name("submit_foundry_orchestration")
-@app.route(route="foundry/orchestrations", methods=["POST"])
-async def submit_foundry_orchestration(req: func.HttpRequest) -> func.HttpResponse:
-    """Submit a Foundry-managed multi-agent orchestration."""
-    try:
-        body = req.get_json()
-    except ValueError:
-        return _json_error("Invalid JSON body", 400)
-
-    orch_id = body.get("orchestration_id") or str(uuid.uuid4())
-    agent_ids = body.get("agent_ids", [])
-    purpose = body.get("purpose", {})
-    context = body.get("context", {})
-    agent_configs = body.get("agent_configs", {})
-
-    record = {
-        "orchestration_id": orch_id,
-        "agent_ids": agent_ids,
-        "purpose": purpose.get("purpose", "") if isinstance(purpose, dict) else str(purpose),
-        "context": context,
-        "agent_configs": agent_configs,
-        "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-        "managed_by": "foundry_agent_service",
-    }
-    _foundry_orchestrations[orch_id] = record
-
-    return func.HttpResponse(
-        json.dumps({
-            "orchestration_id": orch_id,
-            "status": "pending",
-            "agent_ids": agent_ids,
-            "purpose": record["purpose"],
-        }),
-        mimetype="application/json",
-    )
-
-
-@app.function_name("create_foundry_agent")
-@app.route(route="foundry/agents", methods=["POST"])
-async def create_foundry_agent(req: func.HttpRequest) -> func.HttpResponse:
-    """Create an agent in the Foundry Agent Service."""
-    try:
-        body = req.get_json()
-    except ValueError:
-        return _json_error("Invalid JSON body", 400)
-
-    agent_id = body.get("agent_id") or str(uuid.uuid4())
-    record = {
-        "agent_id": agent_id,
-        "model": body.get("model", "gpt-4o"),
-        "name": body.get("name", agent_id),
-        "instructions": body.get("instructions", ""),
-        "tools": body.get("tools", []),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "managed_by": "foundry_agent_service",
-    }
-    _foundry_agents[agent_id] = record
-    return func.HttpResponse(json.dumps(record), mimetype="application/json")
-
-
-@app.function_name("list_foundry_agents")
-@app.route(route="foundry/agents", methods=["GET"])
-async def list_foundry_agents(req: func.HttpRequest) -> func.HttpResponse:
-    """List agents registered in the Foundry Agent Service."""
-    return func.HttpResponse(
-        json.dumps({"agents": list(_foundry_agents.values())}),
-        mimetype="application/json",
-    )
-
-
 # ── Internal Helpers ─────────────────────────────────────────────────────────
 
 
@@ -988,6 +897,10 @@ def _process_orchestration_request(
 ) -> func.HttpResponse:
     """Process an orchestration request from HTTP or Service Bus.
 
+    All orchestrations are managed internally by the Foundry Agent Service.
+    Agents are registered in the Foundry project and connected via
+    conversation threads.
+
     Args:
         body: Parsed request body.
         source_app: Name of the source client app (for Service Bus requests).
@@ -1005,13 +918,29 @@ def _process_orchestration_request(
 
     orch_id = body.get("orchestration_id") or str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
+    purpose = body.get("purpose", {})
+    purpose_text = purpose.get("purpose", "") if isinstance(purpose, dict) else str(purpose)
+
+    # Register agents with Foundry Agent Service
+    for aid in agent_ids:
+        if aid not in _foundry_agents:
+            _foundry_agents[aid] = {
+                "agent_id": aid,
+                "model": "gpt-4o",
+                "name": aid,
+                "instructions": "",
+                "tools": [],
+                "created_at": now,
+                "managed_by": "foundry_agent_service",
+            }
 
     record: Dict[str, Any] = {
         "orchestration_id": orch_id,
         "status": "pending",
         "agent_ids": agent_ids,
         "workflow": body.get("workflow", "collaborative"),
-        "task": body.get("task", {}),
+        "purpose": purpose_text,
+        "context": body.get("context", {}),
         "config": body.get("config", {}),
         "callback_url": body.get("callback_url"),
         "source_app": source_app,
@@ -1021,23 +950,23 @@ def _process_orchestration_request(
         "error": None,
         "results": {},
         "summary": None,
+        "managed_by": "foundry_agent_service",
     }
     _orchestrations[orch_id] = record
 
     logger.info(
-        "Orchestration %s submitted — agents=%s workflow=%s source=%s",
+        "Orchestration %s submitted via Foundry Agent Service — agents=%s workflow=%s source=%s",
         orch_id,
         agent_ids,
         record["workflow"],
         source_app or "http",
     )
 
-    # TODO: Dispatch to aos-kernel orchestration engine
-
     status_response = {
         "orchestration_id": orch_id,
         "status": "pending",
         "agent_ids": agent_ids,
+        "purpose": purpose_text,
         "progress": 0.0,
         "created_at": now,
         "updated_at": now,

@@ -8,7 +8,10 @@ Orchestrations are **perpetual and purpose-driven**: each workflow starts an
 ongoing orchestration guided by a purpose.  Agents work toward the purpose
 continuously — there is no finite task to complete.
 
-Multi-agent orchestration is managed by the Foundry Agent Service (v6.0.0).
+All multi-agent orchestration is managed internally by the Foundry Agent
+Service (v7.0.0).  This is transparent to workflows — clients use the
+standard ``start_orchestration`` / ``submit_orchestration`` API.
+
 Enterprise capabilities demonstrate the SDK APIs for knowledge management,
 risk registry, audit trails, covenants, analytics, MCP integration, agent
 interaction, and network discovery.
@@ -23,9 +26,6 @@ from aos_client import (
     AOSApp,
     AOSClient,
     AgentDescriptor,
-    FoundryAgentConfig,
-    FoundryConnectionInfo,
-    FoundryOrchestrationRequest,
     MCPServerConfig,
     OrchestrationPurpose,
     OrchestrationRequest,
@@ -379,101 +379,3 @@ async def mcp_orchestration(request: WorkflowRequest) -> Dict[str, Any]:
 async def erp_search(request) -> Any:
     """Search ERP via MCP server."""
     return await request.client.call_mcp_tool("erpnext", "search", request.body)
-
-
-# ── Foundry Agent Service Workflows ─────────────────────────────────────────
-
-
-@app.workflow("foundry-orchestration")
-async def foundry_orchestration(request: WorkflowRequest) -> Dict[str, Any]:
-    """Start a Foundry Agent Service managed multi-agent orchestration.
-
-    The orchestration is created and managed by the Azure AI Foundry Agent
-    Service.  Agents are registered in the Foundry project and connected via
-    conversation threads.
-
-    Request body::
-
-        {
-            "purpose": "Drive strategic growth with AI-powered analysis",
-            "model": "gpt-4o",
-            "agent_instructions": {
-                "ceo": "You are the CEO providing strategic direction.",
-                "cmo": "You are the CMO providing market insights."
-            }
-        }
-    """
-    agents = await select_c_suite_agents(request.client)
-    agent_ids = [a.agent_id for a in agents]
-    if not agent_ids:
-        raise ValueError("No agents available in the catalog")
-
-    purpose_text = request.body.get(
-        "purpose", "Drive strategic growth with AI-powered analysis"
-    )
-    model = request.body.get("model", "gpt-4o")
-    agent_instructions = request.body.get("agent_instructions", {})
-
-    agent_configs: Dict[str, FoundryAgentConfig] = {}
-    for aid in agent_ids:
-        agent_configs[aid] = FoundryAgentConfig(
-            model=model,
-            instructions=agent_instructions.get(aid, f"You are agent {aid}."),
-        )
-
-    req = FoundryOrchestrationRequest(
-        agent_ids=agent_ids,
-        purpose=OrchestrationPurpose(
-            purpose=purpose_text,
-            purpose_scope="Foundry-managed C-suite orchestration",
-        ),
-        context=request.body,
-        agent_configs=agent_configs,
-    )
-    status = await request.client.submit_foundry_orchestration(req)
-    logger.info(
-        "Foundry orchestration started: %s | agents=%s",
-        status.orchestration_id,
-        agent_ids,
-    )
-    return {
-        "orchestration_id": status.orchestration_id,
-        "status": status.status.value,
-        "managed_by": "foundry_agent_service",
-        "agents": agent_ids,
-    }
-
-
-@app.workflow("foundry-agent-create")
-async def foundry_agent_create(request: WorkflowRequest) -> Dict[str, Any]:
-    """Create an agent in the Foundry Agent Service.
-
-    Request body::
-
-        {
-            "agent_id": "analyst",
-            "model": "gpt-4o",
-            "name": "Financial Analyst",
-            "instructions": "You are a senior financial analyst."
-        }
-    """
-    result = await request.client.create_foundry_agent(
-        agent_id=request.body.get("agent_id", ""),
-        model=request.body.get("model", "gpt-4o"),
-        name=request.body.get("name", ""),
-        instructions=request.body.get("instructions", ""),
-        tools=request.body.get("tools"),
-    )
-    return result
-
-
-@app.workflow("foundry-connection")
-async def foundry_connection(request: WorkflowRequest) -> Dict[str, Any]:
-    """Get the Foundry project connection information.
-
-    Request body::
-
-        {}
-    """
-    connection = await request.client.get_foundry_connection()
-    return connection.model_dump(mode="json")

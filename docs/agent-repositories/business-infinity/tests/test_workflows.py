@@ -38,7 +38,7 @@ class TestAOSAppWorkflows:
         assert "budget-approval" in names
 
     def test_workflow_count(self):
-        assert len(app.get_workflow_names()) == 13
+        assert len(app.get_workflow_names()) == 10
 
     def test_new_workflows_registered(self):
         names = app.get_workflow_names()
@@ -50,11 +50,12 @@ class TestAOSAppWorkflows:
         assert "ask-agent" in names
         assert "mcp-orchestration" in names
 
-    def test_foundry_workflows_registered(self):
+    def test_foundry_workflows_removed(self):
+        """Foundry is internal — no separate foundry-* workflows."""
         names = app.get_workflow_names()
-        assert "foundry-orchestration" in names
-        assert "foundry-agent-create" in names
-        assert "foundry-connection" in names
+        assert "foundry-orchestration" not in names
+        assert "foundry-agent-create" not in names
+        assert "foundry-connection" not in names
 
     def test_update_handler_registered(self):
         assert "strategic-review" in app.get_update_handler_names()
