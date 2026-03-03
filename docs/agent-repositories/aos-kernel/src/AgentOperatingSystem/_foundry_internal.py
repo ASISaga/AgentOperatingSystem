@@ -24,5 +24,5 @@ def _create_foundry_service(
 
     return FoundryAgentService(
         project_client=project_client,
-        gateway_url=gateway_url or None,
+        gateway_url=gateway_url,
     )
