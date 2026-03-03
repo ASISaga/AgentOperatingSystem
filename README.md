@@ -1,8 +1,10 @@
 # Agent Operating System
 
-**Agent Orchestrations as an Infrastructure Service**
+**Agent Orchestrations as an Infrastructure Service — powered by Azure AI Foundry**
 
 The Agent Operating System (AOS) provides **agent orchestrations as an infrastructure service** to client applications. Client apps stay lean, containing only business logic, while AOS handles agent lifecycle, orchestration, messaging, storage, and monitoring.
+
+Multi-agent orchestration is managed by the **Foundry Agent Service**. Agents inheriting from `PurposeDrivenAgent` continue to run as Microsoft Agent Framework Python code inside Azure Functions (`Microsoft.Web/sites`).
 
 ## How It Works
 
@@ -17,14 +19,19 @@ The Agent Operating System (AOS) provides **agent orchestrations as an infrastru
 ┌──────────────────────────────────────────┼───────────────────────┐
 │  Agent Operating System                  ▼                       │
 │  ┌──────────────────┐  ┌────────────────────┐  ┌──────────────┐  │
-│  │ aos-function-app  │  │ aos-realm-of-      │  │ aos-mcp-     │  │
-│  │ POST /api/        │  │ agents             │  │ servers      │  │
-│  │  orchestrations   │  │ GET /api/realm/    │  │ MCP protocol │  │
-│  │ Service Bus       │  │  agents            │  │              │  │
-│  │  trigger          │  │ Agent catalog:     │  │              │  │
-│  │ POST /api/apps/   │  │  CEO · CFO · CMO   │  │              │  │
-│  │  register         │  │  COO · CTO · ...   │  │              │  │
+│  │ aos-function-app  │  │ Foundry Agent      │  │ AI Gateway   │  │
+│  │ POST /api/        │  │ Service            │  │ (APIM)       │  │
+│  │  orchestrations   │  │ AIProjectClient    │  │ Rate limiting│  │
+│  │  foundry/*        │  │ AzureAIAgent       │  │ JWT auth     │  │
+│  │ Service Bus       │  │ Thread mgmt        │  │              │  │
+│  │  trigger          │  │                    │  │              │  │
 │  └────────┬─────────┘  └────────────────────┘  └──────────────┘  │
+│           │                                                       │
+│  ┌────────▼─────────────────────────────────────────────────────┐ │
+│  │ Azure AI Foundry                                              │ │
+│  │ Hub · Project · AI Services · Connections · Model Deployments  │ │
+│  │ Entra Agent ID · Managed Identity                             │ │
+│  └──────────────────────────────────────────────────────────────┘ │
 │           │                                                       │
 │  ┌────────▼─────────────────────────────────────────────────────┐ │
 │  │ aos-kernel                                                    │ │
@@ -33,25 +40,38 @@ The Agent Operating System (AOS) provides **agent orchestrations as an infrastru
 └──────────────────────────────────────────────────────────────────┘
 ```
 
+### Azure AI Foundry Infrastructure
+
+AOS provisions the following Azure resources via Bicep:
+
+| Resource | Type | Purpose |
+|----------|------|---------|
+| AI Services | `Microsoft.CognitiveServices/accounts` | Foundation AI/ML endpoint (GPT-4o, etc.) |
+| AI Foundry Hub | `Microsoft.MachineLearningServices/workspaces` (Hub) | Central governance, connections to AI Services |
+| AI Foundry Project | `Microsoft.MachineLearningServices/workspaces` (Project) | Isolated workspace for agent registration |
+| AI Gateway | `Microsoft.ApiManagement/service` | Rate limiting, JWT validation, centralized routing |
+| Connections | Hub → AI Services (AzureOpenAI, AAD auth) | Identity-based model access |
+
 ### Example: BusinessInfinity
 
 [BusinessInfinity](https://github.com/ASISaga/business-infinity) is a lean Azure Functions app that selects C-suite agents from the RealmOfAgents catalog and runs orchestrations via AOS — with **zero boilerplate, zero agent code, and zero infrastructure code**:
 
 ```python
 # workflows.py — define business logic with @app.workflow decorators
-from aos_client import AOSApp, WorkflowRequest
+from aos_client import AOSApp, WorkflowRequest, FoundryOrchestrationRequest, OrchestrationPurpose, FoundryAgentConfig
 
 app = AOSApp(name="business-infinity")
 
-@app.workflow("strategic-review")
-async def strategic_review(request: WorkflowRequest):
+@app.workflow("foundry-orchestration")
+async def foundry_orchestration(request: WorkflowRequest):
     agents = await request.client.list_agents()
-    c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
-    return await request.client.start_orchestration(
-        agent_ids=c_suite,
-        purpose="strategic_review",
-        context=request.body,
+    agent_ids = [a.agent_id for a in agents]
+    req = FoundryOrchestrationRequest(
+        agent_ids=agent_ids,
+        purpose=OrchestrationPurpose(purpose="Drive strategic growth"),
+        agent_configs={aid: FoundryAgentConfig(model="gpt-4o") for aid in agent_ids},
     )
+    return await request.client.submit_foundry_orchestration(req)
 ```
 
 ```python
@@ -102,7 +122,7 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
 ```
                 agent_framework (Microsoft)
                        │
-                purpose-driven-agent
+                purpose-driven-agent  ──── register_with_foundry()
                     ┌──┴──┐
             leadership-agent  │
                     │         │
@@ -115,13 +135,15 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
           aos-function-app  aos-realm-of-agents  aos-mcp-servers
                     ▲
                     │
-              aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
+              aos-client-sdk ◄──────── Foundry Agent Service integration
+                    │                    AIProjectClient · AzureAIAgent
+                    │                    AIGateway · AgentIdentityProvider
                     ▲
                     │
             business-infinity ◄──────── lean client app (business logic only)
                                          function_app.py = 7 lines
 
-          aos-deployment (standalone — no AOS runtime deps)
+          aos-deployment (standalone — Bicep: AI Hub, Project, Services, Gateway)
 ```
 
 ## Quick Start
