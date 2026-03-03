@@ -43,7 +43,7 @@ func start
 
 ## Deployment
 
-Deploy via the [aos-deployment](https://github.com/ASISaga/aos-deployment) repository's orchestrator, or directly:
+Deploy via the [aos-infrastructure](https://github.com/ASISaga/aos-infrastructure) repository's orchestrator, or directly:
 
 ```bash
 func azure functionapp publish <app-name>
@@ -61,7 +61,7 @@ func azure functionapp publish <app-name>
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
 - [aos-intelligence](https://github.com/ASISaga/aos-intelligence) — ML / intelligence layer
 - [business-infinity](https://github.com/ASISaga/business-infinity) — Example client app
-- [aos-deployment](https://github.com/ASISaga/aos-deployment) — Infrastructure deployment
+- [aos-infrastructure](https://github.com/ASISaga/aos-infrastructure) — Infrastructure deployment
 
 ## License
 

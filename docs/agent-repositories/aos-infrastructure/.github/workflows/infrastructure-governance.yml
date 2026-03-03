@@ -1,0 +1,165 @@
+name: Infrastructure Governance
+
+on:
+  schedule:
+    # Run daily at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [dev, staging, prod]
+      resource_group:
+        description: 'Resource group name (leave blank for default rg-aos-<env>)'
+        required: false
+        default: ''
+      enforce_policies:
+        description: 'Assign AOS governance policies'
+        required: false
+        default: 'false'
+        type: boolean
+      check_budget:
+        description: 'Check budget status and alerts'
+        required: false
+        default: 'true'
+        type: boolean
+      review_rbac:
+        description: 'Run privileged-access review'
+        required: false
+        default: 'true'
+        type: boolean
+      required_tags:
+        description: 'Comma-separated key=value tag pairs to enforce (e.g. environment=dev,team=platform)'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  governance:
+    name: 'Governance — ${{ inputs.environment || ''dev'' }}'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r docs/agent-repositories/aos-infrastructure/deployment/orchestrator/requirements.txt
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve inputs
+        id: resolve
+        run: |
+          ENV="${{ inputs.environment || 'dev' }}"
+          RG="${{ inputs.resource_group }}"
+          [ -z "$RG" ] && RG="rg-aos-${ENV}"
+          echo "environment=$ENV" >> "$GITHUB_OUTPUT"
+          echo "resource_group=$RG" >> "$GITHUB_OUTPUT"
+
+      - name: Policy compliance evaluation
+        working-directory: docs/agent-repositories/aos-infrastructure
+        run: |
+          python - <<'EOF'
+          import sys, json
+          sys.path.insert(0, 'deployment/orchestrator')
+          from governance.policy_manager import PolicyManager
+          pm = PolicyManager('${{ steps.resolve.outputs.resource_group }}', '${{ secrets.AZURE_SUBSCRIPTION_ID }}')
+          summary = pm.evaluate_compliance()
+          print(json.dumps(summary, indent=2))
+          if summary['non_compliant'] > 0:
+              print(f"::warning::Policy: {summary['non_compliant']} non-compliant resource(s)")
+          EOF
+
+      - name: Required tag enforcement
+        if: ${{ inputs.required_tags != '' }}
+        working-directory: docs/agent-repositories/aos-infrastructure
+        run: |
+          python - <<'EOF'
+          import sys
+          sys.path.insert(0, 'deployment/orchestrator')
+          from governance.policy_manager import PolicyManager
+          tags_raw = '${{ inputs.required_tags }}'
+          tags = dict(pair.split('=', 1) for pair in tags_raw.split(',') if '=' in pair)
+          if tags:
+              pm = PolicyManager('${{ steps.resolve.outputs.resource_group }}', '${{ secrets.AZURE_SUBSCRIPTION_ID }}')
+              missing = pm.enforce_required_tags(tags)
+              for tag_key, resources in missing.items():
+                  if resources:
+                      print(f"::warning::Missing tag '{tag_key}' on: {', '.join(resources)}")
+          EOF
+
+      - name: Budget status check
+        if: ${{ inputs.check_budget == 'true' || inputs.check_budget == true }}
+        working-directory: docs/agent-repositories/aos-infrastructure
+        run: |
+          python - <<'EOF'
+          import sys
+          sys.path.insert(0, 'deployment/orchestrator')
+          from governance.cost_manager import CostManager
+          cm = CostManager('${{ steps.resolve.outputs.resource_group }}', '${{ secrets.AZURE_SUBSCRIPTION_ID }}')
+          alerts = cm.check_budget_alerts()
+          if alerts:
+              print(f"::warning::Budget alert(s): {', '.join(alerts)}")
+          EOF
+
+      - name: Privileged access review
+        if: ${{ inputs.review_rbac == 'true' || inputs.review_rbac == true }}
+        working-directory: docs/agent-repositories/aos-infrastructure
+        run: |
+          python - <<'EOF'
+          import sys
+          sys.path.insert(0, 'deployment/orchestrator')
+          from governance.rbac_manager import RbacManager
+          rm = RbacManager('${{ steps.resolve.outputs.resource_group }}', '${{ secrets.AZURE_SUBSCRIPTION_ID }}')
+          findings = rm.review_privileged_access()
+          for f in findings:
+              print(f"::warning::RBAC: {f['principal']} holds '{f['role']}' — {f['recommendation']}")
+          EOF
+
+      - name: Assign AOS governance policies
+        if: ${{ inputs.enforce_policies == 'true' || inputs.enforce_policies == true }}
+        working-directory: docs/agent-repositories/aos-infrastructure
+        run: |
+          python - <<'EOF'
+          import sys
+          sys.path.insert(0, 'deployment/orchestrator')
+          from governance.policy_manager import PolicyManager
+          pm = PolicyManager('${{ steps.resolve.outputs.resource_group }}', '${{ secrets.AZURE_SUBSCRIPTION_ID }}')
+          ok = pm.assign_aos_policies('${{ steps.resolve.outputs.environment }}')
+          if not ok:
+              print("::warning::Some policy assignments failed — check logs above")
+          EOF
+
+      - name: Governance summary
+        if: always()
+        run: |
+          echo "## 🏛️ Governance Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Check | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Environment | \`${{ steps.resolve.outputs.environment }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Resource Group | \`${{ steps.resolve.outputs.resource_group }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Policy compliance | ✅ evaluated |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Budget check | ${{ (inputs.check_budget == 'true' || inputs.check_budget == true) && '✅ checked' || '⏭️ skipped' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| RBAC review | ${{ (inputs.review_rbac == 'true' || inputs.review_rbac == true) && '✅ reviewed' || '⏭️ skipped' }} |" >> "$GITHUB_STEP_SUMMARY"

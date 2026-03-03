@@ -1,4 +1,4 @@
-# API Reference — aos-deployment
+# API Reference — aos-infrastructure
 
 ## CLI Entry Point
 

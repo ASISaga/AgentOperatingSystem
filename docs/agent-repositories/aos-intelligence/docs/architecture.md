@@ -15,7 +15,7 @@ ASISaga/
 ├── cmo-agent               ← extends leadership-agent
 ├── aos-kernel              ← OS kernel (orchestration, messaging, storage)
 ├── aos-intelligence        ← this package (ML, learning, knowledge)
-├── aos-deployment          ← infrastructure (Bicep, orchestrator)
+├── aos-infrastructure       ← infrastructure (Bicep, orchestrator)
 ├── aos-docs                ← all documentation
 ├── aos-azure-functions     ← Azure Functions hosting
 └── aos-copilot-extensions  ← GitHub Copilot skills and workflows
