@@ -8,7 +8,7 @@ Prerequisites:
     pip install aos-client-sdk[azure]
 
     AOS must be running:
-    - aos-function-app at AOS_ENDPOINT (default: http://localhost:7071)
+    - aos-dispatcher at AOS_ENDPOINT (default: http://localhost:7071)
     - aos-realm-of-agents at REALM_ENDPOINT (default: same as AOS_ENDPOINT)
 
 Option A: Use AOSApp framework (recommended for Azure Functions)

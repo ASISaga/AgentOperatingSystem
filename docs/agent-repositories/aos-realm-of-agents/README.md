@@ -58,7 +58,7 @@ func start
 ## Related Repositories
 
 - [aos-client-sdk](https://github.com/ASISaga/aos-client-sdk) — Client SDK for browsing agents
-- [aos-function-app](https://github.com/ASISaga/aos-function-app) — Orchestration API
+- [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) — Orchestration API
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
 - [business-infinity](https://github.com/ASISaga/business-infinity) — Example client app
 - [purpose-driven-agent](https://github.com/ASISaga/purpose-driven-agent) — Agent base class

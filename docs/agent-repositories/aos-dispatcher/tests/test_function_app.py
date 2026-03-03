@@ -1,4 +1,4 @@
-"""Tests for the AOS Azure Function app.
+"""Tests for the AOS Dispatcher.
 
 Tests the orchestration API, Service Bus trigger, and app registration endpoints.
 """

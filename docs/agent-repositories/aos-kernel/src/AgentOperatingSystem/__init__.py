@@ -10,7 +10,7 @@ Core components:
 - :class:`FoundryOrchestrationEngine` — orchestration via Foundry threads/runs
 - :class:`FoundryMessageBridge` — bidirectional PDA ↔ Foundry messaging
 
-Multi-LoRA components (require ``aos-intelligence`` to be installed):
+Multi-LoRA components (from ``aos-intelligence``):
 
 - :class:`~aos_intelligence.ml.LoRAAdapterRegistry`
 - :class:`~aos_intelligence.ml.LoRAInferenceClient`
@@ -24,6 +24,7 @@ from AgentOperatingSystem.config import KernelConfig
 from AgentOperatingSystem.agents import FoundryAgentManager
 from AgentOperatingSystem.orchestration import FoundryOrchestrationEngine
 from AgentOperatingSystem.messaging import FoundryMessageBridge
+from aos_intelligence.ml import LoRAAdapterRegistry, LoRAInferenceClient, LoRAOrchestrationRouter
 
 __all__ = [
     "AgentOperatingSystem",
@@ -31,11 +32,7 @@ __all__ = [
     "FoundryAgentManager",
     "FoundryOrchestrationEngine",
     "FoundryMessageBridge",
+    "LoRAAdapterRegistry",
+    "LoRAInferenceClient",
+    "LoRAOrchestrationRouter",
 ]
-
-# Re-export LoRA classes when aos-intelligence is available
-try:
-    from aos_intelligence.ml import LoRAAdapterRegistry, LoRAInferenceClient, LoRAOrchestrationRouter
-    __all__ += ["LoRAAdapterRegistry", "LoRAInferenceClient", "LoRAOrchestrationRouter"]
-except ImportError:  # pragma: no cover
-    pass

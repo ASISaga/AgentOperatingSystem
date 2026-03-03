@@ -1,4 +1,4 @@
-# aos-function-app Architecture
+# aos-dispatcher Architecture
 
 ## Overview
 

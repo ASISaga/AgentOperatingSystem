@@ -2,8 +2,9 @@
 ML Pipeline Operations for AgentOperatingSystem (AOS)
 
 Provides wrappers to trigger ML pipeline actions from agents or teams.
-Uses the new LoRA classes for Azure-based inference and falls back
-gracefully when optional Azure ML SDK components are not installed.
+Uses the new LoRA classes for Azure-based inference (requires azure-ai-ml
+and azure-identity to be installed — available in the [foundry] extras of
+aos-intelligence).
 """
 from typing import Any, Dict
 import logging
@@ -16,61 +17,54 @@ async def trigger_lora_training(training_params: Dict[str, Any], adapters: list)
     Trigger LoRA adapter training using Azure ML.
 
     Args:
-        training_params: Dict with model_name, data_path, output_dir, etc.
+        training_params: Dict with required keys: subscription_id, resource_group,
+            workspace_name. Optional: code_path, command, environment, compute_target,
+            output_dir.
         adapters: List of adapter config dicts
 
     Returns:
         str: Status message
     """
-    try:
-        from azure.ai.ml import MLClient  # type: ignore[import]
-        from azure.identity import DefaultAzureCredential  # type: ignore[import]
+    required = ("subscription_id", "resource_group", "workspace_name")
+    missing = [k for k in required if not training_params.get(k)]
+    if missing:
+        raise ValueError(f"trigger_lora_training: missing required training_params keys: {missing}")
 
-        ml_client = MLClient(
-            credential=DefaultAzureCredential(),
-            subscription_id=training_params.get("subscription_id", ""),
-            resource_group_name=training_params.get("resource_group", ""),
-            workspace_name=training_params.get("workspace_name", ""),
-        )
-        # Submit a command job for LoRA fine-tuning
-        from azure.ai.ml import command  # type: ignore[import]
-        job = command(
-            code=training_params.get("code_path", "."),
-            command=training_params.get("command", "python train_lora.py"),
-            environment=training_params.get("environment", "azureml:AzureML-ACPT-PyTorch-2.2-cuda12.1:1"),
-            compute=training_params.get("compute_target", "gpu-cluster"),
-            outputs={"model": {"type": "uri_folder", "path": training_params.get("output_dir", "outputs")}},
-        )
-        submitted = ml_client.jobs.create_or_update(job)
-        return f"LoRA training job submitted: {submitted.name}"
-    except ImportError:
-        return "Azure ML SDK not available — install azure-ai-ml to enable cloud training"
-    except Exception as exc:
-        logger.error("LoRA training failed: %s", exc)
-        raise
+    from azure.ai.ml import MLClient, command  # type: ignore[import]
+    from azure.identity import DefaultAzureCredential  # type: ignore[import]
+
+    ml_client = MLClient(
+        credential=DefaultAzureCredential(),
+        subscription_id=training_params["subscription_id"],
+        resource_group_name=training_params["resource_group"],
+        workspace_name=training_params["workspace_name"],
+    )
+    job = command(
+        code=training_params.get("code_path", "."),
+        command=training_params.get("command", "python train_lora.py"),
+        environment=training_params.get("environment", "azureml:AzureML-ACPT-PyTorch-2.2-cuda12.1:1"),
+        compute=training_params.get("compute_target", "gpu-cluster"),
+        outputs={"model": {"type": "uri_folder", "path": training_params.get("output_dir", "outputs")}},
+    )
+    submitted = ml_client.jobs.create_or_update(job)
+    return f"LoRA training job submitted: {submitted.name}"
 
 
 async def run_azure_ml_pipeline(subscription_id: str, resource_group: str, workspace_name: str) -> str:
     """
     Run the full Azure ML LoRA pipeline (provision compute, train, register).
     """
-    try:
-        from azure.ai.ml import MLClient  # type: ignore[import]
-        from azure.identity import DefaultAzureCredential  # type: ignore[import]
+    from azure.ai.ml import MLClient  # type: ignore[import]
+    from azure.identity import DefaultAzureCredential  # type: ignore[import]
 
-        ml_client = MLClient(
-            credential=DefaultAzureCredential(),
-            subscription_id=subscription_id,
-            resource_group_name=resource_group,
-            workspace_name=workspace_name,
-        )
-        logger.info("Azure ML client connected to workspace %s", workspace_name)
-        return f"Azure ML pipeline executed for workspace {workspace_name}"
-    except ImportError:
-        return "Azure ML SDK not available — install azure-ai-ml to enable cloud pipelines"
-    except Exception as exc:
-        logger.error("Azure ML pipeline failed: %s", exc)
-        raise
+    ml_client = MLClient(
+        credential=DefaultAzureCredential(),
+        subscription_id=subscription_id,
+        resource_group_name=resource_group,
+        workspace_name=workspace_name,
+    )
+    logger.info("Azure ML client connected to workspace %s", workspace_name)
+    return f"Azure ML pipeline executed for workspace {workspace_name}"
 
 
 async def aml_infer(agent_id: str, prompt: str) -> Any:

@@ -42,6 +42,7 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.51b0",
     "agent-framework>=1.0.0rc1",
     "agent-framework-orchestrations>=1.0.0b260219",
+    "aos-intelligence>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -60,7 +61,6 @@ azure = [
 ]
 full = [
     "aos-kernel[azure]",
-    "aos-intelligence>=1.0.0",
 ]
 dev = [
     "pytest>=8.0.0",

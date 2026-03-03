@@ -52,7 +52,7 @@ param appNames array = [
   'aos-mcp-servers'
   'aos-client-sdk'
   'business-infinity'
-  'aos-function-app'
+  'aos-dispatcher'
 ]
 
 // ====================================================================
@@ -65,7 +65,7 @@ var uniqueSuffix = uniqueString(resourceGroup().id, projectName, environment)
 // Core AOS orchestration hub — its URL is injected into every module's env vars for peer discovery.
 // The hostname follows the same naming formula used in functionapp.bicep:
 //   func-{appName}-{environment}-{take(uniqueSuffix,6)}.azurewebsites.net
-var coreAppName = 'aos-function-app'
+var coreAppName = 'aos-dispatcher'
 var coreAppUrl = 'https://func-${coreAppName}-${environment}-${take(uniqueSuffix, 6)}.azurewebsites.net'
 
 // ====================================================================

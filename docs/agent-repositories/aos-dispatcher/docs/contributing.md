@@ -1,4 +1,4 @@
-# Contributing to aos-function-app
+# Contributing to aos-dispatcher
 
 Thank you for your interest in contributing!  This guide covers everything you
 need to set up the development environment, write tests, run linting, and
@@ -32,8 +32,8 @@ submit a pull request.
 
 ```bash
 # 1. Fork and clone
-git clone https://github.com/<your-fork>/aos-function-app.git
-cd aos-function-app
+git clone https://github.com/<your-fork>/aos-dispatcher.git
+cd aos-dispatcher
 
 # 2. Create a virtual environment
 python -m venv .venv
@@ -51,7 +51,7 @@ func start
 ## Project Structure
 
 ```
-aos-function-app/
+aos-dispatcher/
 ├── src/
 │   ├── function_app.py     # Main Azure Functions entry point
 │   └── host.json           # Azure Functions host configuration
@@ -166,6 +166,6 @@ Before submitting:
 
 ## Getting Help
 
-- Open a [GitHub Issue](https://github.com/ASISaga/aos-function-app/issues)
+- Open a [GitHub Issue](https://github.com/ASISaga/aos-dispatcher/issues)
 - Join the discussion in
   [ASISaga/AgentOperatingSystem](https://github.com/ASISaga/AgentOperatingSystem/discussions)

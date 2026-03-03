@@ -73,5 +73,5 @@ process in detail.
 ## Related Repositories
 
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
-- [aos-function-app](https://github.com/ASISaga/aos-function-app) — Main function app
+- [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) — Main function app
 - [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) — MCPServers
