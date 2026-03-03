@@ -2,8 +2,16 @@
 
 ``InfrastructureManager`` is the single orchestration class that every CLI
 subcommand delegates to.  Each public method maps 1-to-1 with a user-facing
-action (deploy, plan, status, monitor, troubleshoot, delete, list_resources)
-and internally shells out to ``az`` via :func:`subprocess.run`.
+action (deploy, plan, status, monitor, troubleshoot, delete, list_resources,
+govern, reliability_check) and internally shells out to ``az`` via
+:func:`subprocess.run`.
+
+The manager is organised around three lifecycle pillars:
+
+* **Governance** — policy enforcement, cost management, RBAC access review
+* **Automation** — lint → validate → what-if → deploy pipeline with retry
+* **Reliability** — drift detection, enhanced health checks, SLA compliance,
+  and DR readiness assessment
 
 All mutating operations are audit-logged to JSON files under
 ``deployment/audit/``.
@@ -20,6 +28,11 @@ from pathlib import Path
 from typing import Any
 
 from orchestrator.core.config import DeploymentConfig
+from orchestrator.governance.cost_manager import CostManager
+from orchestrator.governance.policy_manager import PolicyManager
+from orchestrator.governance.rbac_manager import RbacManager
+from orchestrator.reliability.drift_detector import DriftDetector
+from orchestrator.reliability.health_monitor import HealthMonitor, HealthStatus
 
 _AUDIT_DIR = Path(__file__).resolve().parent.parent.parent / "audit"
 
@@ -36,7 +49,11 @@ class InfrastructureManager:
     # ------------------------------------------------------------------
 
     def deploy(self) -> bool:
-        """Full deployment pipeline: lint → validate → what-if → deploy → health-check."""
+        """Full deployment pipeline: lint → validate → what-if → deploy → health-check.
+
+        When governance or reliability settings are enabled in the config,
+        the appropriate post-deployment lifecycle steps are also executed.
+        """
         print(f"🚀 Starting deployment to {self.config.resource_group} "
               f"({self.config.environment}) in {self.config.location}")
 
@@ -62,6 +79,16 @@ class InfrastructureManager:
                     self._audit("deploy", {"step": label, "status": "failed"})
                     return False
             print(f"✅ {label} succeeded")
+
+        # --- Post-deploy lifecycle pillars ---
+        # Governance and reliability hooks are advisory: their findings are
+        # audit-logged and printed, but they do not fail the deployment itself.
+        # To gate deployments on pillar results, call govern() / reliability_check()
+        # as separate pipeline steps with explicit failure conditions.
+        if self.config.governance.enforce_policies:
+            self._run_governance_pillar()
+        if self.config.reliability.enable_drift_detection or self.config.reliability.check_dr_readiness:
+            self._run_reliability_pillar()
 
         self._audit("deploy", {"status": "success"})
         print("\n✅ Deployment completed successfully")
@@ -207,6 +234,120 @@ class InfrastructureManager:
             state = res.get("provisioningState", "N/A")
             print(f"  {name} ({rtype}) — {loc} [{state}]")
         return True
+
+    # ------------------------------------------------------------------
+    # Governance pillar — public entrypoint
+    # ------------------------------------------------------------------
+
+    def govern(self) -> bool:
+        """Run the full Governance lifecycle pillar.
+
+        Executes in order:
+        1. Policy compliance evaluation
+        2. Required-tag enforcement (when configured)
+        3. Budget status check (when configured)
+        4. Privileged-access review (when configured)
+
+        Returns ``True`` when all checks pass (or produce only warnings).
+        """
+        print(f"\n{'=' * 60}")
+        print("  Pillar: Governance")
+        print(f"{'=' * 60}")
+        return self._run_governance_pillar()
+
+    # ------------------------------------------------------------------
+    # Reliability pillar — public entrypoint
+    # ------------------------------------------------------------------
+
+    def reliability_check(self) -> bool:
+        """Run the full Reliability lifecycle pillar.
+
+        Executes in order:
+        1. Enhanced health monitoring with SLA compliance
+        2. Drift detection (template what-if or manifest comparison)
+        3. DR readiness assessment (when configured)
+
+        Returns ``True`` when the environment is healthy and SLA-compliant.
+        """
+        print(f"\n{'=' * 60}")
+        print("  Pillar: Reliability")
+        print(f"{'=' * 60}")
+        return self._run_reliability_pillar()
+
+    # ------------------------------------------------------------------
+    # Private helpers — three-pillar lifecycle
+    # ------------------------------------------------------------------
+
+    def _run_governance_pillar(self) -> bool:
+        """Execute the Governance pillar steps."""
+        gov = self.config.governance
+        pm = PolicyManager(self.config.resource_group, self.config.subscription_id)
+        cm = CostManager(self.config.resource_group, self.config.subscription_id)
+
+        all_ok = True
+
+        # 1. Policy compliance
+        summary = pm.evaluate_compliance()
+        if summary["non_compliant"] > 0:
+            print(f"  ⚠️  {summary['non_compliant']} non-compliant policy state(s)")
+            all_ok = False
+
+        # 2. Required tag enforcement
+        if gov.required_tags:
+            missing = pm.enforce_required_tags(gov.required_tags)
+            if any(missing.values()):
+                all_ok = False
+
+        # 3. Budget status
+        if gov.budget_amount > 0:
+            alerts = cm.check_budget_alerts()
+            if alerts:
+                print(f"  ⚠️  Budget alert(s): {', '.join(alerts)}")
+
+        # 4. RBAC access review
+        if gov.review_rbac:
+            rm = RbacManager(self.config.resource_group, self.config.subscription_id)
+            findings = rm.review_privileged_access()
+            if findings:
+                print(f"  ⚠️  {len(findings)} privileged-access finding(s)")
+
+        self._audit("govern", {"status": "ok" if all_ok else "warnings", **summary})
+        return all_ok
+
+    def _run_reliability_pillar(self) -> bool:
+        """Execute the Reliability pillar steps."""
+        rel = self.config.reliability
+        hm = HealthMonitor(self.config.resource_group, self.config.environment)
+        dd = DriftDetector(self.config.resource_group)
+
+        # 1. Health + SLA compliance
+        overall, _ = hm.check_all()
+        sla = hm.check_sla_compliance()
+        healthy = overall in (HealthStatus.HEALTHY, HealthStatus.DEGRADED)
+
+        # 2. Drift detection
+        drift_findings: list[Any] = []
+        if rel.enable_drift_detection:
+            if rel.drift_manifest:
+                drift_findings = dd.detect_drift_from_manifest(rel.drift_manifest)
+            elif self.config.template:
+                drift_findings = dd.detect_drift(
+                    self.config.template,
+                    self.config.parameters_file,
+                )
+
+        # 3. DR readiness
+        dr: dict[str, Any] = {}
+        if rel.check_dr_readiness:
+            dr = hm.check_disaster_recovery_readiness()
+
+        self._audit("reliability", {
+            "health": overall.value,
+            "sla_compliant": sla["compliant"],
+            "drift_findings": len(drift_findings),
+            "dr_ready": dr.get("ready", None),
+        })
+        return healthy and sla["compliant"]
 
     # ------------------------------------------------------------------
     # Private helpers — deployment pipeline

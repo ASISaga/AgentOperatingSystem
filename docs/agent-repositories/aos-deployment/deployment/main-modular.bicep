@@ -41,6 +41,24 @@ param tags object = {
 @description('GitHub organization or user name that owns the AOS repositories (e.g. ASISaga). Used to construct the OIDC subject for Workload Identity Federation.')
 param githubOrg string = 'ASISaga'
 
+@description('Enable AOS governance policy assignments (allowed locations, HTTPS storage, KV soft-delete).')
+param enableGovernancePolicies bool = true
+
+@description('List of allowed Azure locations enforced by the Governance policy module.')
+param governanceAllowedLocations array = [
+  'eastus'
+  'eastus2'
+  'westus2'
+  'westeurope'
+  'northeurope'
+]
+
+@description('Monthly budget limit in the subscription currency (0 = disabled).')
+param monthlyBudgetAmount int = 0
+
+@description('Email addresses notified when the budget crosses an alert threshold.')
+param budgetAlertEmails array = []
+
 @description('List of AOS application module names — one dedicated Flex Consumption plan and Function App is created per entry. These are the 10 canonical AOS repository modules; override only when adding or retiring a module.')
 param appNames array = [
   'purpose-driven-agent'
@@ -225,6 +243,26 @@ module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
   }
 }]
 
+// ── Governance: Policy assignments ──────────────────────────────────────────
+module governancePolicy 'modules/policy.bicep' = if (enableGovernancePolicies) {
+  name: 'governance-policy-${suffix}'
+  params: {
+    environment: environment
+    location: location
+    allowedLocations: governanceAllowedLocations
+  }
+}
+
+// ── Governance: Cost Management budget ──────────────────────────────────────
+module governanceBudget 'modules/budget.bicep' = if (monthlyBudgetAmount > 0) {
+  name: 'governance-budget-${suffix}'
+  params: {
+    environment: environment
+    budgetAmount: monthlyBudgetAmount
+    contactEmails: budgetAlertEmails
+  }
+}
+
 // ====================================================================
 // Outputs
 // ====================================================================
@@ -250,3 +288,6 @@ output aiGatewayUrl string = aiGateway.outputs.gatewayUrl
 output modelRegistryName string = modelRegistry.outputs.registryName
 output loraInferenceEndpointName string = loraInference.outputs.endpointName
 output loraInferenceScoringUri string = loraInference.outputs.scoringUri
+// Governance outputs
+output governancePoliciesEnabled bool = enableGovernancePolicies
+output budgetEnabled bool = monthlyBudgetAmount > 0

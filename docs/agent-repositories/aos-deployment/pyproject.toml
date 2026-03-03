@@ -4,8 +4,8 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "aos-deployment"
-version = "3.0.0"
-description = "Infrastructure deployment for the Agent Operating System — Bicep, orchestrator, regional validation"
+version = "4.0.0"
+description = "Azure infrastructure lifecycle manager for the Agent Operating System — Governance, Automation, and Reliability"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
