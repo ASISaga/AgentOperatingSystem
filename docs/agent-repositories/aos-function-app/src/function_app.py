@@ -4,11 +4,20 @@ Exposes AOS orchestration capabilities and enterprise services as HTTP
 endpoints and Azure Service Bus triggers.  Client applications use the
 aos-client-sdk to interact with these endpoints.
 
+Multi-agent orchestration is managed by the Foundry Agent Service (v6.0.0).
+Agents inheriting from PurposeDrivenAgent continue to run as Azure Functions.
+
 Endpoints — Orchestrations:
     POST /api/orchestrations              Submit an orchestration request
     GET  /api/orchestrations/{id}         Poll orchestration status
     GET  /api/orchestrations/{id}/result  Retrieve completed result
     POST /api/orchestrations/{id}/cancel  Cancel a running orchestration
+
+Endpoints — Foundry Agent Service:
+    GET  /api/foundry/connection           Get Foundry project connection info
+    POST /api/foundry/orchestrations       Submit Foundry-managed orchestration
+    POST /api/foundry/agents               Create a Foundry agent
+    GET  /api/foundry/agents               List Foundry agents
 
 Endpoints — Knowledge Base:
     POST /api/knowledge/documents         Create a document
@@ -97,6 +106,8 @@ _kpis: Dict[str, Dict[str, Any]] = {}
 _mcp_servers: Dict[str, Dict[str, Any]] = {}
 _networks: Dict[str, Dict[str, Any]] = {}
 _network_memberships: Dict[str, Dict[str, Any]] = {}
+_foundry_agents: Dict[str, Dict[str, Any]] = {}
+_foundry_orchestrations: Dict[str, Dict[str, Any]] = {}
 
 
 # ── HTTP Endpoints — Orchestrations ──────────────────────────────────────────
@@ -868,6 +879,93 @@ async def list_networks(req: func.HttpRequest) -> func.HttpResponse:
     """List available networks."""
     return func.HttpResponse(
         json.dumps({"networks": list(_networks.values())}),
+        mimetype="application/json",
+    )
+
+
+# ── Foundry Agent Service Endpoints ──────────────────────────────────────────
+
+
+@app.function_name("get_foundry_connection")
+@app.route(route="foundry/connection", methods=["GET"])
+async def get_foundry_connection(req: func.HttpRequest) -> func.HttpResponse:
+    """Return Foundry project connection information."""
+    connection_info = {
+        "project_endpoint": os.environ.get("FOUNDRY_PROJECT_ENDPOINT", ""),
+        "gateway_url": os.environ.get("AI_GATEWAY_URL", ""),
+        "tenant_id": os.environ.get("AZURE_TENANT_ID", ""),
+    }
+    return func.HttpResponse(json.dumps(connection_info), mimetype="application/json")
+
+
+@app.function_name("submit_foundry_orchestration")
+@app.route(route="foundry/orchestrations", methods=["POST"])
+async def submit_foundry_orchestration(req: func.HttpRequest) -> func.HttpResponse:
+    """Submit a Foundry-managed multi-agent orchestration."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+
+    orch_id = body.get("orchestration_id") or str(uuid.uuid4())
+    agent_ids = body.get("agent_ids", [])
+    purpose = body.get("purpose", {})
+    context = body.get("context", {})
+    agent_configs = body.get("agent_configs", {})
+
+    record = {
+        "orchestration_id": orch_id,
+        "agent_ids": agent_ids,
+        "purpose": purpose.get("purpose", "") if isinstance(purpose, dict) else str(purpose),
+        "context": context,
+        "agent_configs": agent_configs,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "managed_by": "foundry_agent_service",
+    }
+    _foundry_orchestrations[orch_id] = record
+
+    return func.HttpResponse(
+        json.dumps({
+            "orchestration_id": orch_id,
+            "status": "pending",
+            "agent_ids": agent_ids,
+            "purpose": record["purpose"],
+        }),
+        mimetype="application/json",
+    )
+
+
+@app.function_name("create_foundry_agent")
+@app.route(route="foundry/agents", methods=["POST"])
+async def create_foundry_agent(req: func.HttpRequest) -> func.HttpResponse:
+    """Create an agent in the Foundry Agent Service."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+
+    agent_id = body.get("agent_id") or str(uuid.uuid4())
+    record = {
+        "agent_id": agent_id,
+        "model": body.get("model", "gpt-4o"),
+        "name": body.get("name", agent_id),
+        "instructions": body.get("instructions", ""),
+        "tools": body.get("tools", []),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "managed_by": "foundry_agent_service",
+    }
+    _foundry_agents[agent_id] = record
+    return func.HttpResponse(json.dumps(record), mimetype="application/json")
+
+
+@app.function_name("list_foundry_agents")
+@app.route(route="foundry/agents", methods=["GET"])
+async def list_foundry_agents(req: func.HttpRequest) -> func.HttpResponse:
+    """List agents registered in the Foundry Agent Service."""
+    return func.HttpResponse(
+        json.dumps({"agents": list(_foundry_agents.values())}),
         mimetype="application/json",
     )
 
