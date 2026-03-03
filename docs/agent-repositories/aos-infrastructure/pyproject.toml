@@ -23,5 +23,10 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["deployment/tests"]
 
+[project.urls]
+Homepage = "https://github.com/ASISaga/aos-infrastructure"
+Documentation = "https://github.com/ASISaga/aos-infrastructure/tree/main/docs"
+Repository = "https://github.com/ASISaga/aos-infrastructure"
+
 [tool.pylint.main]
 max-line-length = 120

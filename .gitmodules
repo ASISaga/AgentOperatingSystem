@@ -14,17 +14,17 @@ url = https://github.com/ASISaga/cmo-agent.git
 path = aos-kernel
 url = https://github.com/ASISaga/aos-kernel.git
 
-[submodule "aos-deployment"]
-path = aos-deployment
-url = https://github.com/ASISaga/aos-deployment.git
+[submodule "aos-infrastructure"]
+path = aos-infrastructure
+url = https://github.com/ASISaga/aos-infrastructure.git
 
 [submodule "aos-intelligence"]
 path = aos-intelligence
 url = https://github.com/ASISaga/aos-intelligence.git
 
-[submodule "aos-function-app"]
-path = aos-function-app
-url = https://github.com/ASISaga/aos-function-app.git
+[submodule "aos-dispatcher"]
+path = aos-dispatcher
+url = https://github.com/ASISaga/aos-dispatcher.git
 
 [submodule "aos-realm-of-agents"]
 path = aos-realm-of-agents
