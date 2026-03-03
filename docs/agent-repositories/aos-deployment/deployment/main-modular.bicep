@@ -190,6 +190,10 @@ module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
     coreAppUrl: coreAppUrl
     githubOrg: githubOrg
     githubEnvironment: environment
+    // Foundry Agent Service — project endpoint and AI Gateway URL
+    foundryProjectEndpoint: aiProject.outputs.projectDiscoveryUrl
+    aiGatewayUrl: aiGateway.outputs.gatewayUrl
+    aiServicesAccountId: aiServices.outputs.accountId
   }
 }]
 

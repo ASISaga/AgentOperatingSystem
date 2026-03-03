@@ -52,8 +52,10 @@ Endpoints — MCP:
     GET  /api/mcp/servers/{s}/status      Get MCP server status
 
 Endpoints — Agents:
+    POST /api/agents/register             Register a PurposeDrivenAgent with Foundry
     POST /api/agents/{id}/ask             Ask an agent
     POST /api/agents/{id}/send            Send to an agent
+    POST /api/agents/{id}/message         Send message via Foundry bridge
 
 Endpoints — Network:
     POST /api/network/discover            Discover peers
@@ -843,6 +845,93 @@ async def ask_agent(req: func.HttpRequest) -> func.HttpResponse:
 async def send_to_agent(req: func.HttpRequest) -> func.HttpResponse:
     """Fire-and-forget message to an agent."""
     return func.HttpResponse(status_code=202)
+
+
+@app.function_name("register_agent")
+@app.route(route="agents/register", methods=["POST"])
+async def register_agent(req: func.HttpRequest) -> func.HttpResponse:
+    """Register a PurposeDrivenAgent with the Foundry Agent Service.
+
+    Request body::
+
+        {
+            "agent_id": "ceo",
+            "purpose": "Strategic leadership and executive decision-making",
+            "name": "CEO Agent",
+            "adapter_name": "leadership",
+            "capabilities": ["strategic_planning", "decision_making"],
+            "model": "gpt-4o"
+        }
+    """
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+
+    agent_id = body.get("agent_id", "")
+    if not agent_id:
+        return _json_error("agent_id is required", 400)
+
+    now = datetime.now(timezone.utc).isoformat()
+    record = {
+        "agent_id": agent_id,
+        "foundry_agent_id": body.get("foundry_agent_id", str(uuid.uuid4())),
+        "name": body.get("name", agent_id),
+        "purpose": body.get("purpose", ""),
+        "adapter_name": body.get("adapter_name", ""),
+        "capabilities": body.get("capabilities", []),
+        "model": body.get("model", "gpt-4o"),
+        "tools": body.get("tools", []),
+        "registered_at": now,
+        "managed_by": "foundry_agent_service",
+    }
+    _foundry_agents[agent_id] = record
+    logger.info("Registered agent %s with Foundry Agent Service", agent_id)
+    return func.HttpResponse(json.dumps(record), mimetype="application/json")
+
+
+@app.function_name("message_agent")
+@app.route(route="agents/{agent_id}/message", methods=["POST"])
+async def message_agent(req: func.HttpRequest) -> func.HttpResponse:
+    """Send a message to a PurposeDrivenAgent via the Foundry message bridge.
+
+    Request body::
+
+        {
+            "message": "What is the strategic direction?",
+            "orchestration_id": "optional-orch-id",
+            "direction": "foundry_to_agent"
+        }
+    """
+    agent_id = req.route_params.get("agent_id", "")
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_error("Invalid JSON body", 400)
+
+    message = body.get("message", "")
+    if not message:
+        return _json_error("message is required", 400)
+
+    now = datetime.now(timezone.utc).isoformat()
+    direction = body.get("direction", "foundry_to_agent")
+    record = {
+        "message_id": str(uuid.uuid4()),
+        "agent_id": agent_id,
+        "orchestration_id": body.get("orchestration_id"),
+        "content": message,
+        "direction": direction,
+        "status": "delivered" if direction == "foundry_to_agent" else "sent",
+        "timestamp": now,
+        "managed_by": "foundry_agent_service",
+    }
+    logger.info(
+        "Message %s bridged: %s → agent %s",
+        record["message_id"],
+        direction,
+        agent_id,
+    )
+    return func.HttpResponse(json.dumps(record), mimetype="application/json")
 
 
 # ── Network Discovery Endpoints ─────────────────────────────────────────────
