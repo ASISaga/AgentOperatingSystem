@@ -138,6 +138,8 @@ class AOSApp:
         enable_service_bus: bool = True,
         observability: Optional[Any] = None,
         mode: Optional[str] = None,
+        foundry_project_endpoint: Optional[str] = None,
+        gateway_url: Optional[str] = None,
     ) -> None:
         self.name = name
         self.aos_endpoint = aos_endpoint or os.environ.get("AOS_ENDPOINT", "http://localhost:7071")
@@ -147,6 +149,10 @@ class AOSApp:
         self.enable_service_bus = enable_service_bus
         self.observability = observability
         self.mode = mode
+        self.foundry_project_endpoint = foundry_project_endpoint or os.environ.get(
+            "FOUNDRY_PROJECT_ENDPOINT"
+        )
+        self.gateway_url = gateway_url or os.environ.get("AI_GATEWAY_URL")
 
         self._workflows: Dict[str, _WorkflowRegistration] = {}
         self._update_handlers: Dict[str, Callable] = {}

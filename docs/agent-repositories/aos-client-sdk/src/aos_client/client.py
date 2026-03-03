@@ -35,6 +35,8 @@ from aos_client.models import (
     Dashboard,
     DecisionRecord,
     Document,
+    FoundryConnectionInfo,
+    FoundryOrchestrationRequest,
     KPI,
     MCPServer,
     MCPServerStatus,
@@ -617,6 +619,84 @@ class AOSClient:
     async def send_to_agent(self, agent_id: str, message: dict) -> None:
         """Send a fire-and-forget message to an agent."""
         await self._post(f"{self.endpoint}/api/agents/{agent_id}/send", json=message)
+
+    # ------------------------------------------------------------------
+    # Foundry Agent Service API
+    # ------------------------------------------------------------------
+
+    async def submit_foundry_orchestration(
+        self,
+        request: FoundryOrchestrationRequest,
+    ) -> OrchestrationStatus:
+        """Submit a Foundry-managed multi-agent orchestration.
+
+        The orchestration is created and managed by the Azure AI Foundry
+        Agent Service.  Agents are registered in the Foundry project and
+        connected via conversation threads.
+
+        Args:
+            request: Foundry orchestration request with agent configs.
+
+        Returns:
+            Initial :class:`OrchestrationStatus`.
+        """
+        if request.orchestration_id is None:
+            request.orchestration_id = str(uuid.uuid4())
+
+        data = await self._post(
+            f"{self.endpoint}/api/foundry/orchestrations",
+            json=request.model_dump(mode="json"),
+        )
+        return OrchestrationStatus(**data)
+
+    async def get_foundry_connection(self) -> FoundryConnectionInfo:
+        """Get the Foundry project connection information from AOS.
+
+        Returns:
+            :class:`FoundryConnectionInfo` with project endpoint and gateway URL.
+        """
+        data = await self._get(f"{self.endpoint}/api/foundry/connection")
+        return FoundryConnectionInfo(**data)
+
+    async def list_foundry_agents(self) -> List[dict]:
+        """List agents registered in the Foundry Agent Service.
+
+        Returns:
+            List of agent information dictionaries.
+        """
+        data = await self._get(f"{self.endpoint}/api/foundry/agents")
+        return data.get("agents", [])
+
+    async def create_foundry_agent(
+        self,
+        agent_id: str,
+        model: str = "gpt-4o",
+        name: str = "",
+        instructions: str = "",
+        tools: Optional[List[dict]] = None,
+    ) -> dict:
+        """Create an agent in the Foundry Agent Service.
+
+        Args:
+            agent_id: Unique agent identifier.
+            model: Model deployment name.
+            name: Human-readable agent name.
+            instructions: System-level instructions.
+            tools: Optional tool definitions.
+
+        Returns:
+            Agent information dictionary.
+        """
+        payload: Dict[str, Any] = {
+            "agent_id": agent_id,
+            "model": model,
+            "name": name or agent_id,
+            "instructions": instructions,
+        }
+        if tools:
+            payload["tools"] = tools
+        data = await self._post(f"{self.endpoint}/api/foundry/agents", json=payload)
+        return data
 
     # ------------------------------------------------------------------
     # Network Discovery API

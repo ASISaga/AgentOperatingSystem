@@ -457,3 +457,53 @@ class Network(BaseModel):
     description: str = Field(default="", description="Network description")
     members: List[str] = Field(default_factory=list, description="Member application identifiers")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Network metadata")
+
+
+# ---------------------------------------------------------------------------
+# Foundry Agent Service models
+# ---------------------------------------------------------------------------
+
+
+class FoundryAgentConfig(BaseModel):
+    """Configuration for registering an agent with Foundry Agent Service.
+
+    Used when submitting orchestration requests to specify how each agent
+    should be created or looked up within the Azure AI Foundry project.
+    """
+
+    model: str = Field(default="gpt-4o", description="Model deployment name")
+    instructions: str = Field(default="", description="System-level instructions for the agent")
+    tools: List[Dict[str, Any]] = Field(default_factory=list, description="Tool definitions")
+    tool_resources: Dict[str, Any] = Field(default_factory=dict, description="Resources required by tools")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Agent metadata")
+
+
+class FoundryOrchestrationRequest(BaseModel):
+    """Request to start a Foundry-managed multi-agent orchestration.
+
+    Extends the standard orchestration concept with Foundry-specific
+    configuration for agent registration and thread management.
+    """
+
+    orchestration_id: Optional[str] = Field(None, description="Client-supplied ID (auto-generated if omitted)")
+    agent_ids: List[str] = Field(..., min_length=1, description="Agent IDs to include")
+    purpose: OrchestrationPurpose = Field(..., description="Overarching orchestration purpose")
+    context: Dict[str, Any] = Field(default_factory=dict, description="Initial context data")
+    agent_configs: Dict[str, FoundryAgentConfig] = Field(
+        default_factory=dict,
+        description="Per-agent Foundry configuration (agent_id → FoundryAgentConfig)",
+    )
+    mcp_servers: Dict[str, List[MCPServerConfig]] = Field(
+        default_factory=dict,
+        description="Per-agent MCP server selection",
+    )
+
+
+class FoundryConnectionInfo(BaseModel):
+    """Connection information for an Azure AI Foundry project."""
+
+    project_endpoint: str = Field(..., description="AI Foundry project discovery URL")
+    gateway_url: Optional[str] = Field(None, description="AI Gateway (APIM) URL")
+    tenant_id: Optional[str] = Field(None, description="Azure AD tenant ID")
+    subscription_id: Optional[str] = Field(None, description="Azure subscription ID")
+    resource_group: Optional[str] = Field(None, description="Resource group name")

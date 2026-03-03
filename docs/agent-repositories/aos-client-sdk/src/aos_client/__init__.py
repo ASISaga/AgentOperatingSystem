@@ -10,7 +10,15 @@ as an infrastructure service:
 - **AOSRegistration** — Client app registration and infrastructure provisioning
 - **AOSDeployer** — Code deployment to Azure Functions
 
-Enterprise capabilities (v4.0.0):
+Foundry Agent Service integration (v6.0.0):
+
+- **AIProjectClient** — client for Azure AI Foundry Project lifecycle
+- **AzureAIAgent** — agent registered in the Foundry Agent Service
+- **FoundryAgentService** — multi-agent orchestration via Foundry
+- **AIGateway** — rate-limited AI request routing through API Management
+- **AgentIdentityProvider** — Entra Agent ID and Managed Identity management
+
+Enterprise capabilities:
 
 - **Knowledge Base API** — document management and search
 - **Risk Registry API** — risk identification, assessment, and mitigation
@@ -28,7 +36,7 @@ Enterprise capabilities (v4.0.0):
 - **Workflow Templates** — composable workflow patterns
 """
 
-__version__ = "4.0.0"
+__version__ = "6.0.0"
 
 from aos_client.client import AOSClient
 from aos_client.mcp import MCPServerConfig
@@ -44,6 +52,9 @@ from aos_client.models import (
     Document,
     DocumentStatus,
     DocumentType,
+    FoundryAgentConfig,
+    FoundryConnectionInfo,
+    FoundryOrchestrationRequest,
     KPI,
     MCPServer,
     MCPServerStatus,
@@ -68,6 +79,20 @@ from aos_client.auth import AOSAuth, TokenClaims
 from aos_client.service_bus import AOSServiceBus
 from aos_client.registration import AOSRegistration, AppRegistration
 from aos_client.deployment import AOSDeployer, DeploymentResult
+from aos_client.foundry import (
+    AIProjectClient,
+    AzureAIAgent,
+    FoundryAgentService,
+    FoundryThread,
+    FoundryRun,
+)
+from aos_client.gateway import AIGateway, GatewayConfig
+from aos_client.identity import (
+    AgentIdentityProvider,
+    EntraAgentIdentity,
+    ManagedIdentityConfig,
+    TokenResult,
+)
 
 __all__ = [
     # Framework
@@ -122,4 +147,21 @@ __all__ = [
     "PeerApp",
     "NetworkMembership",
     "Network",
+    # Foundry Agent Service
+    "AIProjectClient",
+    "AzureAIAgent",
+    "FoundryAgentService",
+    "FoundryThread",
+    "FoundryRun",
+    "FoundryAgentConfig",
+    "FoundryConnectionInfo",
+    "FoundryOrchestrationRequest",
+    # AI Gateway
+    "AIGateway",
+    "GatewayConfig",
+    # Identity (Entra Agent ID / Managed Identity)
+    "AgentIdentityProvider",
+    "EntraAgentIdentity",
+    "ManagedIdentityConfig",
+    "TokenResult",
 ]
