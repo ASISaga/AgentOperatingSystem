@@ -4,9 +4,8 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "aos-mcp-servers"
-version = "3.0.0"
+version = "4.0.0"
 description = "Config-driven MCP server deployment Azure Function app for AOS"
-readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
 

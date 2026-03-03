@@ -24,6 +24,15 @@ from agent_config_schema import AgentRegistry, AgentRegistryEntry
 logger = logging.getLogger(__name__)
 app = func.FunctionApp()
 
+# ── Foundry Agent Manager (optional — works in stub mode without Azure SDK) ──
+
+try:
+    from AgentOperatingSystem.agents import FoundryAgentManager as _FoundryAgentManager
+
+    _agent_manager: Optional[Any] = _FoundryAgentManager()
+except ImportError:  # pragma: no cover
+    _agent_manager = None
+
 # ── Registry Loading ─────────────────────────────────────────────────────────
 
 _registry: Optional[AgentRegistry] = None
@@ -54,13 +63,12 @@ def _load_registry() -> AgentRegistry:
     return _registry
 
 
-def _ensure_foundry_registration(registry: AgentRegistry) -> None:
+async def _ensure_foundry_registration(registry: AgentRegistry) -> None:
     """Register enabled agents with the Foundry Agent Service.
 
-    This is called lazily on the first request.  In production the
-    Foundry Agent Service SDK (``AIProjectClient``) would be used to
-    create/update agent registrations.  Here we record the registration
-    intent via a simple flag and log entries.
+    Each agent is registered via :class:`FoundryAgentManager` so the Foundry
+    Agent Service manages its lifecycle and orchestration.  When called on
+    subsequent requests the registration is skipped (idempotent).
     """
     global _foundry_registered  # noqa: PLW0603
     if _foundry_registered:
@@ -68,12 +76,21 @@ def _ensure_foundry_registration(registry: AgentRegistry) -> None:
 
     foundry_endpoint = os.environ.get("FOUNDRY_PROJECT_ENDPOINT", "")
     for entry in registry.get_enabled_agents():
-        logger.info(
-            "Registering agent '%s' (%s) with Foundry Agent Service at %s",
-            entry.agent_id,
-            entry.agent_type,
-            foundry_endpoint or "<not configured>",
-        )
+        if _agent_manager is not None:
+            await _agent_manager.register_agent(
+                agent_id=entry.agent_id,
+                purpose=entry.purpose,
+                name=entry.agent_id,
+                adapter_name=entry.adapter_name,
+                capabilities=entry.capabilities,
+            )
+        else:
+            logger.info(
+                "Registering agent '%s' (%s) with Foundry Agent Service at %s",
+                entry.agent_id,
+                entry.agent_type,
+                foundry_endpoint or "<not configured>",
+            )
     _foundry_registered = True
 
 
@@ -91,7 +108,7 @@ async def list_agents(req: func.HttpRequest) -> func.HttpResponse:
         agent_type: Optional filter by agent class name.
     """
     registry = _load_registry()
-    _ensure_foundry_registration(registry)
+    await _ensure_foundry_registration(registry)
     agent_type = req.params.get("agent_type")
 
     if agent_type:
@@ -111,7 +128,7 @@ async def get_agent(req: func.HttpRequest) -> func.HttpResponse:
     """Get a single agent descriptor by ID."""
     agent_id = req.route_params.get("agent_id", "")
     registry = _load_registry()
-    _ensure_foundry_registration(registry)
+    await _ensure_foundry_registration(registry)
     entry = registry.get_agent(agent_id)
 
     if entry is None or not entry.enabled:
