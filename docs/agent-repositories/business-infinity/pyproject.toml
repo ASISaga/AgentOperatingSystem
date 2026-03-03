@@ -24,6 +24,11 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[project.urls]
+Homepage = "https://github.com/ASISaga/business-infinity"
+Documentation = "https://github.com/ASISaga/business-infinity/tree/main/docs"
+Repository = "https://github.com/ASISaga/business-infinity"
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

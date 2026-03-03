@@ -32,3 +32,8 @@ dev = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[project.urls]
+Homepage = "https://github.com/ASISaga/aos-dispatcher"
+Documentation = "https://github.com/ASISaga/aos-dispatcher/tree/main/docs"
+Repository = "https://github.com/ASISaga/aos-dispatcher"
