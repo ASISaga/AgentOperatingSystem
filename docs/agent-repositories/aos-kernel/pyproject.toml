@@ -4,8 +4,8 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "aos-kernel"
-version = "3.0.0"
-description = "Agent Operating System Kernel — orchestration, messaging, storage, auth, and system services"
+version = "4.0.0"
+description = "Agent Operating System Kernel — Foundry Agent Service based orchestration, messaging, and agent management"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [{ name = "ASISaga", email = "opensource@asisaga.com" }]
