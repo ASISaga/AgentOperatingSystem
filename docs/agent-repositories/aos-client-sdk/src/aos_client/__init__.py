@@ -10,7 +10,11 @@ as an infrastructure service:
 - **AOSRegistration** — Client app registration and infrastructure provisioning
 - **AOSDeployer** — Code deployment to Azure Functions
 
-Enterprise capabilities (v4.0.0):
+All multi-agent orchestrations are managed internally by the **Foundry Agent
+Service** (v7.0.0).  Foundry is an implementation detail of AOS and is not
+exposed to client applications.
+
+Enterprise capabilities:
 
 - **Knowledge Base API** — document management and search
 - **Risk Registry API** — risk identification, assessment, and mitigation
@@ -28,7 +32,7 @@ Enterprise capabilities (v4.0.0):
 - **Workflow Templates** — composable workflow patterns
 """
 
-__version__ = "4.0.0"
+__version__ = "7.0.0"
 
 from aos_client.client import AOSClient
 from aos_client.mcp import MCPServerConfig

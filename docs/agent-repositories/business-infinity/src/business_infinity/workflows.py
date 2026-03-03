@@ -8,9 +8,13 @@ Orchestrations are **perpetual and purpose-driven**: each workflow starts an
 ongoing orchestration guided by a purpose.  Agents work toward the purpose
 continuously — there is no finite task to complete.
 
-Enterprise capabilities (v4.0.0) demonstrate the new SDK APIs for knowledge
-management, risk registry, audit trails, covenants, analytics, MCP
-integration, agent interaction, and network discovery.
+All multi-agent orchestration is managed internally by the Foundry Agent
+Service (v7.0.0).  This is transparent to workflows — clients use the
+standard ``start_orchestration`` / ``submit_orchestration`` API.
+
+Enterprise capabilities demonstrate the SDK APIs for knowledge management,
+risk registry, audit trails, covenants, analytics, MCP integration, agent
+interaction, and network discovery.
 """
 
 from __future__ import annotations

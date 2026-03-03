@@ -5,6 +5,10 @@
 //   - Storage Account (function app backing store + deployment packages)
 //   - Service Bus namespace + queue (orchestration messaging)
 //   - Key Vault (secrets management)
+//   - Azure AI Services (Cognitive Services)
+//   - Azure AI Foundry Hub (ML Workspace — Hub kind) with AI Services connection
+//   - Azure AI Foundry Project (ML Workspace — Project kind)
+//   - AI Gateway (API Management) for rate limiting and JWT validation
 //   - One dedicated FC1 Flex Consumption Plan + Function App per AOS module (10 total)
 //   - RBAC role assignments (identity-based connections, no secrets in env vars)
 
@@ -110,6 +114,62 @@ module keyVault 'modules/keyvault.bicep' = {
   }
 }
 
+// Azure AI Services (Cognitive Services)
+module aiServices 'modules/ai-services.bicep' = {
+  name: 'ai-services-${suffix}'
+  params: {
+    location: locationML
+    environment: environment
+    projectName: projectName
+    uniqueSuffix: uniqueSuffix
+    tags: tags
+  }
+}
+
+// Azure AI Foundry Hub (ML Workspace — Hub kind)
+module aiHub 'modules/ai-hub.bicep' = {
+  name: 'ai-hub-${suffix}'
+  params: {
+    location: locationML
+    environment: environment
+    projectName: projectName
+    uniqueSuffix: uniqueSuffix
+    tags: tags
+    storageAccountId: storage.outputs.storageAccountId
+    keyVaultId: keyVault.outputs.keyVaultId
+    appInsightsId: monitoring.outputs.appInsightsId
+    aiServicesAccountId: aiServices.outputs.accountId
+    aiServicesAccountName: aiServices.outputs.accountName
+  }
+}
+
+// Azure AI Foundry Project (ML Workspace — Project kind)
+module aiProject 'modules/ai-project.bicep' = {
+  name: 'ai-project-${suffix}'
+  params: {
+    location: locationML
+    environment: environment
+    projectName: projectName
+    uniqueSuffix: uniqueSuffix
+    tags: tags
+    hubId: aiHub.outputs.hubId
+  }
+}
+
+// AI Gateway (API Management)
+module aiGateway 'modules/ai-gateway.bicep' = {
+  name: 'ai-gateway-${suffix}'
+  params: {
+    location: location
+    environment: environment
+    projectName: projectName
+    uniqueSuffix: uniqueSuffix
+    tags: tags
+    aiServicesEndpoint: aiServices.outputs.endpoint
+    appInsightsInstrumentationKey: monitoring.outputs.instrumentationKey
+  }
+}
+
 // One dedicated FC1 Flex Consumption plan + Function App per AOS module
 module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
   name: 'functionapp-${appName}-${suffix}'
@@ -130,6 +190,10 @@ module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
     coreAppUrl: coreAppUrl
     githubOrg: githubOrg
     githubEnvironment: environment
+    // Foundry Agent Service — project endpoint and AI Gateway URL
+    foundryProjectEndpoint: aiProject.outputs.projectDiscoveryUrl
+    aiGatewayUrl: aiGateway.outputs.gatewayUrl
+    aiServicesAccountId: aiServices.outputs.accountId
   }
 }]
 
@@ -146,3 +210,11 @@ output serviceBusNamespace string = serviceBus.outputs.namespaceName
 output keyVaultName string = keyVault.outputs.keyVaultName
 output appInsightsName string = monitoring.outputs.appInsightsName
 output logAnalyticsWorkspaceId string = monitoring.outputs.workspaceId
+// Azure AI Foundry outputs
+output aiServicesAccountName string = aiServices.outputs.accountName
+output aiServicesEndpoint string = aiServices.outputs.endpoint
+output aiHubName string = aiHub.outputs.hubName
+output aiProjectName string = aiProject.outputs.projectName
+output aiProjectDiscoveryUrl string = aiProject.outputs.projectDiscoveryUrl
+output aiGatewayName string = aiGateway.outputs.gatewayName
+output aiGatewayUrl string = aiGateway.outputs.gatewayUrl

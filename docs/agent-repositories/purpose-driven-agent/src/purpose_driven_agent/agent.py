@@ -248,6 +248,9 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         self.aos = aos
         self.ml_service: IMLService = ml_service or NoOpMLService()
 
+        # ---- Foundry Agent Service registration ----------------------------
+        self.foundry_agent_id: Optional[str] = None
+
         self.logger.info(
             "PurposeDrivenAgent '%s' created | purpose='%s' | adapter='%s'",
             self.agent_id,
@@ -279,6 +282,46 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         Returns:
             Non-empty list of persona name strings.
         """
+
+    # ------------------------------------------------------------------
+    # Foundry Agent Service registration
+    # ------------------------------------------------------------------
+
+    async def register_with_foundry(
+        self,
+        project_client: Any,
+        model: str = "gpt-4o",
+        tools: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        """Register this agent with the Azure AI Foundry Agent Service.
+
+        Creates a corresponding agent in the Foundry project so that
+        multi-agent orchestrations can be managed by the Foundry Agent
+        Service while this :class:`PurposeDrivenAgent` continues to run
+        as Python code inside an Azure Function.
+
+        Args:
+            project_client: An :class:`~aos_client.foundry.AIProjectClient`
+                instance connected to the target AI Foundry project.
+            model: Model deployment name (default ``"gpt-4o"``).
+            tools: Optional tool definitions to register with the Foundry agent.
+
+        Returns:
+            The Foundry-assigned agent ID.
+        """
+        agent = await project_client.create_agent(
+            model=model,
+            name=self.name,
+            instructions=self.purpose,
+            tools=tools or [],
+            tool_resources={},
+        )
+        self.foundry_agent_id = agent.agent_id
+        self.logger.info(
+            "Registered with Foundry Agent Service: foundry_id='%s'",
+            self.foundry_agent_id,
+        )
+        return self.foundry_agent_id
 
     # ------------------------------------------------------------------
     # AOS persona helpers

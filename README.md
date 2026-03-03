@@ -1,8 +1,10 @@
 # Agent Operating System
 
-**Agent Orchestrations as an Infrastructure Service**
+**Agent Orchestrations as an Infrastructure Service — powered by Azure AI Foundry**
 
 The Agent Operating System (AOS) provides **agent orchestrations as an infrastructure service** to client applications. Client apps stay lean, containing only business logic, while AOS handles agent lifecycle, orchestration, messaging, storage, and monitoring.
+
+Multi-agent orchestration is managed by the **Foundry Agent Service**. Agents inheriting from `PurposeDrivenAgent` continue to run as Microsoft Agent Framework Python code inside Azure Functions (`Microsoft.Web/sites`).
 
 ## How It Works
 
@@ -17,14 +19,18 @@ The Agent Operating System (AOS) provides **agent orchestrations as an infrastru
 ┌──────────────────────────────────────────┼───────────────────────┐
 │  Agent Operating System                  ▼                       │
 │  ┌──────────────────┐  ┌────────────────────┐  ┌──────────────┐  │
-│  │ aos-function-app  │  │ aos-realm-of-      │  │ aos-mcp-     │  │
-│  │ POST /api/        │  │ agents             │  │ servers      │  │
-│  │  orchestrations   │  │ GET /api/realm/    │  │ MCP protocol │  │
-│  │ Service Bus       │  │  agents            │  │              │  │
-│  │  trigger          │  │ Agent catalog:     │  │              │  │
-│  │ POST /api/apps/   │  │  CEO · CFO · CMO   │  │              │  │
-│  │  register         │  │  COO · CTO · ...   │  │              │  │
+│  │ aos-function-app  │  │ Foundry Agent      │  │ AI Gateway   │  │
+│  │ POST /api/        │  │ Service (internal) │  │ (APIM)       │  │
+│  │  orchestrations   │  │ AIProjectClient    │  │ Rate limiting│  │
+│  │ Service Bus       │  │ AzureAIAgent       │  │ JWT auth     │  │
+│  │  trigger          │  │ Thread mgmt        │  │              │  │
 │  └────────┬─────────┘  └────────────────────┘  └──────────────┘  │
+│           │                                                       │
+│  ┌────────▼─────────────────────────────────────────────────────┐ │
+│  │ Azure AI Foundry (internal)                                   │ │
+│  │ Hub · Project · AI Services · Connections · Model Deployments  │ │
+│  │ Entra Agent ID · Managed Identity                             │ │
+│  └──────────────────────────────────────────────────────────────┘ │
 │           │                                                       │
 │  ┌────────▼─────────────────────────────────────────────────────┐ │
 │  │ aos-kernel                                                    │ │
@@ -32,6 +38,18 @@ The Agent Operating System (AOS) provides **agent orchestrations as an infrastru
 │  └──────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+### Azure AI Foundry Infrastructure
+
+AOS provisions the following Azure resources via Bicep:
+
+| Resource | Type | Purpose |
+|----------|------|---------|
+| AI Services | `Microsoft.CognitiveServices/accounts` | Foundation AI/ML endpoint (GPT-4o, etc.) |
+| AI Foundry Hub | `Microsoft.MachineLearningServices/workspaces` (Hub) | Central governance, connections to AI Services |
+| AI Foundry Project | `Microsoft.MachineLearningServices/workspaces` (Project) | Isolated workspace for agent registration |
+| AI Gateway | `Microsoft.ApiManagement/service` | Rate limiting, JWT validation, centralized routing |
+| Connections | Hub → AI Services (AzureOpenAI, AAD auth) | Identity-based model access |
 
 ### Example: BusinessInfinity
 
@@ -49,7 +67,7 @@ async def strategic_review(request: WorkflowRequest):
     c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
     return await request.client.start_orchestration(
         agent_ids=c_suite,
-        purpose="strategic_review",
+        purpose="Drive strategic growth and continuous organisational improvement",
         context=request.body,
     )
 ```
@@ -102,7 +120,7 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
 ```
                 agent_framework (Microsoft)
                        │
-                purpose-driven-agent
+                purpose-driven-agent  ──── register_with_foundry()
                     ┌──┴──┐
             leadership-agent  │
                     │         │
@@ -113,15 +131,15 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
           aos-intelligence  │
                     │       │
           aos-function-app  aos-realm-of-agents  aos-mcp-servers
-                    ▲
+                    ▲          (Foundry registration)
                     │
               aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
-                    ▲
+                    ▲                   Foundry is internal to AOS
                     │
             business-infinity ◄──────── lean client app (business logic only)
                                          function_app.py = 7 lines
 
-          aos-deployment (standalone — no AOS runtime deps)
+          aos-deployment (standalone — Bicep: AI Hub, Project, Services, Gateway)
 ```
 
 ## Quick Start
