@@ -19,7 +19,7 @@ Multi-agent orchestration is managed by the **Foundry Agent Service**. Agents in
 ┌──────────────────────────────────────────┼───────────────────────┐
 │  Agent Operating System                  ▼                       │
 │  ┌──────────────────┐  ┌────────────────────┐  ┌──────────────┐  │
-│  │ aos-function-app  │  │ Foundry Agent      │  │ AI Gateway   │  │
+│  │ aos-dispatcher    │  │ Foundry Agent      │  │ AI Gateway   │  │
 │  │ POST /api/        │  │ Service (internal) │  │ (APIM)       │  │
 │  │  orchestrations   │  │ AIProjectClient    │  │ Rate limiting│  │
 │  │ Service Bus       │  │ AzureAIAgent       │  │ JWT auth     │  │
@@ -98,13 +98,13 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
 |-----------|-------------|---------|
 | [aos-kernel](https://github.com/ASISaga/aos-kernel) | OS kernel — orchestration, messaging, storage, auth | `pip install aos-kernel` |
 | [aos-intelligence](https://github.com/ASISaga/aos-intelligence) | ML/AI — LoRA, DPO, self-learning, knowledge, RAG | `pip install aos-intelligence` |
-| [aos-deployment](https://github.com/ASISaga/aos-deployment) | Infrastructure — Bicep, orchestrator, regional validation | Standalone CLI |
+| [aos-infrastructure](https://github.com/ASISaga/aos-infrastructure) | Infrastructure — Bicep, orchestrator, regional validation | Standalone CLI |
 
 ### Service Repositories (AOS Infrastructure)
 
 | Repository | Description | Deployment |
 |-----------|-------------|------------|
-| [aos-function-app](https://github.com/ASISaga/aos-function-app) | Orchestration API — submit, monitor, retrieve orchestrations | Azure Functions |
+| [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) | Orchestration API — submit, monitor, retrieve orchestrations | Azure Functions |
 | [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) | Agent catalog — browse and select agents | Azure Functions |
 | [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) | MCP server deployment | Azure Functions |
 
@@ -130,7 +130,7 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
                     ┌──┴──┐
           aos-intelligence  │
                     │       │
-          aos-function-app  aos-realm-of-agents  aos-mcp-servers
+          aos-dispatcher  aos-realm-of-agents  aos-mcp-servers
                     ▲          (Foundry registration)
                     │
               aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
@@ -139,7 +139,7 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
             business-infinity ◄──────── lean client app (business logic only)
                                          function_app.py = 7 lines
 
-          aos-deployment (standalone — Bicep: AI Hub, Project, Services, Gateway)
+          aos-infrastructure (standalone — Bicep: AI Hub, Project, Services, Gateway)
 ```
 
 ## Quick Start
@@ -198,9 +198,9 @@ docs/agent-repositories/
 ├── leadership-agent/       # Leadership agent
 ├── cmo-agent/              # CMO agent
 ├── aos-kernel/             # OS kernel
-├── aos-deployment/         # Infrastructure deployment
+├── aos-infrastructure/      # Infrastructure deployment
 ├── aos-intelligence/       # ML/AI intelligence
-├── aos-function-app/       # Orchestration API
+├── aos-dispatcher/          # Orchestration API
 ├── aos-realm-of-agents/    # Agent catalog
 ├── aos-mcp-servers/        # MCP servers
 ├── aos-client-sdk/         # Client SDK
@@ -222,9 +222,9 @@ git submodule add https://github.com/ASISaga/purpose-driven-agent.git
 git submodule add https://github.com/ASISaga/leadership-agent.git
 git submodule add https://github.com/ASISaga/cmo-agent.git
 git submodule add https://github.com/ASISaga/aos-kernel.git
-git submodule add https://github.com/ASISaga/aos-deployment.git
+git submodule add https://github.com/ASISaga/aos-infrastructure.git
 git submodule add https://github.com/ASISaga/aos-intelligence.git
-git submodule add https://github.com/ASISaga/aos-function-app.git
+git submodule add https://github.com/ASISaga/aos-dispatcher.git
 git submodule add https://github.com/ASISaga/aos-realm-of-agents.git
 git submodule add https://github.com/ASISaga/aos-mcp-servers.git
 git submodule add https://github.com/ASISaga/aos-client-sdk.git
