@@ -10,7 +10,7 @@ class TestKernelVersion:
     """Version tests."""
 
     def test_version(self):
-        assert __version__ == "4.0.0"
+        assert __version__ == "5.0.0"
 
 
 class TestAgentOperatingSystem:

@@ -52,7 +52,7 @@ param appNames array = [
   'aos-mcp-servers'
   'aos-client-sdk'
   'business-infinity'
-  'aos-function-app'
+  'aos-dispatcher'
 ]
 
 // ====================================================================
@@ -65,7 +65,7 @@ var uniqueSuffix = uniqueString(resourceGroup().id, projectName, environment)
 // Core AOS orchestration hub — its URL is injected into every module's env vars for peer discovery.
 // The hostname follows the same naming formula used in functionapp.bicep:
 //   func-{appName}-{environment}-{take(uniqueSuffix,6)}.azurewebsites.net
-var coreAppName = 'aos-function-app'
+var coreAppName = 'aos-dispatcher'
 var coreAppUrl = 'https://func-${coreAppName}-${environment}-${take(uniqueSuffix, 6)}.azurewebsites.net'
 
 // ====================================================================
@@ -153,6 +153,34 @@ module aiProject 'modules/ai-project.bicep' = {
     uniqueSuffix: uniqueSuffix
     tags: tags
     hubId: aiHub.outputs.hubId
+    aiServicesAccountId: aiServices.outputs.accountId
+  }
+}
+
+// Model Registry — permanent storage for LoRA adapter assets
+module modelRegistry 'modules/model-registry.bicep' = {
+  name: 'model-registry-${suffix}'
+  params: {
+    location: locationML
+    environment: environment
+    projectName: projectName
+    uniqueSuffix: uniqueSuffix
+    tags: tags
+    storageAccountId: storage.outputs.storageAccountId
+  }
+}
+
+// Llama-3.3-70B-Instruct Managed Online Endpoint with Multi-LoRA support
+module loraInference 'modules/lora-inference.bicep' = {
+  name: 'lora-inference-${suffix}'
+  params: {
+    location: locationML
+    environment: environment
+    projectName: projectName
+    uniqueSuffix: uniqueSuffix
+    tags: tags
+    hubId: aiHub.outputs.hubId
+    aiServicesAccountId: aiServices.outputs.accountId
   }
 }
 
@@ -218,3 +246,7 @@ output aiProjectName string = aiProject.outputs.projectName
 output aiProjectDiscoveryUrl string = aiProject.outputs.projectDiscoveryUrl
 output aiGatewayName string = aiGateway.outputs.gatewayName
 output aiGatewayUrl string = aiGateway.outputs.gatewayUrl
+// Multi-LoRA inference outputs
+output modelRegistryName string = modelRegistry.outputs.registryName
+output loraInferenceEndpointName string = loraInference.outputs.endpointName
+output loraInferenceScoringUri string = loraInference.outputs.scoringUri

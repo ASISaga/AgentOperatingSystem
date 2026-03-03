@@ -1,10 +1,12 @@
-# aos-function-app
+# aos-dispatcher
 
-**Orchestration API** for the Agent Operating System. Exposes AOS as an infrastructure service — client applications submit orchestration requests, monitor progress, and stop perpetual orchestrations through HTTP endpoints.
+**Central Dispatcher** for the Agent Operating System — the component that receives all inbound requests and dispatches them to the AOS kernel, analogous to the dispatcher in a traditional operating system.
+
+Exposes AOS as an infrastructure service via Azure Functions: client applications submit orchestration requests, monitor progress, and stop perpetual orchestrations through HTTP and Service Bus endpoints.
 
 ## Overview
 
-This function app is the AOS orchestration API, providing:
+The dispatcher is the AOS entry point for all external requests, providing:
 
 - **Orchestration Submission** — `POST /api/orchestrations` to start perpetual agent orchestrations
 - **Status Monitoring** — `GET /api/orchestrations/{id}` to poll progress
@@ -49,8 +51,7 @@ func azure functionapp publish <app-name>
 
 ## Dependencies
 
-- `aos-kernel[azure]>=3.0.0` — AOS kernel with Azure backends
-- `aos-intelligence[foundry]>=1.0.0` — (Optional) ML-backed agents
+- `aos-kernel[azure]>=4.0.0` — AOS kernel with Azure backends (includes `aos-intelligence`)
 - `azure-functions>=1.21.0`
 
 ## Related Repositories
@@ -58,6 +59,7 @@ func azure functionapp publish <app-name>
 - [aos-client-sdk](https://github.com/ASISaga/aos-client-sdk) — Client SDK
 - [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — Agent catalog
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
+- [aos-intelligence](https://github.com/ASISaga/aos-intelligence) — ML / intelligence layer
 - [business-infinity](https://github.com/ASISaga/business-infinity) — Example client app
 - [aos-deployment](https://github.com/ASISaga/aos-deployment) — Infrastructure deployment
 

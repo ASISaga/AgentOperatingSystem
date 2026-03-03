@@ -1,8 +1,10 @@
-"""Main Azure Functions entry point for AOS.
+"""AOS Dispatcher — Azure Functions entry point for the Agent Operating System.
 
-Exposes AOS orchestration capabilities and enterprise services as HTTP
-endpoints and Azure Service Bus triggers.  Client applications use the
-aos-client-sdk to interact with these endpoints.
+Receives all inbound requests and dispatches them to the AOS kernel,
+analogous to the dispatcher in a traditional operating system.  Exposes
+AOS orchestration capabilities and enterprise services as HTTP endpoints
+and Azure Service Bus triggers.  Client applications use the aos-client-sdk
+to interact with these endpoints.
 
 All multi-agent orchestration is managed internally by the **Foundry Agent
 Service**.  Agents inheriting from PurposeDrivenAgent continue to run as Azure
@@ -406,7 +408,7 @@ async def health(req: func.HttpRequest) -> func.HttpResponse:
     """Health check endpoint."""
     return func.HttpResponse(
         json.dumps({
-            "app": "aos-function-app",
+            "app": "aos-dispatcher",
             "status": "healthy",
             "active_orchestrations": len(
                 [o for o in _orchestrations.values() if o["status"] in ("pending", "running")]

@@ -1,4 +1,4 @@
-# aos-function-app API Reference
+# aos-dispatcher API Reference
 
 ## HTTP Endpoints
 

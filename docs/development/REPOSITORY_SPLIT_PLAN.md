@@ -20,7 +20,7 @@
   - [4. aos-kernel](#4-aos-kernel)
   - [5. aos-deployment](#5-aos-deployment)
   - [6. aos-intelligence](#6-aos-intelligence)
-  - [7. aos-function-app](#7-aos-function-app)
+  - [7. aos-dispatcher](#7-aos-dispatcher)
   - [8. aos-realm-of-agents](#8-aos-realm-of-agents)
   - [9. aos-mcp-servers](#9-aos-mcp-servers)
   - [10. aos-client-sdk](#10-aos-client-sdk)
@@ -134,7 +134,7 @@ ASISaga/
 ├── aos-kernel            # OS kernel: orchestration, messaging, storage, auth (renamed from aos-core)
 ├── aos-deployment        # Infrastructure: Bicep, orchestrator, regional validation, CI/CD
 ├── aos-intelligence      # ML/AI: LoRA, DPO, self-learning, knowledge, RAG
-├── aos-function-app      # Main Azure Functions entry point (root function_app.py, host.json)
+├── aos-dispatcher      # Main Azure Functions entry point (root function_app.py, host.json)
 ├── aos-realm-of-agents   # RealmOfAgents config-driven agent deployment function app
 └── aos-mcp-servers       # MCPServers config-driven MCP server deployment function app
 ```
@@ -583,11 +583,11 @@ foundry = [
 
 ---
 
-### 7. aos-function-app
+### 7. aos-dispatcher
 
 **Purpose:** Main Azure Functions entry point for the Agent Operating System. Exposes AOS as cloud services via Service Bus triggers and HTTP endpoints.
 
-**Cut-paste-ready directory structure:** `docs/agent-repositories/aos-function-app/` in this monorepo.
+**Cut-paste-ready directory structure:** `docs/agent-repositories/aos-dispatcher/` in this monorepo.
 
 **What moves here:**
 
@@ -612,7 +612,7 @@ README.md
 LICENSE
 ```
 
-**Package name:** `aos-function-app` (deployment target, not a library)
+**Package name:** `aos-dispatcher` (deployment target, not a library)
 
 **Dependencies:**
 ```
@@ -771,7 +771,7 @@ azure-functions>=1.21.0      # Optional [azure], for Functions scaffolding
 - **Code deployment** — `AOSDeployer` deploys client apps to Azure Functions.
 - Communicates with AOS over HTTP (REST) and Azure Service Bus.
 - Provides both low-level methods (`submit_orchestration`, `get_orchestration_status`) and convenience helpers (`run_orchestration` — submit, poll, return result).
-- Models match the API contracts of `aos-function-app` (orchestration endpoints) and `aos-realm-of-agents` (agent catalog endpoints).
+- Models match the API contracts of `aos-dispatcher` (orchestration endpoints) and `aos-realm-of-agents` (agent catalog endpoints).
 
 ---
 
@@ -826,9 +826,9 @@ The primary purpose of AOS is to provide **agent orchestrations as an infrastruc
 | Business logic (workflows, decisions, triggers) | Client app | `business-infinity` (example) |
 | Azure Functions scaffolding, triggers, auth middleware | Client SDK | `aos-client-sdk` (`AOSApp`) |
 | Agent catalog (available agents, capabilities) | RealmOfAgents | `aos-realm-of-agents` |
-| Orchestration API (submit, monitor, cancel, result) | AOS Function App | `aos-function-app` |
-| Service Bus async communication | Client SDK + AOS | `aos-client-sdk` + `aos-function-app` |
-| App registration & infrastructure provisioning | AOS Function App | `aos-function-app` |
+| Orchestration API (submit, monitor, cancel, result) | AOS Function App | `aos-dispatcher` |
+| Service Bus async communication | Client SDK + AOS | `aos-client-sdk` + `aos-dispatcher` |
+| App registration & infrastructure provisioning | AOS Function App | `aos-dispatcher` |
 | Agent lifecycle, orchestration engine, messaging, storage | AOS Kernel | `aos-kernel` |
 | Authentication & access control (Azure IAM) | Client SDK | `aos-client-sdk` (`AOSAuth`) |
 | Code deployment | Client SDK | `aos-client-sdk` (`AOSDeployer`) |
@@ -837,7 +837,7 @@ The primary purpose of AOS is to provide **agent orchestrations as an infrastruc
 
 ```
 1. Client app registers with AOS  (one-time setup)
-   → POST /api/apps/register  → aos-function-app
+   → POST /api/apps/register  → aos-dispatcher
    → AOS provisions Service Bus queue/topic/subscription
    → Returns connection details to client
 
@@ -845,12 +845,12 @@ The primary purpose of AOS is to provide **agent orchestrations as an infrastruc
    → GET /api/realm/agents  → aos-realm-of-agents
 
 3. Client app submits orchestration (HTTP or Service Bus)
-   HTTP:  POST /api/orchestrations  → aos-function-app
-   Bus:   → aos-orchestration-requests queue  → aos-function-app wakes up
-   → aos-function-app dispatches to aos-kernel orchestration engine
+   HTTP:  POST /api/orchestrations  → aos-dispatcher
+   Bus:   → aos-orchestration-requests queue  → aos-dispatcher wakes up
+   → aos-dispatcher dispatches to aos-kernel orchestration engine
 
 4. Client app polls (HTTP) or receives result (Service Bus)
-   HTTP:  GET /api/orchestrations/{id}  → aos-function-app
+   HTTP:  GET /api/orchestrations/{id}  → aos-dispatcher
    Bus:   ← aos-orchestration-results topic  → client app wakes up
 ```
 
@@ -932,7 +932,7 @@ With the removal of a dedicated `aos-copilot-extensions` repository, GitHub Copi
 | `code-refactoring` | **aos-kernel** |
 | `deployment-error-fixer` | **aos-deployment** |
 | `azure-troubleshooting` | **aos-deployment** |
-| `azure-functions` | **aos-function-app** |
+| `azure-functions` | **aos-dispatcher** |
 | `perpetual-agents` | **purpose-driven-agent** |
 | `leadership-agent` | **leadership-agent** |
 | `cmo-agent` | **cmo-agent** |
@@ -940,7 +940,7 @@ With the removal of a dedicated `aos-copilot-extensions` repository, GitHub Copi
 ### Prompts Distribution
 
 Prompts follow the same pattern — each prompt moves to the repo whose domain it covers:
-- `azure-expert.md` → **aos-function-app**
+- `azure-expert.md` → **aos-dispatcher**
 - `code-quality-expert.md` → **aos-kernel**
 - `python-expert.md` → **aos-kernel**
 - `testing-expert.md` → **aos-kernel**
@@ -952,7 +952,7 @@ Instructions are distributed similarly:
 - `architecture.instructions.md`, `code-quality.instructions.md`, `development.instructions.md`, `python.instructions.md` → **aos-kernel**
 - `agents.instructions.md` → **purpose-driven-agent**
 - `documents.instructions.md` → **aos-kernel**
-- `azure-functions.instructions.md` → **aos-function-app**
+- `azure-functions.instructions.md` → **aos-dispatcher**
 - `realm-of-agents.instructions.md` → **aos-realm-of-agents**
 - `mcp-servers.instructions.md` → **aos-mcp-servers**
 
@@ -988,7 +988,7 @@ Instructions are distributed similarly:
          ┌─────────────┼───────────────────────────┐
          ▼             ▼                            ▼
 ┌─────────────────┐  ┌───────────────────┐   ┌──────────────────────┐
-│ aos-intelligence│  │  aos-function-app │   │ aos-realm-of-agents  │
+│ aos-intelligence│  │  aos-dispatcher │   │ aos-realm-of-agents  │
 │  depends on:    │  │    depends on:    │   │    depends on:       │
 │  aos-kernel     │  │    aos-kernel     │   │    aos-kernel        │
 └─────────────────┘  │  aos-intelligence │   └──────────────────────┘
@@ -1010,7 +1010,7 @@ Instructions are distributed similarly:
 3. `cmo-agent` depends on `leadership-agent>=1.0.0`.
 4. `aos-kernel` depends on `purpose-driven-agent>=1.0.0` and no other AOS packages.
 5. `aos-intelligence` depends on `aos-kernel>=3.0.0` for interfaces and base classes.
-6. `aos-function-app` depends on `aos-kernel` (required) and `aos-intelligence` (optional).
+6. `aos-dispatcher` depends on `aos-kernel` (required) and `aos-intelligence` (optional).
 7. `aos-realm-of-agents` depends on `aos-kernel` (required).
 8. `aos-mcp-servers` depends on `aos-kernel` (required).
 9. `aos-deployment` is **standalone** — it deploys Azure infrastructure and has no Python dependency on AOS runtime.
@@ -1091,7 +1091,7 @@ The `messaging/contracts.py` module stays in `aos-kernel` as the canonical messa
 **Duration:** 1 week  
 **Risk:** Low
 
-1. Create empty repos: `purpose-driven-agent`, `leadership-agent`, `cmo-agent`, `aos-kernel`, `aos-deployment`, `aos-intelligence`, `aos-function-app`, `aos-realm-of-agents`, `aos-mcp-servers`.
+1. Create empty repos: `purpose-driven-agent`, `leadership-agent`, `cmo-agent`, `aos-kernel`, `aos-deployment`, `aos-intelligence`, `aos-dispatcher`, `aos-realm-of-agents`, `aos-mcp-servers`.
 2. Copy the cut-paste-ready structures from `docs/agent-repositories/` into the three agent repos.
 3. Set up CI/CD templates in each.
 4. Set up package publishing (PyPI or private registry) for agent repos and `aos-kernel`.
@@ -1111,7 +1111,7 @@ Use `git filter-branch` or `git subtree split` to preserve commit history:
 | B | `src/AgentOperatingSystem/` (minus agents/, ml/, learning/, knowledge/), `tests/` (minus agent/ML tests), kernel-level docs, kernel-level Copilot extensions | aos-kernel |
 | C | `deployment/`, select workflows, deployment docs, deployment Copilot extensions | aos-deployment |
 | D | `src/AgentOperatingSystem/{ml,learning,knowledge}/`, `data/`, `knowledge/`, ML tests, ML/intelligence docs | aos-intelligence |
-| E | `function_app.py`, `host.json`, `local.settings.json`, Azure Functions Copilot extensions, Azure Functions docs | aos-function-app |
+| E | `function_app.py`, `host.json`, `local.settings.json`, Azure Functions Copilot extensions, Azure Functions docs | aos-dispatcher |
 | F | `azure_functions/RealmOfAgents/`, RealmOfAgents docs, RealmOfAgents Copilot extensions | aos-realm-of-agents |
 | G | `azure_functions/MCPServers/`, MCPServers docs, MCPServers Copilot extensions | aos-mcp-servers |
 
@@ -1124,7 +1124,7 @@ Use `git filter-branch` or `git subtree split` to preserve commit history:
 2. Publish `leadership-agent` and `cmo-agent` depending on it.
 3. Publish `aos-kernel` depending on `purpose-driven-agent`.
 4. Update `aos-intelligence` to depend on `aos-kernel`.
-5. Update `aos-function-app` to depend on `aos-kernel` and `aos-intelligence`.
+5. Update `aos-dispatcher` to depend on `aos-kernel` and `aos-intelligence`.
 6. Update `aos-realm-of-agents` to depend on `aos-kernel`.
 7. Update `aos-mcp-servers` to depend on `aos-kernel`.
 8. Set up cross-repo CI triggers (e.g., `purpose-driven-agent` release triggers downstream CI).
@@ -1152,7 +1152,7 @@ Use `git filter-branch` or `git subtree split` to preserve commit history:
 | aos-kernel | `ci.yml` (lint, test, build), `release.yml` (publish to PyPI) |
 | aos-deployment | `infrastructure-deploy.yml`, `infrastructure-monitoring.yml`, `infrastructure-troubleshooting.yml` |
 | aos-intelligence | `ci.yml` (lint, test against aos-kernel), `release.yml` |
-| aos-function-app | `ci.yml` (build, test, deploy main function app) |
+| aos-dispatcher | `ci.yml` (build, test, deploy main function app) |
 | aos-realm-of-agents | `ci.yml` (build, test, deploy RealmOfAgents function app) |
 | aos-mcp-servers | `ci.yml` (build, test, deploy MCPServers function app) |
 
@@ -1180,10 +1180,10 @@ on:
 |---------|------------|
 | `purpose-driven-agent>=1.0.0` | leadership-agent, cmo-agent, aos-kernel |
 | `leadership-agent>=1.0.0` | cmo-agent |
-| `aos-kernel>=3.0.0` | aos-intelligence, aos-function-app, aos-realm-of-agents, aos-mcp-servers |
-| `aos-intelligence>=1.0.0` | aos-function-app (optional) |
-| `agent-framework>=1.0.0rc1` | purpose-driven-agent, aos-kernel, aos-function-app, aos-realm-of-agents |
-| `agent-framework-orchestrations>=1.0.0b260219` | aos-kernel, aos-function-app |
+| `aos-kernel>=3.0.0` | aos-intelligence, aos-dispatcher, aos-realm-of-agents, aos-mcp-servers |
+| `aos-intelligence>=1.0.0` | aos-dispatcher (optional) |
+| `agent-framework>=1.0.0rc1` | purpose-driven-agent, aos-kernel, aos-dispatcher, aos-realm-of-agents |
+| `agent-framework-orchestrations>=1.0.0b260219` | aos-kernel, aos-dispatcher |
 
 ---
 
@@ -1276,7 +1276,7 @@ on:
 | aos-kernel | ~111 | ~30 | pyproject.toml | ~141 |
 | aos-deployment | ~27 | ~20 | 12 Bicep/param, 3 YAML | ~62 |
 | aos-intelligence | ~20 | ~10 | 19 JSON | ~49 |
-| aos-function-app | ~2 | ~8 | host.json, 1 YAML | ~12 |
+| aos-dispatcher | ~2 | ~8 | host.json, 1 YAML | ~12 |
 | aos-realm-of-agents | ~4 | ~6 | 2 JSON, host.json | ~13 |
 | aos-mcp-servers | ~3 | ~5 | 2 JSON, host.json | ~11 |
 | aos-client-sdk | ~8 | ~2 | pyproject.toml, LICENSE | ~11 |

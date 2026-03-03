@@ -3,9 +3,9 @@ requires = ["setuptools>=75.0.0", "wheel"]
 build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
-name = "aos-function-app"
-version = "3.1.0"
-description = "Main Azure Functions entry point for the Agent Operating System — HTTP + Service Bus orchestration API with client app registration"
+name = "aos-dispatcher"
+version = "4.0.0"
+description = "AOS Dispatcher — the central HTTP/Service Bus dispatcher for the Agent Operating System. Routes requests to the kernel, exposes orchestration and enterprise service APIs as Azure Functions. (Renamed from aos-function-app v3.1.0; backward compatibility not required.)"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"

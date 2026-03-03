@@ -20,7 +20,7 @@ A lean Azure Functions application that demonstrates using the **Agent Operating
 ┌─────────────────────────────────────────────────────┐
 │  Agent Operating System (infrastructure)            │
 │  ┌──────────────────┐  ┌─────────────────────────┐  │
-│  │ aos-function-app  │  │ aos-realm-of-agents     │  │
+│  │ aos-dispatcher  │  │ aos-realm-of-agents     │  │
 │  │ Orchestration API │  │ Agent catalog:          │  │
 │  │ + Service Bus     │  │  CEO · CFO · CMO        │  │
 │  │   triggers        │  │  COO · CTO              │  │
@@ -133,7 +133,7 @@ SERVICE_BUS_CONNECTION=                  # Service Bus (optional for local dev)
 ## Related Repositories
 
 - [aos-client-sdk](https://github.com/ASISaga/aos-client-sdk) — Client SDK & App Framework
-- [aos-function-app](https://github.com/ASISaga/aos-function-app) — AOS orchestration API
+- [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) — AOS orchestration API
 - [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — Agent catalog
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
 

@@ -45,7 +45,7 @@ param keyVaultId string
 @description('Table service URI for the shared storage account (for AOSStateStore connection)')
 param tableServiceUri string
 
-@description('URL of the core AOS Function App (aos-function-app) injected into all modules for peer discovery.')
+@description('URL of the core AOS Dispatcher (aos-dispatcher) injected into all modules for peer discovery.')
 param coreAppUrl string
 
 @description('GitHub organization or user name that owns the AOS repositories (e.g. ASISaga)')

@@ -78,7 +78,7 @@ docs/                       # Kernel documentation
 - [cmo-agent](https://github.com/ASISaga/cmo-agent) — CMO agent
 - [aos-intelligence](https://github.com/ASISaga/aos-intelligence) — ML/AI intelligence layer
 - [aos-deployment](https://github.com/ASISaga/aos-deployment) — Infrastructure deployment
-- [aos-function-app](https://github.com/ASISaga/aos-function-app) — Orchestration API
+- [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) — Orchestration API
 - [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — Agent catalog
 - [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) — MCPServers function app
 - [aos-client-sdk](https://github.com/ASISaga/aos-client-sdk) — Client SDK for external applications

@@ -68,7 +68,7 @@ endpoints, and authentication middleware.
 ┌─────────────────────────────────────────────────────┐
 │  Agent Operating System (infrastructure)            │
 │  ┌──────────────────┐  ┌─────────────────────────┐  │
-│  │ aos-function-app  │  │ aos-realm-of-agents     │  │
+│  │ aos-dispatcher  │  │ aos-realm-of-agents     │  │
 │  │ POST /api/        │  │ GET /api/realm/agents   │  │
 │  │  orchestrations   │  │ Agent catalog           │  │
 │  │ Service Bus       │  └─────────────────────────┘  │
@@ -201,7 +201,7 @@ async with AOSRegistration(aos_endpoint="https://my-aos.azurewebsites.net") as r
 ## Related Repositories
 
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel (orchestration, messaging, storage)
-- [aos-function-app](https://github.com/ASISaga/aos-function-app) — AOS orchestration API
+- [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) — AOS orchestration API
 - [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — Agent catalog
 - [business-infinity](https://github.com/ASISaga/business-infinity) — Example client application
 - [purpose-driven-agent](https://github.com/ASISaga/purpose-driven-agent) — Agent base class

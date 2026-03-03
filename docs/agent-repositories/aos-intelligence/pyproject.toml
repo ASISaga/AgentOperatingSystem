@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aos-intelligence"
-version = "1.0.0"
-description = "AOS Intelligence — ML pipelines, LoRA/LoRAx, DPO training, self-learning, knowledge management, and RAG for the Agent Operating System."
+version = "2.0.0"
+description = "AOS Intelligence — ML pipelines, LoRA/LoRAx, DPO training, self-learning, knowledge management, RAG, and Azure Multi-LoRA inference for the Agent Operating System."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [{ name = "ASISaga", email = "opensource@asisaga.com" }]
@@ -44,6 +44,8 @@ rag = [
 ]
 foundry = [
     "azure-ai-projects>=2.0.0b4",
+    "azure-ai-ml>=1.26.0",
+    "azure-ai-inference>=1.0.0b9",
     "azure-identity>=1.19.0",
 ]
 full = [

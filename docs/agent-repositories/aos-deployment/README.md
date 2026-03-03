@@ -53,7 +53,7 @@ This repository has **zero Python runtime dependency** on `aos-kernel` or any AO
 ## Related Repositories
 
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
-- [aos-function-app](https://github.com/ASISaga/aos-function-app) — Main Azure Functions app
+- [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) — Main Azure Functions app
 - [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — RealmOfAgents function app
 - [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) — MCPServers function app
 

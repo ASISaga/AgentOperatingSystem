@@ -76,5 +76,5 @@ MCP servers expose:
 ## Related Repositories
 
 - [aos-kernel](https://github.com/ASISaga/aos-kernel) — OS kernel
-- [aos-function-app](https://github.com/ASISaga/aos-function-app) — Main function app
+- [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) — Main function app
 - [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) — RealmOfAgents
