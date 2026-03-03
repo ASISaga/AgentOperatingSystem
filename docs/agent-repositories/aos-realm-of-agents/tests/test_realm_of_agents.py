@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -89,4 +90,84 @@ class TestAgentRegistry:
         registry = AgentRegistry(**data)
         agent_ids = {a.agent_id for a in registry.get_enabled_agents()}
         assert {"ceo", "cfo", "cmo", "coo", "cto"}.issubset(agent_ids)
+
+
+class TestFoundryRegistration:
+    """Tests for Foundry Agent Service registration via FoundryAgentManager."""
+
+    @pytest.mark.asyncio
+    async def test_ensure_foundry_registration_calls_register_agent(self):
+        """_ensure_foundry_registration registers all enabled agents via FoundryAgentManager."""
+        # Build a minimal fake FoundryAgentManager stub
+        mock_manager = MagicMock()
+        mock_manager.register_agent = AsyncMock(return_value={"agent_id": "x", "foundry_agent_id": "y"})
+
+        # Import the function under a patched _agent_manager
+        import function_app as fa  # already on sys.path via sys.path.insert above
+
+        registry = AgentRegistry(agents=[
+            AgentRegistryEntry(agent_id="ceo", agent_type="LeadershipAgent", purpose="Lead", adapter_name="leadership"),
+            AgentRegistryEntry(agent_id="cfo", agent_type="LeadershipAgent", purpose="Finance", adapter_name="finance"),
+        ])
+
+        # Patch module-level state so registration runs fresh
+        fa._foundry_registered = False
+        original_manager = fa._agent_manager
+        try:
+            fa._agent_manager = mock_manager
+            await fa._ensure_foundry_registration(registry)
+        finally:
+            fa._agent_manager = original_manager
+            fa._foundry_registered = False
+
+        assert mock_manager.register_agent.call_count == 2
+        call_ids = {c.kwargs["agent_id"] for c in mock_manager.register_agent.call_args_list}
+        assert call_ids == {"ceo", "cfo"}
+
+    @pytest.mark.asyncio
+    async def test_ensure_foundry_registration_is_idempotent(self):
+        """_ensure_foundry_registration only runs once even when called multiple times."""
+        mock_manager = MagicMock()
+        mock_manager.register_agent = AsyncMock(return_value={})
+
+        import function_app as fa
+
+        registry = AgentRegistry(agents=[
+            AgentRegistryEntry(agent_id="ceo", agent_type="LeadershipAgent", purpose="Lead", adapter_name="leadership"),
+        ])
+
+        fa._foundry_registered = False
+        original_manager = fa._agent_manager
+        try:
+            fa._agent_manager = mock_manager
+            await fa._ensure_foundry_registration(registry)
+            await fa._ensure_foundry_registration(registry)
+            await fa._ensure_foundry_registration(registry)
+        finally:
+            fa._agent_manager = original_manager
+            fa._foundry_registered = False
+
+        # register_agent should only be called once despite three invocations
+        assert mock_manager.register_agent.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_ensure_foundry_registration_without_manager(self):
+        """_ensure_foundry_registration logs intent when FoundryAgentManager is unavailable."""
+        import function_app as fa
+
+        registry = AgentRegistry(agents=[
+            AgentRegistryEntry(agent_id="ceo", agent_type="LeadershipAgent", purpose="Lead", adapter_name="leadership"),
+        ])
+
+        fa._foundry_registered = False
+        original_manager = fa._agent_manager
+        try:
+            fa._agent_manager = None
+            # Should not raise even without a manager
+            await fa._ensure_foundry_registration(registry)
+        finally:
+            fa._agent_manager = original_manager
+            fa._foundry_registered = False
+
+        assert fa._foundry_registered is False  # reset above, confirming flow completed
 

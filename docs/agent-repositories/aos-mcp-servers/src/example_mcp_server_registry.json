@@ -1,4 +1,53 @@
 {
-    "_comment": "Copy from monorepo or define MCP server configurations. Defines MCP server instances for config-driven deployment.",
-    "mcp_servers": []
+    "mcp_servers": [
+        {
+            "server_id": "context-server",
+            "server_type": "stdio",
+            "description": "Provides agent context and state management tools",
+            "command": "python",
+            "args": ["-m", "context_mcp_server"],
+            "tools": [
+                {
+                    "name": "get_context",
+                    "description": "Retrieve the current agent execution context"
+                },
+                {
+                    "name": "set_context",
+                    "description": "Update the agent execution context"
+                }
+            ],
+            "enabled": true
+        },
+        {
+            "server_id": "knowledge-server",
+            "server_type": "streamable_http",
+            "description": "Provides knowledge base search and retrieval tools",
+            "url": "https://aos-knowledge.azurewebsites.net/mcp",
+            "gateway_url": null,
+            "tools": [
+                {
+                    "name": "search_knowledge",
+                    "description": "Search the AOS knowledge base"
+                },
+                {
+                    "name": "get_document",
+                    "description": "Retrieve a document by ID"
+                }
+            ],
+            "enabled": true
+        },
+        {
+            "server_id": "realtime-server",
+            "server_type": "websocket",
+            "description": "Provides real-time event streaming tools",
+            "url": "wss://aos-realtime.azurewebsites.net/mcp",
+            "tools": [
+                {
+                    "name": "subscribe_events",
+                    "description": "Subscribe to real-time agent events"
+                }
+            ],
+            "enabled": false
+        }
+    ]
 }
