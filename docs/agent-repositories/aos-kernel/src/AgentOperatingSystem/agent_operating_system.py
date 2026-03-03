@@ -41,6 +41,7 @@ from AgentOperatingSystem.config import KernelConfig
 from AgentOperatingSystem.agents import FoundryAgentManager
 from AgentOperatingSystem.orchestration import FoundryOrchestrationEngine
 from AgentOperatingSystem.messaging import FoundryMessageBridge
+from AgentOperatingSystem.lora import LoRAAdapterRegistry, LoRAInferenceClient, LoRAOrchestrationRouter
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,8 @@ class AgentOperatingSystem:
         self,
         config: Optional[KernelConfig] = None,
         project_client: Any = None,
+        lora_registry: Optional[LoRAAdapterRegistry] = None,
+        inference_client: Any = None,
     ) -> None:
         self.config = config or KernelConfig.from_env()
         self._project_client = project_client
@@ -78,6 +81,14 @@ class AgentOperatingSystem:
             agent_manager=self.agent_manager,
             orchestration_engine=self.orchestration_engine,
         )
+
+        # Multi-LoRA subsystems
+        self.lora_registry = lora_registry or LoRAAdapterRegistry()
+        self.lora_inference = LoRAInferenceClient(
+            registry=self.lora_registry,
+            inference_client=inference_client,
+        )
+        self.lora_router = LoRAOrchestrationRouter(registry=self.lora_registry)
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -202,6 +213,34 @@ class AgentOperatingSystem:
         await self.orchestration_engine.cancel_orchestration(orchestration_id)
 
     # ------------------------------------------------------------------
+    # Multi-LoRA (delegates to LoRAOrchestrationRouter / LoRAInferenceClient)
+    # ------------------------------------------------------------------
+
+    def resolve_lora_adapters(
+        self,
+        orchestration_type: str,
+        step_name: str,
+        agent_ids: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Return the LoRA adapter records for the given orchestration step.
+
+        Used by the Foundry Agent Service to determine which adapters to
+        activate before executing a step.  Delegates to
+        :class:`LoRAOrchestrationRouter`.
+
+        :param orchestration_type: Orchestration category (e.g.
+            ``"strategic_review"``).
+        :param step_name: Step within the orchestration.
+        :param agent_ids: Participating agent IDs for persona-based fallback.
+        :returns: List of adapter record dicts (empty if no adapters apply).
+        """
+        return self.lora_router.resolve_adapters(
+            orchestration_type=orchestration_type,
+            step_name=step_name,
+            agent_ids=agent_ids,
+        )
+
+    # ------------------------------------------------------------------
     # Messaging (delegates to FoundryMessageBridge)
     # ------------------------------------------------------------------
 
@@ -257,4 +296,5 @@ class AgentOperatingSystem:
             "agents_registered": self.agent_manager.agent_count,
             "active_orchestrations": self.orchestration_engine.orchestration_count,
             "messages_bridged": self.message_bridge.message_count,
+            "lora_adapters_registered": self.lora_registry.adapter_count,
         }

@@ -4,8 +4,8 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "aos-kernel"
-version = "4.0.0"
-description = "Agent Operating System Kernel — Foundry Agent Service based orchestration, messaging, and agent management"
+version = "5.0.0"
+description = "Agent Operating System Kernel — Foundry Agent Service based orchestration, messaging, and agent management with Multi-LoRA inference"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [{ name = "ASISaga", email = "opensource@asisaga.com" }]
@@ -54,6 +54,8 @@ azure = [
     "azure-keyvault-secrets>=4.10.0",
     "azure-ai-agents>=1.1.0",
     "azure-ai-projects>=1.0.0",
+    "azure-ai-ml>=1.26.0",
+    "azure-ai-inference>=1.0.0b9",
     "agent-framework-azure-ai>=1.0.0rc1",
 ]
 full = [

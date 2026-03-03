@@ -22,6 +22,9 @@ param tags object
 @description('AI Foundry Hub resource ID (parent workspace)')
 param hubId string
 
+@description('AI Services account resource ID — used to assign Cognitive Services User role')
+param aiServicesAccountId string
+
 // ====================================================================
 // Variables
 // ====================================================================
@@ -45,6 +48,24 @@ resource aiProject 'Microsoft.MachineLearningServices/workspaces@2024-10-01' = {
     description: 'Azure AI Foundry Project for ${projectName} — ${environment}'
     hubResourceId: hubId
     publicNetworkAccess: environment == 'prod' ? 'Disabled' : 'Enabled'
+  }
+}
+
+// ====================================================================
+// RBAC — Cognitive Services User role for the Project Managed Identity
+// ====================================================================
+
+// Allows the Project's managed identity to call the AI Services inference API
+// and to fetch LoRA adapters from the Model Registry and inject them at runtime.
+var cognitiveServicesUserRoleId = 'a97b65f3-24c7-4388-baec-2e87135dc908'
+
+resource cogServicesUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(aiProject.id, aiProject.identity.principalId, cognitiveServicesUserRoleId)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesUserRoleId)
+    principalId: aiProject.identity.principalId
+    principalType: 'ServicePrincipal'
   }
 }
 
