@@ -19,10 +19,15 @@ class TestCSuiteSelection:
         assert "cmo" in C_SUITE_AGENT_IDS
         assert "coo" in C_SUITE_AGENT_IDS
         assert "cto" in C_SUITE_AGENT_IDS
+        assert "cso" in C_SUITE_AGENT_IDS
 
     def test_c_suite_types(self):
         assert "LeadershipAgent" in C_SUITE_TYPES
         assert "CMOAgent" in C_SUITE_TYPES
+        assert "CEOAgent" in C_SUITE_TYPES
+        assert "CFOAgent" in C_SUITE_TYPES
+        assert "CTOAgent" in C_SUITE_TYPES
+        assert "CSOAgent" in C_SUITE_TYPES
 
 
 class TestAOSAppWorkflows:

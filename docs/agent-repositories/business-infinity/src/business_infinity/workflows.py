@@ -49,10 +49,10 @@ app = AOSApp(
 # ── C-Suite Agent Selection ──────────────────────────────────────────────────
 
 #: Agent types considered part of the C-suite
-C_SUITE_TYPES = {"LeadershipAgent", "CMOAgent"}
+C_SUITE_TYPES = {"LeadershipAgent", "CMOAgent", "CEOAgent", "CFOAgent", "CTOAgent", "CSOAgent"}
 
 #: Preferred C-suite agent IDs for BusinessInfinity orchestrations
-C_SUITE_AGENT_IDS = ["ceo", "cfo", "cmo", "coo", "cto"]
+C_SUITE_AGENT_IDS = ["ceo", "cfo", "cmo", "coo", "cto", "cso"]
 
 
 async def select_c_suite_agents(client: AOSClient) -> List[AgentDescriptor]:

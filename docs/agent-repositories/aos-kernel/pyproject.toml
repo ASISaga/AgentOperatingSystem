@@ -26,6 +26,10 @@ requires-python = ">=3.10"
 dependencies = [
     "purpose-driven-agent>=1.0.0",
     "leadership-agent>=1.0.0",
+    "ceo-agent>=1.0.0",
+    "cfo-agent>=1.0.0",
+    "cto-agent>=1.0.0",
+    "cso-agent>=1.0.0",
     "cmo-agent>=1.0.0",
     "python-dotenv>=1.1.0",
     "pydantic>=2.12.0",

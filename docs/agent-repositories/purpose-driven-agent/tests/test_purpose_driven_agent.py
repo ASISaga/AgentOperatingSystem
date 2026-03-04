@@ -886,3 +886,93 @@ class TestInvokeTool:
         assert r1["transport"] == MCPTransportType.STDIO
         assert r2["transport"] == MCPTransportType.STREAMABLE_HTTP
         assert r3["transport"] == MCPTransportType.WEBSOCKET
+
+
+# ---------------------------------------------------------------------------
+# A2A Tool Factory tests
+# ---------------------------------------------------------------------------
+
+
+class TestA2AToolFactory:
+    """Tests for get_a2a_connection_id() and as_tool()."""
+
+    def test_as_tool_returns_a2a_agent_tool(self, basic_agent):
+        from purpose_driven_agent import A2AAgentTool
+
+        tool = basic_agent.as_tool()
+        assert isinstance(tool, A2AAgentTool)
+
+    def test_as_tool_name_is_role(self, basic_agent):
+        tool = basic_agent.as_tool()
+        assert tool.name == basic_agent.role
+
+    def test_as_tool_description_is_purpose(self, basic_agent):
+        tool = basic_agent.as_tool()
+        assert tool.description == basic_agent.purpose
+
+    def test_as_tool_agent_id(self, basic_agent):
+        tool = basic_agent.as_tool()
+        assert tool.agent_id == basic_agent.agent_id
+
+    def test_as_tool_connection_id_placeholder(self, basic_agent):
+        tool = basic_agent.as_tool()
+        assert tool.connection_id.startswith("a2a-connection-")
+
+    def test_as_tool_with_thread_id(self, basic_agent):
+        tool = basic_agent.as_tool(thread_id="thread-xyz")
+        assert tool.metadata["thread_id"] == "thread-xyz"
+
+    def test_as_tool_without_thread_id(self, basic_agent):
+        tool = basic_agent.as_tool()
+        assert "thread_id" not in tool.metadata
+
+    def test_as_tool_metadata_includes_adapter(self, basic_agent):
+        tool = basic_agent.as_tool()
+        assert "adapter_name" in tool.metadata
+
+    def test_as_tool_foundry_agent_id_none_by_default(self, basic_agent):
+        tool = basic_agent.as_tool()
+        assert tool.foundry_agent_id is None
+
+    def test_get_a2a_connection_id_default(self, basic_agent):
+        connection_id = basic_agent.get_a2a_connection_id()
+        assert connection_id == "a2a-connection-agent"
+
+    def test_get_a2a_connection_id_from_env(self, basic_agent, monkeypatch):
+        monkeypatch.setenv("A2A_CONNECTION_ID_AGENT", "env-conn-123")
+        connection_id = basic_agent.get_a2a_connection_id()
+        assert connection_id == "env-conn-123"
+
+    def test_get_a2a_connection_id_default_env(self, basic_agent, monkeypatch):
+        monkeypatch.setenv("A2A_CONNECTION_ID_DEFAULT", "default-conn")
+        connection_id = basic_agent.get_a2a_connection_id()
+        assert connection_id == "default-conn"
+
+    def test_get_a2a_connection_id_role_specific_takes_priority(self, basic_agent, monkeypatch):
+        monkeypatch.setenv("A2A_CONNECTION_ID_AGENT", "role-specific")
+        monkeypatch.setenv("A2A_CONNECTION_ID_DEFAULT", "default-conn")
+        connection_id = basic_agent.get_a2a_connection_id()
+        assert connection_id == "role-specific"
+
+    def test_to_foundry_tool_definition(self, basic_agent):
+        tool = basic_agent.as_tool()
+        definition = tool.to_foundry_tool_definition()
+        assert definition["type"] == "agent"
+        assert definition["agent"]["name"] == basic_agent.role
+        assert definition["agent"]["description"] == basic_agent.purpose
+        assert "connection_id" in definition["agent"]
+
+    def test_to_foundry_tool_definition_with_thread_id(self, basic_agent):
+        tool = basic_agent.as_tool(thread_id="thread-001")
+        definition = tool.to_foundry_tool_definition(thread_id="thread-001")
+        assert definition["agent"]["thread_id"] == "thread-001"
+
+    def test_as_tool_custom_role(self):
+        agent = GenericPurposeDrivenAgent(
+            agent_id="cto-001",
+            purpose="Technology leadership and innovation",
+            role="CTO",
+        )
+        tool = agent.as_tool()
+        assert tool.name == "CTO"
+        assert tool.description == "Technology leadership and innovation"
