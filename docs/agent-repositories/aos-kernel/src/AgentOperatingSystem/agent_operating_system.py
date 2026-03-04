@@ -240,34 +240,31 @@ class AgentOperatingSystem:
         )
 
     # ------------------------------------------------------------------
-    # A2A Boardroom Enrollment
+    # A2A Agent Tool Enrollment
     # ------------------------------------------------------------------
 
     def enroll_agent_tools(
         self,
-        chairperson_id: str,
+        coordinator_id: str,
         specialist_ids: List[str],
         thread_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """Enroll specialist agents as A2A tools for a chairperson agent.
+        """Enroll specialist agents as A2A tools for a coordinator agent.
 
         Iterates through the registered specialist agents and generates
-        A2A tool definitions that can be attached to the chairperson's
+        A2A tool definitions that can be attached to the coordinator's
         Foundry agent, enabling the LLM to dynamically discover, consult,
         and delegate to specialists.
 
-        This is the kernel-level mechanism that the CEO in Business Infinity
-        uses to compose its boardroom.
-
-        :param chairperson_id: Agent ID of the chairperson (e.g. ``"ceo"``).
+        :param coordinator_id: Agent ID of the coordinator (e.g. ``"ceo"``).
         :param specialist_ids: Agent IDs of specialists to enroll as tools.
-        :param thread_id: Optional thread ID for boardroom context injection.
+        :param thread_id: Optional thread ID for orchestration context injection.
         :returns: List of A2A tool definition dicts suitable for Foundry
             ``create_agent(tools=[...])``.
-        :raises KeyError: If the chairperson or a specialist is not registered.
+        :raises KeyError: If the coordinator or a specialist is not registered.
         """
-        # Verify chairperson is registered
-        self.agent_manager.get_registration(chairperson_id)
+        # Verify coordinator is registered
+        self.agent_manager.get_registration(coordinator_id)
 
         tool_definitions: List[Dict[str, Any]] = []
         for spec_id in specialist_ids:
@@ -287,9 +284,9 @@ class AgentOperatingSystem:
             tool_definitions.append(tool_def)
 
         logger.info(
-            "Enrolled %d specialist(s) as A2A tools for chairperson '%s'",
+            "Enrolled %d specialist(s) as A2A tools for coordinator '%s'",
             len(tool_definitions),
-            chairperson_id,
+            coordinator_id,
         )
         return tool_definitions
 

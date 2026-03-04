@@ -243,3 +243,62 @@ class TestGetDecisionHistory:
             await initialised_agent.make_decision(context={"i": i})
         history = await initialised_agent.get_decision_history(limit=5)
         assert len(history) == 5
+
+
+# ---------------------------------------------------------------------------
+# Multi-agent orchestration
+# ---------------------------------------------------------------------------
+
+
+class TestOrchestration:
+    def test_specialist_tools_empty_initially(
+        self, basic_agent: LeadershipAgent
+    ) -> None:
+        assert basic_agent.get_specialist_tools() == []
+
+    def test_orchestration_instructions_empty_by_default(
+        self, basic_agent: LeadershipAgent
+    ) -> None:
+        assert basic_agent.get_orchestration_instructions() == ""
+
+    def test_custom_orchestration_instructions(self) -> None:
+        agent = LeadershipAgent(
+            agent_id="leader-001",
+            orchestration_instructions="Route technical questions to CTO",
+        )
+        assert agent.get_orchestration_instructions() == "Route technical questions to CTO"
+
+    def test_enroll_specialist_tools(
+        self, basic_agent: LeadershipAgent
+    ) -> None:
+        class MockSpecialist:
+            def as_tool(self, thread_id=None):
+                return {"name": "mock", "thread_id": thread_id}
+
+        tools = basic_agent.enroll_specialist_tools(
+            [MockSpecialist(), MockSpecialist()]
+        )
+        assert len(tools) == 2
+        assert len(basic_agent.get_specialist_tools()) == 2
+
+    def test_enroll_specialist_tools_with_thread_id(
+        self, basic_agent: LeadershipAgent
+    ) -> None:
+        class MockSpecialist:
+            def as_tool(self, thread_id=None):
+                return {"thread_id": thread_id}
+
+        tools = basic_agent.enroll_specialist_tools(
+            [MockSpecialist()], thread_id="thread-42"
+        )
+        assert tools[0]["thread_id"] == "thread-42"
+
+    def test_get_specialist_tools_after_enroll(
+        self, basic_agent: LeadershipAgent
+    ) -> None:
+        class MockSpecialist:
+            def as_tool(self, thread_id=None):
+                return "tool"
+
+        basic_agent.enroll_specialist_tools([MockSpecialist()])
+        assert basic_agent.get_specialist_tools() == ["tool"]

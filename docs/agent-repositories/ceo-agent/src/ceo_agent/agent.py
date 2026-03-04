@@ -3,7 +3,7 @@ CEOAgent - Chief Executive Officer Agent.
 
 Extends LeadershipAgent with dual-purpose executive and leadership capabilities.
 Maps both Executive and Leadership purposes to respective LoRA adapters.
-Provides boardroom orchestration for routing tasks to specialist C-suite agents.
+Uses LeadershipAgent's orchestration capabilities for boardroom coordination.
 
 Architecture:
 - LoRA adapters provide domain knowledge (language, vocabulary, concepts,
@@ -45,6 +45,7 @@ class CEOAgent(LeadershipAgent):
     - Strategic vision and cross-functional orchestration
     - Organisational direction and executive decision-making
     - Boardroom orchestration — routing tasks to specialist C-suite agents
+      (delegates to LeadershipAgent's generic orchestration methods)
     - Leadership and decision-making (inherited from LeadershipAgent)
 
     This agent maps two purposes to LoRA adapters:
@@ -54,8 +55,8 @@ class CEOAgent(LeadershipAgent):
     2. **Leadership purpose** → ``"leadership"`` LoRA adapter (leadership
        domain knowledge and persona, inherited)
 
-    The CEO additionally provides boardroom methods for enrolling and
-    querying specialist agent tools (CTO, CFO, CSO, CMO).
+    The CEO uses LeadershipAgent's orchestration capabilities with
+    boardroom-specific instructions for C-suite coordination.
 
     Example::
 
@@ -144,6 +145,7 @@ class CEOAgent(LeadershipAgent):
             system_message=system_message,
             adapter_name=executive_adapter_name,
             config=config,
+            orchestration_instructions=_BOARDROOM_INSTRUCTIONS,
         )
 
         # Dual-purpose configuration
@@ -156,9 +158,6 @@ class CEOAgent(LeadershipAgent):
             "executive": self.executive_adapter_name,
             "leadership": self.leadership_adapter_name,
         }
-
-        # Boardroom orchestration
-        self.boardroom_tools: List[A2AAgentTool] = []
 
         self.logger.info(
             "CEOAgent '%s' created | executive adapter='%s' | leadership adapter='%s'",
@@ -258,31 +257,38 @@ class CEOAgent(LeadershipAgent):
             self.adapter_name = original_adapter
 
     # ------------------------------------------------------------------
-    # Boardroom orchestration
+    # Boardroom orchestration (delegates to LeadershipAgent)
     # ------------------------------------------------------------------
 
-    def get_boardroom_instructions(self) -> str:
-        """
-        Return system instructions for LLM routing across the boardroom.
+    @property
+    def boardroom_tools(self) -> List[A2AAgentTool]:
+        """Return the currently enrolled boardroom tools.
 
-        These instructions guide the LLM on when and how to invoke
-        specialist C-suite agent tools.
+        Delegates to :meth:`LeadershipAgent.get_specialist_tools`.
+
+        Returns:
+            List of :class:`A2AAgentTool` instances.
+        """
+        return self.get_specialist_tools()
+
+    def get_boardroom_instructions(self) -> str:
+        """Return system instructions for LLM routing across the boardroom.
+
+        Delegates to :meth:`LeadershipAgent.get_orchestration_instructions`.
 
         Returns:
             System instruction string for boardroom orchestration.
         """
-        return _BOARDROOM_INSTRUCTIONS
+        return self.get_orchestration_instructions()
 
     def enroll_boardroom_tools(
         self,
         specialists: List[PurposeDrivenAgent],
         thread_id: Optional[str] = None,
     ) -> List[A2AAgentTool]:
-        """
-        Enroll specialist agents as boardroom tools.
+        """Enroll specialist agents as boardroom tools.
 
-        Calls :meth:`as_tool` on each specialist and stores the resulting
-        tools in :attr:`boardroom_tools`.
+        Delegates to :meth:`LeadershipAgent.enroll_specialist_tools`.
 
         Args:
             specialists: List of specialist agents to enroll.
@@ -291,23 +297,17 @@ class CEOAgent(LeadershipAgent):
         Returns:
             List of enrolled :class:`A2AAgentTool` instances.
         """
-        self.boardroom_tools = [
-            specialist.as_tool(thread_id=thread_id)
-            for specialist in specialists
-        ]
-        self.logger.info(
-            "Enrolled %d specialist(s) in boardroom", len(self.boardroom_tools)
-        )
-        return self.boardroom_tools
+        return self.enroll_specialist_tools(specialists, thread_id=thread_id)
 
     def get_boardroom_tools(self) -> List[A2AAgentTool]:
-        """
-        Return the currently enrolled boardroom tools.
+        """Return the currently enrolled boardroom tools.
+
+        Delegates to :meth:`LeadershipAgent.get_specialist_tools`.
 
         Returns:
             List of :class:`A2AAgentTool` instances.
         """
-        return self.boardroom_tools
+        return self.get_specialist_tools()
 
     # ------------------------------------------------------------------
     # Status
@@ -336,7 +336,7 @@ class CEOAgent(LeadershipAgent):
                 },
                 "purpose_adapter_mapping": self.purpose_adapter_mapping,
                 "primary_adapter": self.adapter_name,
-                "boardroom_tools_count": len(self.boardroom_tools),
+                "specialist_tools_count": len(self.get_specialist_tools()),
             }
         )
         return base_status

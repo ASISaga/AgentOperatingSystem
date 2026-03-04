@@ -82,6 +82,7 @@ class TestInstantiation:
     def test_boardroom_tools_empty_by_default(self) -> None:
         ceo = CEOAgent(agent_id="ceo-001")
         assert ceo.boardroom_tools == []
+        assert ceo.get_specialist_tools() == []
 
 
 # ---------------------------------------------------------------------------
@@ -294,11 +295,11 @@ class TestGetStatus:
         assert "metrics" in status
 
     @pytest.mark.asyncio
-    async def test_status_boardroom_tools_count(
+    async def test_status_specialist_tools_count(
         self, initialised_ceo: CEOAgent
     ) -> None:
         status = await initialised_ceo.get_status()
-        assert status["boardroom_tools_count"] == 0
+        assert status["specialist_tools_count"] == 0
 
 
 # ---------------------------------------------------------------------------

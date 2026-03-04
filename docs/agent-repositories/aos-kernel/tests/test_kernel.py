@@ -207,7 +207,7 @@ class TestAgentOperatingSystem:
         await kernel.shutdown()
 
 
-class TestA2ABoardroomEnrollment:
+class TestA2AToolEnrollment:
     """Tests for A2A agent tool enrollment."""
 
     @pytest.mark.asyncio
@@ -219,7 +219,7 @@ class TestA2ABoardroomEnrollment:
         await kernel.register_agent("cto", "Technology strategy")
 
         tools = kernel.enroll_agent_tools(
-            chairperson_id="ceo",
+            coordinator_id="ceo",
             specialist_ids=["cfo", "cto"],
         )
         assert len(tools) == 2
@@ -235,7 +235,7 @@ class TestA2ABoardroomEnrollment:
         await kernel.register_agent("cso", "Security governance")
 
         tools = kernel.enroll_agent_tools(
-            chairperson_id="ceo",
+            coordinator_id="ceo",
             specialist_ids=["cso"],
             thread_id="thread-abc-123",
         )
@@ -243,7 +243,7 @@ class TestA2ABoardroomEnrollment:
         assert tools[0]["agent"]["thread_id"] == "thread-abc-123"
 
     @pytest.mark.asyncio
-    async def test_enroll_agent_tools_chairperson_not_registered(self):
+    async def test_enroll_agent_tools_coordinator_not_registered(self):
         kernel = AgentOperatingSystem()
         await kernel.initialize()
         await kernel.register_agent("cfo", "Finance")
@@ -312,8 +312,8 @@ class TestA2ABoardroomEnrollment:
         assert definitions[0]["agent"]["agent_id"] == "cfo"
 
     @pytest.mark.asyncio
-    async def test_full_boardroom_enrollment_lifecycle(self):
-        """End-to-end: register C-suite, enroll as tools, verify definitions."""
+    async def test_full_orchestration_enrollment_lifecycle(self):
+        """End-to-end: register agents, enroll as tools, verify definitions."""
         kernel = AgentOperatingSystem()
         await kernel.initialize()
 
@@ -324,15 +324,15 @@ class TestA2ABoardroomEnrollment:
         await kernel.register_agent("cso", "Security governance and compliance")
         await kernel.register_agent("cmo", "Market strategy and brand management")
 
-        # Enroll specialists for CEO
+        # Enroll specialists for coordinator
         tools = kernel.enroll_agent_tools(
-            chairperson_id="ceo",
+            coordinator_id="ceo",
             specialist_ids=["cfo", "cto", "cso", "cmo"],
-            thread_id="boardroom-thread-001",
+            thread_id="orchestration-thread-001",
         )
         assert len(tools) == 4
         names = {t["agent"]["agent_id"] for t in tools}
         assert names == {"cfo", "cto", "cso", "cmo"}
         for tool in tools:
-            assert tool["agent"]["thread_id"] == "boardroom-thread-001"
+            assert tool["agent"]["thread_id"] == "orchestration-thread-001"
             assert tool["type"] == "agent"
