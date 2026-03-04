@@ -50,8 +50,8 @@ class A2AAgentTool:
 
     This is the data structure returned by :meth:`PurposeDrivenAgent.as_tool`.
     It mirrors the ``azure.ai.projects.models.AgentTool`` shape so that the
-    AOS kernel or a CEO agent can register specialist agents as callable tools
-    in the Foundry Agent Service.
+    AOS kernel or a coordinator agent can register specialist agents as callable
+    tools in the Foundry Agent Service.
 
     Attributes:
         name: Tool name — the agent's role (e.g. ``"CTO"``).
@@ -77,8 +77,8 @@ class A2AAgentTool:
         to register this agent as a callable tool.
 
         Args:
-            thread_id: Optional Business Infinity thread ID to inject so
-                the specialist agent inherits the boardroom context.
+            thread_id: Optional thread ID to inject so
+                the specialist agent inherits the orchestration context.
 
         Returns:
             Dictionary compatible with the Foundry Agent Service tool schema.
@@ -419,7 +419,7 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         """Return this agent as an A2A tool for enrollment in another agent.
 
         The returned :class:`A2AAgentTool` can be registered with a
-        chairperson agent (e.g. the CEO) so that the LLM can dynamically
+        coordinator agent (e.g. the CEO) so that the LLM can dynamically
         discover, consult, and delegate to this specialist.
 
         The tool's *description* is pulled from the agent's :attr:`purpose`
@@ -427,12 +427,11 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
         when to invoke this specialist.
 
         When *thread_id* is provided the specialist inherits the full
-        boardroom context from that thread, enabling contextual continuity
+        orchestration context from that thread, enabling contextual continuity
         across the Agent-to-Agent handshake.
 
         Args:
-            thread_id: Optional Business Infinity thread ID for context
-                injection.
+            thread_id: Optional thread ID for context injection.
 
         Returns:
             :class:`A2AAgentTool` instance representing this agent.

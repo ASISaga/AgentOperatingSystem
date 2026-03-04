@@ -10,8 +10,9 @@
 `ceo-agent` provides `CEOAgent` — a perpetual, purpose-driven AI agent that
 maps both **Executive** and **Leadership** purposes to separate LoRA adapters,
 enabling context-appropriate execution for strategic vision tasks and
-leadership decisions. The CEO additionally provides **boardroom orchestration**
-for routing tasks to specialist C-suite agents (CTO, CFO, CSO, CMO).
+leadership decisions. The CEO uses **LeadershipAgent's orchestration
+capabilities** with boardroom-specific instructions for routing tasks to
+specialist C-suite agents (CTO, CFO, CSO, CMO).
 
 ---
 

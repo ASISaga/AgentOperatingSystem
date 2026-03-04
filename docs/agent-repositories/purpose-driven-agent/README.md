@@ -62,7 +62,7 @@ for AI agents**, not just an orchestration framework.
 ## Installation
 
 ```bash
-# Core (agent_framework + pydantic)
+# Core (agent_framework + Azure AI Agent Service)
 pip install purpose-driven-agent
 
 # With Azure ML / Storage backends
@@ -76,6 +76,21 @@ pip install "purpose-driven-agent[dev]"
 ```
 
 **Requirements:** Python 3.10 or higher.
+
+### Core Dependencies
+
+| Package | Purpose |
+|---|---|
+| `agent-framework` | Core framework for agent logic |
+| `azure-ai-agentservice-agentframework` | Adapter converting agents into Foundry Agent Service-compatible hosted services |
+| `azure-ai-agentservice-core` | Engine hosting agents as containers in the cloud |
+| `azure-identity` | Secure, keyless authentication via Entra Agent ID |
+| `aos-mcp-servers` | MCP tool routing and transport |
+| `pydantic` | Configuration and data validation |
+
+> **Note:** `purpose-driven-agent` is a **code-only library** — it is not
+> deployed to Azure as its own service.  It is consumed by agent repos
+> (e.g. `leadership-agent`, `ceo-agent`) that *are* deployed.
 
 ---
 
@@ -163,6 +178,10 @@ PurposeDrivenAgent             ← abstract base (this package)
         ├── GenericPurposeDrivenAgent   ← concrete, general-purpose
         │
         ├── LeadershipAgent            ← pip install leadership-agent
+        │       ├── CEOAgent           ← pip install ceo-agent
+        │       ├── CFOAgent           ← pip install cfo-agent
+        │       ├── CTOAgent           ← pip install cto-agent
+        │       ├── CSOAgent           ← pip install cso-agent
         │       └── CMOAgent           ← pip install cmo-agent
         │
         └── <YourCustomAgent>          ← extend for your domain
@@ -436,6 +455,7 @@ Key classes:
 |---|---|
 | `PurposeDrivenAgent` | Abstract base class |
 | `GenericPurposeDrivenAgent` | Concrete general-purpose implementation |
+| `A2AAgentTool` | Agent-to-Agent tool representation for multi-agent orchestration |
 | `ContextMCPServer` | Lightweight MCP context server |
 | `IMLService` | Abstract ML service interface |
 | `NoOpMLService` | No-op placeholder implementation |
@@ -463,7 +483,11 @@ pylint src/purpose_driven_agent
 
 | Package | Description |
 |---|---|
-| [`leadership-agent`](https://github.com/ASISaga/leadership-agent) | LeadershipAgent: decision-making, stakeholder coordination |
+| [`leadership-agent`](https://github.com/ASISaga/leadership-agent) | LeadershipAgent: decision-making, multi-agent orchestration |
+| [`ceo-agent`](https://github.com/ASISaga/ceo-agent) | CEOAgent: executive + leadership dual-purpose |
+| [`cfo-agent`](https://github.com/ASISaga/cfo-agent) | CFOAgent: finance + leadership dual-purpose |
+| [`cto-agent`](https://github.com/ASISaga/cto-agent) | CTOAgent: technology + leadership dual-purpose |
+| [`cso-agent`](https://github.com/ASISaga/cso-agent) | CSOAgent: security + leadership dual-purpose |
 | [`cmo-agent`](https://github.com/ASISaga/cmo-agent) | CMOAgent: marketing + leadership dual-purpose |
 | [`AgentOperatingSystem`](https://github.com/ASISaga/AgentOperatingSystem) | Full AOS runtime with Azure, LoRAx, and orchestration |
 

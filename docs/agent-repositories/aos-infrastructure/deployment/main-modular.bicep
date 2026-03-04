@@ -10,7 +10,7 @@
 //   - Azure AI Foundry Project (ML Workspace — Project kind)
 //   - AI Gateway (API Management) for rate limiting and JWT validation
 //   - A2A Connections (Agent-to-Agent) for C-suite boardroom orchestration
-//   - One dedicated FC1 Flex Consumption Plan + Function App per AOS module (14 total)
+//   - One dedicated FC1 Flex Consumption Plan + Function App per AOS module (12 deployed)
 //   - RBAC role assignments (identity-based connections, no secrets in env vars)
 
 targetScope = 'resourceGroup'
@@ -60,10 +60,8 @@ param monthlyBudgetAmount int = 0
 @description('Email addresses notified when the budget crosses an alert threshold.')
 param budgetAlertEmails array = []
 
-@description('List of AOS application module names — one dedicated Flex Consumption plan and Function App is created per entry. These are the canonical AOS repository modules plus C-suite agents; override only when adding or retiring a module.')
+@description('List of AOS application module names — one dedicated Flex Consumption plan and Function App is created per entry. These are the canonical AOS repository modules plus C-suite agents deployed to Azure; code-only repositories (purpose-driven-agent, leadership-agent) are not included as they are not deployed directly.')
 param appNames array = [
-  'purpose-driven-agent'
-  'leadership-agent'
   'ceo-agent'
   'cfo-agent'
   'cto-agent'
