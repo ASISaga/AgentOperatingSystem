@@ -22,6 +22,7 @@ MCP transport connection classes (runtime implementations) are in
 """
 
 from purpose_driven_agent.agent import (
+    A2AAgentTool,
     GenericPurposeDrivenAgent,
     MCPServerProtocol,
     PurposeDrivenAgent,
@@ -30,6 +31,7 @@ from purpose_driven_agent.context_server import ContextMCPServer
 from purpose_driven_agent.ml_interface import IMLService, NoOpMLService
 
 __all__ = [
+    "A2AAgentTool",
     "PurposeDrivenAgent",
     "GenericPurposeDrivenAgent",
     "ContextMCPServer",

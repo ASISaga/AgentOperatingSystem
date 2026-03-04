@@ -27,14 +27,78 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import uuid
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Protocol
 
 from purpose_driven_agent.context_server import ContextMCPServer
 from purpose_driven_agent.ml_interface import IMLService, NoOpMLService
 from aos_mcp_servers.routing import MCPToolDefinition, MCPTransportType
+
+
+# ---------------------------------------------------------------------------
+# A2A Agent Tool — represents a PurposeDrivenAgent exposed as an AgentTool
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class A2AAgentTool:
+    """Represents a PurposeDrivenAgent as an Agent-to-Agent (A2A) tool.
+
+    This is the data structure returned by :meth:`PurposeDrivenAgent.as_tool`.
+    It mirrors the ``azure.ai.projects.models.AgentTool`` shape so that the
+    AOS kernel or a coordinator agent can register specialist agents as callable
+    tools in the Foundry Agent Service.
+
+    Attributes:
+        name: Tool name — the agent's role (e.g. ``"CTO"``).
+        description: Tool description — pulled from the agent's purpose
+            (mission statement) to guide the LLM's routing logic.
+        connection_id: The A2A connection string for the Azure AI Project.
+        agent_id: The local agent identifier.
+        foundry_agent_id: The Foundry-assigned agent ID (set after registration).
+        metadata: Additional metadata about the agent tool.
+    """
+
+    name: str
+    description: str
+    connection_id: str
+    agent_id: str
+    foundry_agent_id: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def to_foundry_tool_definition(self, thread_id: Optional[str] = None) -> Dict[str, Any]:
+        """Return a Foundry-compatible tool definition dict.
+
+        This can be passed to ``AIProjectClient.create_agent(tools=[...])``
+        to register this agent as a callable tool.
+
+        Args:
+            thread_id: Optional thread ID to inject so
+                the specialist agent inherits the orchestration context.
+
+        Returns:
+            Dictionary compatible with the Foundry Agent Service tool schema.
+        """
+        definition: Dict[str, Any] = {
+            "type": "agent",
+            "agent": {
+                "name": self.name,
+                "description": self.description,
+                "connection_id": self.connection_id,
+                "agent_id": self.agent_id,
+            },
+        }
+        if self.foundry_agent_id:
+            definition["agent"]["foundry_agent_id"] = self.foundry_agent_id
+        if thread_id:
+            definition["agent"]["thread_id"] = thread_id
+        if self.metadata:
+            definition["agent"]["metadata"] = self.metadata
+        return definition
 
 # ---------------------------------------------------------------------------
 # Optional agent_framework integration
@@ -322,6 +386,70 @@ class PurposeDrivenAgent(_AgentFrameworkBase, ABC):
             self.foundry_agent_id,
         )
         return self.foundry_agent_id
+
+    # ------------------------------------------------------------------
+    # A2A (Agent-to-Agent) Tool Factory
+    # ------------------------------------------------------------------
+
+    def get_a2a_connection_id(self) -> str:
+        """Resolve the A2A connection ID for this agent based on its role.
+
+        The connection ID uniquely identifies the Agent-to-Agent endpoint
+        provisioned in the Azure AI Project.  It is read from the
+        environment variable ``A2A_CONNECTION_ID_{ROLE}`` (upper-cased
+        role name), falling back to ``A2A_CONNECTION_ID_DEFAULT``, and
+        finally to a deterministic placeholder built from the role name.
+
+        Returns:
+            Connection ID string for this agent's A2A endpoint.
+        """
+        role_key = self.role.upper().replace(" ", "_").replace("-", "_")
+        # Try role-specific env var first
+        connection_id = os.environ.get(f"A2A_CONNECTION_ID_{role_key}")
+        if connection_id:
+            return connection_id
+        # Fall back to default connection
+        connection_id = os.environ.get("A2A_CONNECTION_ID_DEFAULT")
+        if connection_id:
+            return connection_id
+        # Deterministic placeholder for local/test mode
+        return f"a2a-connection-{self.role.lower().replace(' ', '-')}"
+
+    def as_tool(self, thread_id: Optional[str] = None) -> A2AAgentTool:
+        """Return this agent as an A2A tool for enrollment in another agent.
+
+        The returned :class:`A2AAgentTool` can be registered with a
+        coordinator agent (e.g. the CEO) so that the LLM can dynamically
+        discover, consult, and delegate to this specialist.
+
+        The tool's *description* is pulled from the agent's :attr:`purpose`
+        (its mission statement) so the LLM's routing logic can determine
+        when to invoke this specialist.
+
+        When *thread_id* is provided the specialist inherits the full
+        orchestration context from that thread, enabling contextual continuity
+        across the Agent-to-Agent handshake.
+
+        Args:
+            thread_id: Optional thread ID for context injection.
+
+        Returns:
+            :class:`A2AAgentTool` instance representing this agent.
+        """
+        tool = A2AAgentTool(
+            name=self.role,
+            description=self.purpose,
+            connection_id=self.get_a2a_connection_id(),
+            agent_id=self.agent_id,
+            foundry_agent_id=self.foundry_agent_id,
+            metadata={
+                "adapter_name": self.adapter_name or "",
+                "agent_type": self.agent_type,
+            },
+        )
+        if thread_id:
+            tool.metadata["thread_id"] = thread_id
+        return tool
 
     # ------------------------------------------------------------------
     # AOS persona helpers

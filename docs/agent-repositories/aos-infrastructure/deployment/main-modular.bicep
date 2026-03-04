@@ -9,7 +9,8 @@
 //   - Azure AI Foundry Hub (ML Workspace — Hub kind) with AI Services connection
 //   - Azure AI Foundry Project (ML Workspace — Project kind)
 //   - AI Gateway (API Management) for rate limiting and JWT validation
-//   - One dedicated FC1 Flex Consumption Plan + Function App per AOS module (10 total)
+//   - A2A Connections (Agent-to-Agent) for C-suite boardroom orchestration
+//   - One dedicated FC1 Flex Consumption Plan + Function App per AOS module (12 deployed)
 //   - RBAC role assignments (identity-based connections, no secrets in env vars)
 
 targetScope = 'resourceGroup'
@@ -59,10 +60,12 @@ param monthlyBudgetAmount int = 0
 @description('Email addresses notified when the budget crosses an alert threshold.')
 param budgetAlertEmails array = []
 
-@description('List of AOS application module names — one dedicated Flex Consumption plan and Function App is created per entry. These are the 10 canonical AOS repository modules; override only when adding or retiring a module.')
+@description('List of AOS application module names — one dedicated Flex Consumption plan and Function App is created per entry. These are the canonical AOS repository modules plus C-suite agents deployed to Azure; code-only repositories (purpose-driven-agent, leadership-agent) are not included as they are not deployed directly.')
 param appNames array = [
-  'purpose-driven-agent'
-  'leadership-agent'
+  'ceo-agent'
+  'cfo-agent'
+  'cto-agent'
+  'cso-agent'
   'cmo-agent'
   'aos-kernel'
   'aos-intelligence'
@@ -216,6 +219,22 @@ module aiGateway 'modules/ai-gateway.bicep' = {
   }
 }
 
+// A2A Connections — Agent-to-Agent connections for C-suite boardroom orchestration
+// Creates connections of type Agent2Agent for each specialist (CFO, CTO, CSO, CMO)
+// All A2A traffic routes through the AI Gateway / Foundry Private Link substrate
+module a2aConnections 'modules/a2a-connections.bicep' = {
+  name: 'a2a-connections-${suffix}'
+  params: {
+    location: locationML
+    environment: environment
+    projectName: projectName
+    uniqueSuffix: uniqueSuffix
+    tags: tags
+    aiProjectName: aiProject.outputs.projectName
+    aiGatewayUrl: aiGateway.outputs.gatewayUrl
+  }
+}
+
 // One dedicated FC1 Flex Consumption plan + Function App per AOS module
 module functionApps 'modules/functionapp.bicep' = [for appName in appNames: {
   name: 'functionapp-${appName}-${suffix}'
@@ -291,3 +310,6 @@ output loraInferenceScoringUri string = loraInference.outputs.scoringUri
 // Governance outputs
 output governancePoliciesEnabled bool = enableGovernancePolicies
 output budgetEnabled bool = monthlyBudgetAmount > 0
+// A2A Connection outputs
+output a2aConnectionNames array = a2aConnections.outputs.connectionNames
+output a2aConnectionCount int = a2aConnections.outputs.connectionCount

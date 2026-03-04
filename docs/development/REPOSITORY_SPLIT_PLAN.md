@@ -1,10 +1,10 @@
 # Repository Split Plan: AgentOperatingSystem → Multi-Repository Architecture
 
-**Version:** 1.5  
-**Date:** February 2026  
+**Version:** 1.6  
+**Date:** March 2026  
 **Status:** Proposed  
 **Author:** Architecture Analysis  
-**Last Updated:** February 2026 (added aos-client-sdk and business-infinity repos; established AOS-as-infrastructure-service architecture; updated from 9 to 11 repos)
+**Last Updated:** March 2026 (added C-suite agents CEO/CFO/CTO/CSO; generic orchestration terminology; PDA and leadership-agent are code-only libraries; updated from 11 to 15 repos)
 
 ---
 
@@ -46,7 +46,7 @@ The AgentOperatingSystem repository currently contains **198 Python files** (~45
 3. **Agent intelligence** (ML pipelines, LoRA/LoRAx, DPO training, self-learning, knowledge/RAG)
 4. **Azure Functions hosting** — three independent function apps (main entry point, RealmOfAgents, MCPServers)
 
-This plan proposes splitting into **11 focused repositories** under the `ASISaga` GitHub organization, connected via Python package dependencies and shared interface contracts. Documentation and GitHub Copilot extensions (skills, prompts, instructions) are **distributed** to the repositories they belong to rather than centralized in dedicated repos.
+This plan proposes splitting into **15 focused repositories** under the `ASISaga` GitHub organization, connected via Python package dependencies and shared interface contracts. Documentation and GitHub Copilot extensions (skills, prompts, instructions) are **distributed** to the repositories they belong to rather than centralized in dedicated repos.
 
 The primary purpose of AOS is to provide **agent orchestrations as an infrastructure service** to client applications. Client apps (like BusinessInfinity) stay lean, containing only business logic, while AOS handles agent lifecycle, orchestration, messaging, storage, and monitoring. The `aos-client-sdk` provides a lightweight SDK for this interaction pattern.
 

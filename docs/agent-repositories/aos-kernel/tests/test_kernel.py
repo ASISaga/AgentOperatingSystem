@@ -205,3 +205,134 @@ class TestAgentOperatingSystem:
         assert health["active_orchestrations"] == 1
 
         await kernel.shutdown()
+
+
+class TestA2AToolEnrollment:
+    """Tests for A2A agent tool enrollment."""
+
+    @pytest.mark.asyncio
+    async def test_enroll_agent_tools(self):
+        kernel = AgentOperatingSystem()
+        await kernel.initialize()
+        await kernel.register_agent("ceo", "Strategic leadership")
+        await kernel.register_agent("cfo", "Financial oversight")
+        await kernel.register_agent("cto", "Technology strategy")
+
+        tools = kernel.enroll_agent_tools(
+            coordinator_id="ceo",
+            specialist_ids=["cfo", "cto"],
+        )
+        assert len(tools) == 2
+        assert tools[0]["type"] == "agent"
+        assert tools[0]["agent"]["agent_id"] == "cfo"
+        assert tools[1]["agent"]["agent_id"] == "cto"
+
+    @pytest.mark.asyncio
+    async def test_enroll_agent_tools_with_thread_id(self):
+        kernel = AgentOperatingSystem()
+        await kernel.initialize()
+        await kernel.register_agent("ceo", "Lead")
+        await kernel.register_agent("cso", "Security governance")
+
+        tools = kernel.enroll_agent_tools(
+            coordinator_id="ceo",
+            specialist_ids=["cso"],
+            thread_id="thread-abc-123",
+        )
+        assert len(tools) == 1
+        assert tools[0]["agent"]["thread_id"] == "thread-abc-123"
+
+    @pytest.mark.asyncio
+    async def test_enroll_agent_tools_coordinator_not_registered(self):
+        kernel = AgentOperatingSystem()
+        await kernel.initialize()
+        await kernel.register_agent("cfo", "Finance")
+
+        with pytest.raises(KeyError):
+            kernel.enroll_agent_tools("ceo", ["cfo"])
+
+    @pytest.mark.asyncio
+    async def test_enroll_agent_tools_specialist_not_registered(self):
+        kernel = AgentOperatingSystem()
+        await kernel.initialize()
+        await kernel.register_agent("ceo", "Lead")
+
+        with pytest.raises(KeyError):
+            kernel.enroll_agent_tools("ceo", ["unknown"])
+
+    @pytest.mark.asyncio
+    async def test_enroll_agent_tools_includes_purpose(self):
+        kernel = AgentOperatingSystem()
+        await kernel.initialize()
+        await kernel.register_agent("ceo", "Strategic vision")
+        await kernel.register_agent("cmo", "Market strategy and growth")
+
+        tools = kernel.enroll_agent_tools("ceo", ["cmo"])
+        assert tools[0]["agent"]["description"] == "Market strategy and growth"
+
+    @pytest.mark.asyncio
+    async def test_enroll_agent_tools_includes_connection_id(self):
+        kernel = AgentOperatingSystem()
+        await kernel.initialize()
+        await kernel.register_agent("ceo", "Lead")
+        await kernel.register_agent("cfo", "Finance")
+
+        tools = kernel.enroll_agent_tools("ceo", ["cfo"])
+        assert tools[0]["agent"]["connection_id"] == "a2a-connection-cfo"
+
+    @pytest.mark.asyncio
+    async def test_get_a2a_tool_definitions(self):
+        kernel = AgentOperatingSystem()
+        await kernel.initialize()
+        await kernel.register_agent("cfo", "Finance")
+        await kernel.register_agent("cto", "Technology")
+
+        definitions = kernel.get_a2a_tool_definitions(["cfo", "cto"])
+        assert len(definitions) == 2
+        assert definitions[0]["agent"]["agent_id"] == "cfo"
+        assert definitions[1]["agent"]["agent_id"] == "cto"
+
+    @pytest.mark.asyncio
+    async def test_get_a2a_tool_definitions_with_thread_id(self):
+        kernel = AgentOperatingSystem()
+        await kernel.initialize()
+        await kernel.register_agent("cso", "Security")
+
+        definitions = kernel.get_a2a_tool_definitions(["cso"], thread_id="t-42")
+        assert definitions[0]["agent"]["thread_id"] == "t-42"
+
+    @pytest.mark.asyncio
+    async def test_get_a2a_tool_definitions_skips_unregistered(self):
+        kernel = AgentOperatingSystem()
+        await kernel.initialize()
+        await kernel.register_agent("cfo", "Finance")
+
+        definitions = kernel.get_a2a_tool_definitions(["cfo", "unknown"])
+        assert len(definitions) == 1
+        assert definitions[0]["agent"]["agent_id"] == "cfo"
+
+    @pytest.mark.asyncio
+    async def test_full_orchestration_enrollment_lifecycle(self):
+        """End-to-end: register agents, enroll as tools, verify definitions."""
+        kernel = AgentOperatingSystem()
+        await kernel.initialize()
+
+        # Register full C-suite
+        await kernel.register_agent("ceo", "Strategic vision and executive direction")
+        await kernel.register_agent("cfo", "Fiscal governance and budget oversight")
+        await kernel.register_agent("cto", "Technical infrastructure and innovation")
+        await kernel.register_agent("cso", "Security governance and compliance")
+        await kernel.register_agent("cmo", "Market strategy and brand management")
+
+        # Enroll specialists for coordinator
+        tools = kernel.enroll_agent_tools(
+            coordinator_id="ceo",
+            specialist_ids=["cfo", "cto", "cso", "cmo"],
+            thread_id="orchestration-thread-001",
+        )
+        assert len(tools) == 4
+        names = {t["agent"]["agent_id"] for t in tools}
+        assert names == {"cfo", "cto", "cso", "cmo"}
+        for tool in tools:
+            assert tool["agent"]["thread_id"] == "orchestration-thread-001"
+            assert tool["type"] == "agent"

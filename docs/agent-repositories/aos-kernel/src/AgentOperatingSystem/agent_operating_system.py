@@ -240,6 +240,92 @@ class AgentOperatingSystem:
         )
 
     # ------------------------------------------------------------------
+    # A2A Agent Tool Enrollment
+    # ------------------------------------------------------------------
+
+    def enroll_agent_tools(
+        self,
+        coordinator_id: str,
+        specialist_ids: List[str],
+        thread_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Enroll specialist agents as A2A tools for a coordinator agent.
+
+        Iterates through the registered specialist agents and generates
+        A2A tool definitions that can be attached to the coordinator's
+        Foundry agent, enabling the LLM to dynamically discover, consult,
+        and delegate to specialists.
+
+        :param coordinator_id: Agent ID of the coordinator (e.g. ``"ceo"``).
+        :param specialist_ids: Agent IDs of specialists to enroll as tools.
+        :param thread_id: Optional thread ID for orchestration context injection.
+        :returns: List of A2A tool definition dicts suitable for Foundry
+            ``create_agent(tools=[...])``.
+        :raises KeyError: If the coordinator or a specialist is not registered.
+        """
+        # Verify coordinator is registered
+        self.agent_manager.get_registration(coordinator_id)
+
+        tool_definitions: List[Dict[str, Any]] = []
+        for spec_id in specialist_ids:
+            record = self.agent_manager.get_registration(spec_id)
+            tool_def: Dict[str, Any] = {
+                "type": "agent",
+                "agent": {
+                    "name": record.get("name", spec_id),
+                    "description": record["purpose"],
+                    "connection_id": f"a2a-connection-{spec_id}",
+                    "agent_id": spec_id,
+                    "foundry_agent_id": record["foundry_agent_id"],
+                },
+            }
+            if thread_id:
+                tool_def["agent"]["thread_id"] = thread_id
+            tool_definitions.append(tool_def)
+
+        logger.info(
+            "Enrolled %d specialist(s) as A2A tools for coordinator '%s'",
+            len(tool_definitions),
+            coordinator_id,
+        )
+        return tool_definitions
+
+    def get_a2a_tool_definitions(
+        self,
+        agent_ids: List[str],
+        thread_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Generate Foundry-compatible A2A tool definitions for agents.
+
+        :param agent_ids: Agent IDs to generate tool definitions for.
+        :param thread_id: Optional thread ID for context injection.
+        :returns: List of tool definition dicts.
+        """
+        definitions: List[Dict[str, Any]] = []
+        for agent_id in agent_ids:
+            try:
+                record = self.agent_manager.get_registration(agent_id)
+                definition: Dict[str, Any] = {
+                    "type": "agent",
+                    "agent": {
+                        "name": record.get("name", agent_id),
+                        "description": record["purpose"],
+                        "connection_id": f"a2a-connection-{agent_id}",
+                        "agent_id": agent_id,
+                        "foundry_agent_id": record["foundry_agent_id"],
+                    },
+                }
+                if thread_id:
+                    definition["agent"]["thread_id"] = thread_id
+                definitions.append(definition)
+            except KeyError:
+                logger.warning(
+                    "Agent '%s' not registered — skipping A2A tool generation",
+                    agent_id,
+                )
+        return definitions
+
+    # ------------------------------------------------------------------
     # Messaging (delegates to FoundryMessageBridge)
     # ------------------------------------------------------------------
 

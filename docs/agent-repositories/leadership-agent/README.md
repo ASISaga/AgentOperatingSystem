@@ -5,12 +5,17 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/ASISaga/leadership-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/ASISaga/leadership-agent/actions/workflows/ci.yml)
 
-**Perpetual leadership agent with decision-making and stakeholder coordination.**
+**Perpetual leadership agent with decision-making, multi-agent orchestration, and stakeholder coordination.**
 
 `leadership-agent` extends `PurposeDrivenAgent` with leadership-specific
 capabilities: autonomous and consensus-based decision-making, decision
-provenance tracking, stakeholder coordination, and the "leadership" LoRA
+provenance tracking, stakeholder coordination, multi-agent orchestration
+(enrolling and managing specialist agent tools), and the "leadership" LoRA
 adapter for domain expertise.
+
+> **Note:** `leadership-agent` is a **code-only library** — it is not
+> deployed to Azure as its own service.  It is consumed by agent repos
+> (e.g. `ceo-agent`, `cfo-agent`) that *are* deployed.
 
 ---
 
@@ -51,6 +56,9 @@ leadership roles.  It builds on `PurposeDrivenAgent` and adds:
 | `_evaluate_decision()` | Override to inject domain-specific decision logic |
 | `consult_stakeholders()` | Consult other agents (message bus integration point) |
 | `get_decision_history()` | Retrieve decision provenance |
+| `enroll_specialist_tools()` | Enroll specialist agents as A2A tools for this leader |
+| `get_specialist_tools()` | Return currently enrolled specialist tools |
+| `get_orchestration_instructions()` | Return system instructions for LLM routing |
 | `decisions_made` | Full audit trail of every decision made |
 
 Like all `PurposeDrivenAgent` subclasses, `LeadershipAgent` runs **indefinitely**,
@@ -133,6 +141,10 @@ PurposeDrivenAgent             ← pip install purpose-driven-agent
         ▼
 LeadershipAgent                ← pip install leadership-agent  ← YOU ARE HERE
         │
+        ├── CEOAgent           ← pip install ceo-agent
+        ├── CFOAgent           ← pip install cfo-agent
+        ├── CTOAgent           ← pip install cto-agent
+        ├── CSOAgent           ← pip install cso-agent
         └── CMOAgent           ← pip install cmo-agent
 ```
 
@@ -335,6 +347,9 @@ Full API: [`docs/api-reference.md`](docs/api-reference.md)
 | `_evaluate_decision(context)` | Override for custom decision logic |
 | `consult_stakeholders(stakeholders, topic, context)` | Stub — override with message bus |
 | `get_decision_history(limit)` | Return recent decisions |
+| `enroll_specialist_tools(specialists, thread_id)` | Enroll specialist agents as A2A tools |
+| `get_specialist_tools()` | Return currently enrolled specialist tools |
+| `get_orchestration_instructions()` | Return system instructions for multi-agent routing |
 | `get_agent_type()` | Returns `["leadership"]` |
 | *(+ all PurposeDrivenAgent methods)* | Lifecycle, events, goals, MCP, ML |
 
@@ -359,6 +374,10 @@ pylint src/leadership_agent
 | Package | Description |
 |---|---|
 | [`purpose-driven-agent`](https://github.com/ASISaga/purpose-driven-agent) | PurposeDrivenAgent — abstract base class |
+| [`ceo-agent`](https://github.com/ASISaga/ceo-agent) | CEOAgent — executive + leadership dual-purpose |
+| [`cfo-agent`](https://github.com/ASISaga/cfo-agent) | CFOAgent — finance + leadership dual-purpose |
+| [`cto-agent`](https://github.com/ASISaga/cto-agent) | CTOAgent — technology + leadership dual-purpose |
+| [`cso-agent`](https://github.com/ASISaga/cso-agent) | CSOAgent — security + leadership dual-purpose |
 | [`cmo-agent`](https://github.com/ASISaga/cmo-agent) | CMOAgent — marketing + leadership dual-purpose |
 | [`AgentOperatingSystem`](https://github.com/ASISaga/AgentOperatingSystem) | Full AOS runtime with Azure, LoRAx, orchestration |
 

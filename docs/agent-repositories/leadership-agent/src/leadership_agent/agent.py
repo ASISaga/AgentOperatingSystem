@@ -6,6 +6,7 @@ Extends PurposeDrivenAgent with leadership-specific functionality:
 - Stakeholder coordination (requires message bus integration)
 - Consensus building
 - Delegation patterns
+- Multi-agent orchestration — enrolling and managing specialist agent tools
 
 The Leadership purpose is mapped to the "leadership" LoRA adapter, which
 provides leadership-specific domain knowledge and agent persona. The core
@@ -18,7 +19,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from purpose_driven_agent import PurposeDrivenAgent
+from purpose_driven_agent import A2AAgentTool, PurposeDrivenAgent
 
 
 class LeadershipAgent(PurposeDrivenAgent):
@@ -31,6 +32,7 @@ class LeadershipAgent(PurposeDrivenAgent):
     - Consensus building
     - Delegation patterns
     - Decision provenance tracking
+    - Multi-agent orchestration — enroll specialist agents as tools
 
     The Leadership purpose is mapped to the ``"leadership"`` LoRA adapter
     which provides leadership-specific domain knowledge and agent persona.
@@ -61,6 +63,7 @@ class LeadershipAgent(PurposeDrivenAgent):
         system_message: Optional[str] = None,
         adapter_name: Optional[str] = None,
         config: Optional[Dict[str, Any]] = None,
+        orchestration_instructions: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -77,6 +80,9 @@ class LeadershipAgent(PurposeDrivenAgent):
             system_message: System message for the agent.
             adapter_name: LoRA adapter name (defaults to ``"leadership"``).
             config: Optional configuration dictionary.
+            orchestration_instructions: Optional system instructions for LLM
+                routing when this agent leads a multi-agent orchestration.
+                Guides the LLM on when and how to invoke specialist tools.
             **kwargs: Additional keyword arguments forwarded to
                 :class:`~purpose_driven_agent.PurposeDrivenAgent`.
         """
@@ -105,6 +111,10 @@ class LeadershipAgent(PurposeDrivenAgent):
 
         self.decisions_made: List[Dict[str, Any]] = []
         self.stakeholders: List[str] = []
+
+        # Multi-agent orchestration
+        self._specialist_tools: List[A2AAgentTool] = []
+        self._orchestration_instructions: Optional[str] = orchestration_instructions
 
     # ------------------------------------------------------------------
     # Abstract method implementation
@@ -245,3 +255,55 @@ class LeadershipAgent(PurposeDrivenAgent):
             List of decision dicts.
         """
         return self.decisions_made[-limit:]
+
+    # ------------------------------------------------------------------
+    # Multi-agent orchestration
+    # ------------------------------------------------------------------
+
+    def enroll_specialist_tools(
+        self,
+        specialists: List[PurposeDrivenAgent],
+        thread_id: Optional[str] = None,
+    ) -> List[A2AAgentTool]:
+        """Enroll specialist agents as A2A tools for this leader.
+
+        Calls :meth:`~purpose_driven_agent.PurposeDrivenAgent.as_tool` on
+        each specialist and stores the resulting tools internally.  The
+        leader's LLM can then dynamically discover, consult, and delegate
+        to these specialists during orchestration.
+
+        Args:
+            specialists: List of specialist agents to enroll.
+            thread_id: Optional thread identifier for context injection.
+
+        Returns:
+            List of enrolled :class:`A2AAgentTool` instances.
+        """
+        self._specialist_tools = [
+            specialist.as_tool(thread_id=thread_id)
+            for specialist in specialists
+        ]
+        self.logger.info(
+            "Enrolled %d specialist(s) as tools", len(self._specialist_tools)
+        )
+        return self._specialist_tools
+
+    def get_specialist_tools(self) -> List[A2AAgentTool]:
+        """Return the currently enrolled specialist tools.
+
+        Returns:
+            List of :class:`A2AAgentTool` instances.
+        """
+        return self._specialist_tools
+
+    def get_orchestration_instructions(self) -> str:
+        """Return system instructions for LLM routing across specialists.
+
+        These instructions guide the LLM on when and how to invoke
+        specialist agent tools.  Override or set via
+        ``orchestration_instructions`` in the constructor to customise.
+
+        Returns:
+            System instruction string for multi-agent orchestration.
+        """
+        return self._orchestration_instructions or ""

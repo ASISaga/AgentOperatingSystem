@@ -64,7 +64,7 @@ app = AOSApp(name="business-infinity")
 @app.workflow("strategic-review")
 async def strategic_review(request: WorkflowRequest):
     agents = await request.client.list_agents()
-    c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent")]
+    c_suite = [a.agent_id for a in agents if a.agent_type in ("LeadershipAgent", "CMOAgent", "CEOAgent", "CFOAgent", "CTOAgent", "CSOAgent")]
     return await request.client.start_orchestration(
         agent_ids=c_suite,
         purpose="Drive strategic growth and continuous organisational improvement",
@@ -82,15 +82,19 @@ The SDK generates HTTP triggers, Service Bus triggers, health endpoints, authent
 
 ## Repository Structure
 
-This meta-repository coordinates **11 focused repositories** under the [ASISaga](https://github.com/ASISaga) organization. Each is independently versioned, tested, and deployed. After testing/review, these would be moved to their dedicated repositories.
+This meta-repository coordinates **15 focused repositories** under the [ASISaga](https://github.com/ASISaga) organization. Each is independently versioned, tested, and deployed. After testing/review, these would be moved to their dedicated repositories.
 
 ### Agent Repositories (RealmOfAgents)
 
-| Repository | Description | Package |
-|-----------|-------------|---------|
-| [purpose-driven-agent](https://github.com/ASISaga/purpose-driven-agent) | Foundational agent base class — the building block of AOS | `pip install purpose-driven-agent` |
-| [leadership-agent](https://github.com/ASISaga/leadership-agent) | Leadership and decision-making agent | `pip install leadership-agent` |
-| [cmo-agent](https://github.com/ASISaga/cmo-agent) | Chief Marketing Officer agent | `pip install cmo-agent` |
+| Repository | Description | Package | Deployed |
+|-----------|-------------|---------|----------|
+| [purpose-driven-agent](https://github.com/ASISaga/purpose-driven-agent) | Foundational agent base class — the building block of AOS | `pip install purpose-driven-agent` | No (code-only library) |
+| [leadership-agent](https://github.com/ASISaga/leadership-agent) | Leadership, decision-making, and multi-agent orchestration | `pip install leadership-agent` | No (code-only library) |
+| [ceo-agent](https://github.com/ASISaga/ceo-agent) | CEO agent — executive + leadership dual-purpose | `pip install ceo-agent` | Azure Functions |
+| [cfo-agent](https://github.com/ASISaga/cfo-agent) | CFO agent — finance + leadership dual-purpose | `pip install cfo-agent` | Azure Functions |
+| [cto-agent](https://github.com/ASISaga/cto-agent) | CTO agent — technology + leadership dual-purpose | `pip install cto-agent` | Azure Functions |
+| [cso-agent](https://github.com/ASISaga/cso-agent) | CSO agent — security + leadership dual-purpose | `pip install cso-agent` | Azure Functions |
+| [cmo-agent](https://github.com/ASISaga/cmo-agent) | CMO agent — marketing + leadership dual-purpose | `pip install cmo-agent` | Azure Functions |
 
 ### Platform Repositories
 
@@ -120,14 +124,14 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
 ```
                 agent_framework (Microsoft)
                        │
-                purpose-driven-agent  ──── register_with_foundry()
-                    ┌──┴──┐
-            leadership-agent  │
-                    │         │
-                cmo-agent     │
+                purpose-driven-agent  ──── as_tool(), register_with_foundry()
+                    ┌──┴──┐                (code-only library, not deployed)
+            leadership-agent  │            (code-only library, not deployed)
+           ┌────┬───┬───┬─┴─┐│
+          CEO  CFO  CTO CSO CMO
                               │
                     aos-kernel ◄──────── depends on purpose-driven-agent
-                    ┌──┴──┐
+                    ┌──┴──┐              azure-ai-projects, azure-ai-agents
           aos-intelligence  │
                     │       │
           aos-dispatcher  aos-realm-of-agents  aos-mcp-servers
@@ -139,7 +143,7 @@ This meta-repository coordinates **11 focused repositories** under the [ASISaga]
             business-infinity ◄──────── lean client app (business logic only)
                                          function_app.py = 7 lines
 
-          aos-infrastructure (standalone — Bicep: AI Hub, Project, Services, Gateway)
+          aos-infrastructure (standalone — Bicep: AI Hub, Project, Services, Gateway, A2A Connections)
 ```
 
 ## Quick Start
@@ -190,12 +194,16 @@ pip install cmo-agent
 
 ## Cut-Paste Ready Repositories
 
-The `docs/agent-repositories/` directory contains **cut-paste ready** scaffolding for each of the 11 repositories. Each subdirectory is a complete, self-sufficient repository structure:
+The `docs/agent-repositories/` directory contains **cut-paste ready** scaffolding for each of the 15 repositories. Each subdirectory is a complete, self-sufficient repository structure:
 
 ```
 docs/agent-repositories/
-├── purpose-driven-agent/   # Agent base class
-├── leadership-agent/       # Leadership agent
+├── purpose-driven-agent/   # Agent base class (code-only library)
+├── leadership-agent/       # Leadership agent (code-only library)
+├── ceo-agent/              # CEO agent
+├── cfo-agent/              # CFO agent
+├── cto-agent/              # CTO agent
+├── cso-agent/              # CSO agent
 ├── cmo-agent/              # CMO agent
 ├── aos-kernel/             # OS kernel
 ├── aos-infrastructure/      # Infrastructure deployment
@@ -220,6 +228,10 @@ Once the repositories are created on GitHub, this meta-repo references them as s
 ```bash
 git submodule add https://github.com/ASISaga/purpose-driven-agent.git
 git submodule add https://github.com/ASISaga/leadership-agent.git
+git submodule add https://github.com/ASISaga/ceo-agent.git
+git submodule add https://github.com/ASISaga/cfo-agent.git
+git submodule add https://github.com/ASISaga/cto-agent.git
+git submodule add https://github.com/ASISaga/cso-agent.git
 git submodule add https://github.com/ASISaga/cmo-agent.git
 git submodule add https://github.com/ASISaga/aos-kernel.git
 git submodule add https://github.com/ASISaga/aos-infrastructure.git

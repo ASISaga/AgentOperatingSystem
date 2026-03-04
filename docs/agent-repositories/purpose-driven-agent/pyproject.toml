@@ -24,6 +24,9 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "agent-framework>=1.0.0rc1",
+    "azure-ai-agentservice-agentframework>=1.0.0b1",
+    "azure-ai-agentservice-core>=1.0.0b1",
+    "azure-identity>=1.16.0",
     "aos-mcp-servers>=3.0.0",
     "pydantic>=2.12.0",
 ]
