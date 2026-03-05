@@ -1,0 +1,6 @@
+name: cto-agent
+services:
+  cto-agent:
+    project: .
+    language: python
+    host: ai.agent

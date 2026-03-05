@@ -1,0 +1,6 @@
+name: ceo-agent
+services:
+  ceo-agent:
+    project: .
+    language: python
+    host: ai.agent

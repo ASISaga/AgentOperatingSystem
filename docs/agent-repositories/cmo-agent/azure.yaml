@@ -1,0 +1,6 @@
+name: cmo-agent
+services:
+  cmo-agent:
+    project: .
+    language: python
+    host: ai.agent
