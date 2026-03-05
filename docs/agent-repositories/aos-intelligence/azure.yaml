@@ -1,0 +1,6 @@
+name: aos-intelligence
+services:
+  aos-intelligence:
+    project: .
+    language: python
+    host: ai.agent

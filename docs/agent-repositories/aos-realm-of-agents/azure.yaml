@@ -1,0 +1,6 @@
+name: aos-realm-of-agents
+services:
+  aos-realm-of-agents:
+    project: src
+    language: python
+    host: function

@@ -1,0 +1,6 @@
+name: aos-mcp-servers
+services:
+  aos-mcp-servers:
+    project: src
+    language: python
+    host: function

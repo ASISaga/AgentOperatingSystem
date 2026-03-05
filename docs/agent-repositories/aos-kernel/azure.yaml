@@ -1,0 +1,6 @@
+name: aos-kernel
+services:
+  aos-kernel:
+    project: .
+    language: python
+    host: ai.agent

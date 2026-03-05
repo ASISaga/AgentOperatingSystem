@@ -1,0 +1,75 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment (dev, staging, prod)'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: prod
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'prod' }}
+    env:
+      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "."
+
+      - name: Install Azure Developer CLI (azd)
+        run: curl -fsSL https://aka.ms/install-azd.sh | bash
+
+      - name: Install azure-ai-agents extension
+        run: azd extension add azure-ai-agents
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Select azd environment
+        run: azd env select "$AZURE_ENV_NAME"
+
+      - name: Deploy
+        run: azd deploy aos-mcp-servers
+
+      - name: Capture deployment outputs
+        id: capture-outputs
+        continue-on-error: true
+        run: |
+          OUTPUTS=$(azd output --output json 2>/dev/null || echo '{}')
+          ENDPOINT=$(echo "$OUTPUTS" | jq -r '.endpoint.value // .functionEndpoint.value // empty' 2>/dev/null || true)
+          if [ -n "$ENDPOINT" ]; then
+            echo "::add-mask::$ENDPOINT"
+            echo "agent_resource=$ENDPOINT" >> "$GITHUB_OUTPUT"
+          fi
