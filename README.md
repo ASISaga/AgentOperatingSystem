@@ -82,7 +82,7 @@ The SDK generates HTTP triggers, Service Bus triggers, health endpoints, authent
 
 ## Repository Structure
 
-This meta-repository coordinates **15 focused repositories** under the [ASISaga](https://github.com/ASISaga) organization. Each is independently versioned, tested, and deployed. After testing/review, these would be moved to their dedicated repositories.
+This meta-repository coordinates **15 focused repositories** under the [ASISaga](https://github.com/ASISaga) organization via Git submodules. Each is independently versioned, tested, and deployed.
 
 ### Agent Repositories (RealmOfAgents)
 
@@ -192,40 +192,29 @@ pip install leadership-agent
 pip install cmo-agent
 ```
 
-## Cut-Paste Ready Repositories
+## Cut-Paste Ready Repository Scaffolding
 
-The `docs/agent-repositories/` directory contains **cut-paste ready** scaffolding for each of the 15 repositories. Each subdirectory is a complete, self-sufficient repository structure:
-
-```
-docs/agent-repositories/
-├── purpose-driven-agent/   # Agent base class (code-only library)
-├── leadership-agent/       # Leadership agent (code-only library)
-├── ceo-agent/              # CEO agent
-├── cfo-agent/              # CFO agent
-├── cto-agent/              # CTO agent
-├── cso-agent/              # CSO agent
-├── cmo-agent/              # CMO agent
-├── aos-kernel/             # OS kernel
-├── aos-infrastructure/      # Infrastructure deployment
-├── aos-intelligence/       # ML/AI intelligence
-├── aos-dispatcher/          # Orchestration API
-├── aos-realm-of-agents/    # Agent catalog
-├── aos-mcp-servers/        # MCP servers
-├── aos-client-sdk/         # Client SDK
-└── business-infinity/      # Example client app
-```
+> **Note:** The `docs/agent-repositories/` directory previously contained cut-paste ready scaffolding for each of the 15 repositories. The repositories have now been created on GitHub and are referenced as submodules. Each submodule directory at the root of this meta-repo is the live repository. See [Git Submodules](#git-submodules) below.
 
 ## Architecture
 
 For detailed architecture documentation, see:
-- [Repository Split Plan](docs/development/REPOSITORY_SPLIT_PLAN.md) — Complete multi-repo architecture plan
+- [Repository Split Plan](docs/REPOSITORY_SPLIT_PLAN.md) — Completed multi-repo architecture plan
 - Each repository's own `docs/` for module-specific architecture
 
 ## Git Submodules
 
-Once the repositories are created on GitHub, this meta-repo references them as submodules:
+All 15 repositories are referenced as Git submodules at the root of this meta-repo:
 
 ```bash
+# Initialize and update all submodules after cloning
+git submodule update --init --recursive
+```
+
+The submodule URLs are:
+
+```bash
+# Already configured in .gitmodules — to re-add if needed:
 git submodule add https://github.com/ASISaga/purpose-driven-agent.git
 git submodule add https://github.com/ASISaga/leadership-agent.git
 git submodule add https://github.com/ASISaga/ceo-agent.git
