@@ -1,6 +1,0 @@
-name: cso-agent
-services:
-  cso-agent:
-    project: .
-    language: python
-    host: ai.agent

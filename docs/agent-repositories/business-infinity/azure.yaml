@@ -1,6 +1,0 @@
-name: business-infinity
-services:
-  business-infinity:
-    project: src
-    language: python
-    host: function

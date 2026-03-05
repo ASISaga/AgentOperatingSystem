@@ -10,6 +10,22 @@ url = https://github.com/ASISaga/leadership-agent.git
 path = cmo-agent
 url = https://github.com/ASISaga/cmo-agent.git
 
+[submodule "cso-agent"]
+path = cso-agent
+url = https://github.com/ASISaga/cso-agent.git
+
+[submodule "ceo-agent"]
+path = ceo-agent
+url = https://github.com/ASISaga/ceo-agent.git
+
+[submodule "cfo-agent"]
+path = cfo-agent
+url = https://github.com/ASISaga/cfo-agent.git
+
+[submodule "cto-agent"]
+path = cto-agent
+url = https://github.com/ASISaga/cto-agent.git
+
 [submodule "aos-kernel"]
 path = aos-kernel
 url = https://github.com/ASISaga/aos-kernel.git

@@ -1,6 +1,0 @@
-name: aos-dispatcher
-services:
-  aos-dispatcher:
-    project: src
-    language: python
-    host: function

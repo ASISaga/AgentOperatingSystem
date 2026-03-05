@@ -1,6 +1,0 @@
-name: cfo-agent
-services:
-  cfo-agent:
-    project: .
-    language: python
-    host: ai.agent

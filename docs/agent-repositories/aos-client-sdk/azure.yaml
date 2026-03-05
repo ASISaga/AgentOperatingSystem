@@ -1,6 +1,0 @@
-name: aos-client-sdk
-services:
-  aos-client-sdk:
-    project: .
-    language: python
-    host: ai.agent
