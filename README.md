@@ -244,13 +244,13 @@ git submodule add https://github.com/ASISaga/business-infinity.git
 ```
 
 Required GitHub configuration per deployed repo
-Type	Name	Value
-Secret	AZURE_CLIENT_ID	Per-app User-Assigned MI clientId (from Bicep output)
-Secret	AZURE_TENANT_ID	Azure tenant ID
-Secret	AZURE_SUBSCRIPTION_ID	Azure subscription ID
-Secret	AZURE_AI_PROJECT_ID	Azure AI Foundry project resource ID
-Variable	AZURE_ENV_NAME	Existing azd environment name (e.g. aos-prod)
-Variable	AZURE_LOCATION	Primary Azure region (e.g. eastus)
+Type |	Name |	Value
+Secret	| AZURE_CLIENT_ID	| Per-app User-Assigned MI clientId (from Bicep output)
+Secret	| AZURE_TENANT_ID	| Azure tenant ID
+Secret	| AZURE_SUBSCRIPTION_ID	| Azure subscription ID
+Secret	| AZURE_AI_PROJECT_ID	| Azure AI Foundry project resource ID
+Variable	| AZURE_ENV_NAME	| Existing azd environment name (e.g. aos-prod)
+Variable	| AZURE_LOCATION	| Primary Azure region (e.g. eastus)
 
 ## License
 
