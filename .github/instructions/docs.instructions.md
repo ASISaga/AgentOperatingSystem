@@ -148,8 +148,8 @@ Every documentation file should:
 ## Documentation References
 
 **Core standards:**
-- `/docs/specifications/architecture.md` - System architecture and organization
-- `/docs/specifications/build-deployment.md` - Build and deployment processes
+- `README.md` - System architecture and organization
+- `.github/specs/repository.md` - Repository structure and conventions
 
 **Applies to**: `docs/**/*.md`, `*.md` in repository root  
 **Version**: 1.1 - Added spec references for improved context efficiency  

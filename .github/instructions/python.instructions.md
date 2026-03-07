@@ -98,6 +98,5 @@ pip install -e ".[dev]"   # Install dependencies
 → **Repository spec**: `.github/specs/repository.md`  
 → **Azure Functions patterns**: `.github/instructions/azure-functions.instructions.md`  
 → **Conventional tools**: `.github/docs/conventional-tools.md`  
-→ **Agent guidelines**: `/docs/specifications/github-copilot-agent-guidelines.md`  
-→ **Architecture**: `/docs/specifications/architecture.md`  
-→ **Build & deployment**: `/docs/specifications/build-deployment.md`
+→ **Agent guidelines**: `.github/docs/agent-contribution-guide.md`  
+→ **Architecture**: `README.md`

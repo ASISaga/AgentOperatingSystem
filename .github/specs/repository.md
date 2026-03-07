@@ -35,8 +35,8 @@ The AgentOperatingSystem provides **agent orchestrations as an infrastructure se
 | Submodule | GitHub URL | Description |
 |-----------|-----------|-------------|
 | `aos-dispatcher/` | https://github.com/ASISaga/aos-dispatcher | Orchestration API — submit, monitor, retrieve orchestrations (Azure Functions) |
-| `aos-realm-of-agents/` | https://github.com/ASISaga/aos-realm-of-agents | Agent catalog — browse and select agents (Azure Functions) |
-| `aos-mcp-servers/` | https://github.com/ASISaga/aos-mcp-servers | MCP server deployment (Azure Functions) |
+| `realm-of-agents/` | https://github.com/ASISaga/realm-of-agents | Agent catalog — browse and select agents (Azure Functions) |
+| `mcp/` | https://github.com/ASISaga/mcp | MCP server deployment (Azure Functions) |
 
 ### Client Repositories
 
@@ -92,7 +92,7 @@ CEO CFO CTO CSO CMO        (each deployed as Azure Functions)
        ┌──┴──┐
 aos-intelligence │          (LoRA, DPO, self-learning, RAG)
        │       │
-aos-dispatcher  aos-realm-of-agents  aos-mcp-servers
+aos-dispatcher  realm-of-agents  mcp
        ▲                (Foundry registration)
        │
  aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
@@ -194,7 +194,7 @@ When making changes that span multiple repositories:
 
 All repositories live under the **[ASISaga](https://github.com/ASISaga)** GitHub organization:
 
-- https://github.com/ASISaga/AgentOperatingSystem (this meta-repo)
+- https://github.com/ASISaga/agent-operating-system (this meta-repo)
 - https://github.com/ASISaga/purpose-driven-agent
 - https://github.com/ASISaga/leadership-agent
 - https://github.com/ASISaga/ceo-agent
@@ -206,7 +206,7 @@ All repositories live under the **[ASISaga](https://github.com/ASISaga)** GitHub
 - https://github.com/ASISaga/aos-intelligence
 - https://github.com/ASISaga/aos-infrastructure
 - https://github.com/ASISaga/aos-dispatcher
-- https://github.com/ASISaga/aos-realm-of-agents
-- https://github.com/ASISaga/aos-mcp-servers
+- https://github.com/ASISaga/realm-of-agents
+- https://github.com/ASISaga/mcp
 - https://github.com/ASISaga/aos-client-sdk
 - https://github.com/ASISaga/business-infinity
