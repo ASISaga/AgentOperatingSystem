@@ -7,15 +7,41 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  validate:
+    name: Validate meta-repository structure
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: pip install -e ".[dev]"
-      - run: pytest tests/ -v
+
+      - name: Verify required meta-repo files
+        run: |
+          test -f README.md
+          test -f LICENSE
+          test -f .gitmodules
+          test -f .github/copilot-instructions.md
+          test -f .github/specs/repository.md
+
+      - name: Verify all submodules are registered
+        run: |
+          # Ensure every path declared in .gitmodules has a corresponding entry
+          python3 - <<'EOF'
+          import re, sys
+          with open(".gitmodules") as f:
+              content = f.read()
+          paths = re.findall(r'^[\t ]*path = (.+)$', content, re.MULTILINE)
+          print(f"Registered submodules ({len(paths)}): {sorted(paths)}")
+          expected = {
+              "aos-kernel", "aos-infrastructure", "aos-intelligence",
+              "aos-dispatcher", "aos-client-sdk",
+              "purpose-driven-agent", "leadership-agent",
+              "ceo-agent", "cfo-agent", "cto-agent", "cso-agent", "cmo-agent",
+              "realm-of-agents", "mcp", "business-infinity",
+          }
+          missing = expected - set(paths)
+          if missing:
+              print(f"ERROR: missing submodules: {missing}", file=sys.stderr)
+              sys.exit(1)
+          print("All expected submodules are registered.")
+          EOF

@@ -155,6 +155,5 @@ pylint src/                          # Lint workflows
 → **Repository spec**: `.github/specs/repository.md`  
 → **Python standards**: `.github/instructions/python.instructions.md`  
 → **Conventional tools**: `.github/docs/conventional-tools.md`  
-→ **Architecture**: `/docs/specifications/architecture.md`  
-→ **Agent guidelines**: `/docs/specifications/github-copilot-agent-guidelines.md`  
-→ **Build & deployment**: `/docs/specifications/build-deployment.md`
+→ **Architecture**: `README.md`  
+→ **Agent guidelines**: `.github/docs/agent-contribution-guide.md`

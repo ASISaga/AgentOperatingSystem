@@ -109,8 +109,8 @@ This meta-repository coordinates **15 focused repositories** under the [ASISaga]
 | Repository | Description | Deployment |
 |-----------|-------------|------------|
 | [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) | Orchestration API — submit, monitor, retrieve orchestrations | Azure Functions |
-| [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) | Agent catalog — browse and select agents | Azure Functions |
-| [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) | MCP server deployment | Azure Functions |
+| [realm-of-agents](https://github.com/ASISaga/realm-of-agents) | Agent catalog — browse and select agents | Azure Functions |
+| [mcp](https://github.com/ASISaga/mcp) | MCP server deployment | Azure Functions |
 
 ### Client Repositories
 
@@ -134,7 +134,7 @@ This meta-repository coordinates **15 focused repositories** under the [ASISaga]
                     ┌──┴──┐              azure-ai-projects, azure-ai-agents
           aos-intelligence  │
                     │       │
-          aos-dispatcher  aos-realm-of-agents  aos-mcp-servers
+          aos-dispatcher  realm-of-agents  mcp
                     ▲          (Foundry registration)
                     │
               aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
@@ -226,8 +226,8 @@ git submodule add https://github.com/ASISaga/aos-kernel.git
 git submodule add https://github.com/ASISaga/aos-infrastructure.git
 git submodule add https://github.com/ASISaga/aos-intelligence.git
 git submodule add https://github.com/ASISaga/aos-dispatcher.git
-git submodule add https://github.com/ASISaga/aos-realm-of-agents.git
-git submodule add https://github.com/ASISaga/aos-mcp-servers.git
+git submodule add https://github.com/ASISaga/realm-of-agents.git
+git submodule add https://github.com/ASISaga/mcp.git
 git submodule add https://github.com/ASISaga/aos-client-sdk.git
 git submodule add https://github.com/ASISaga/business-infinity.git
 ```
