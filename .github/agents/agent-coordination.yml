@@ -1,0 +1,79 @@
+# Agent Coordination Matrix
+#
+# Unified capabilities, routing, and coordination for the agent ecosystem.
+# Used by meta-agents to understand agent roles and route tasks.
+#
+# Version: 2.0.0
+# Last Updated: 2026-03-07
+
+agents:
+  # Meta-Intelligence Layer
+  agent-evolution-agent:
+    category: meta-intelligence
+    role: lead-architect
+    scope: [".github/**"]
+    capabilities: [audit_quality, measure_coverage, detect_duplication, recommend_improvements, track_metrics, sync_specs]
+    tools: [bash, read, edit, grep]
+    triggers: [documentation-manager-agent]
+    routing:
+      patterns: ["agent quality", "spec coverage", "duplication", "metrics"]
+      file_patterns: [".github/**", ".github/prompts/**", ".github/skills/**"]
+
+  # Documentation Layer
+  documentation-manager-agent:
+    category: documentation
+    role: specialist
+    scope: ["docs/**", "**/*.md"]
+    capabilities: [validate_structure, check_links, detect_redundancy, validate_metadata, enforce_archival]
+    tools: [bash, read, edit, grep]
+    triggers: [agent-evolution-agent]
+    routing:
+      patterns: ["documentation", "update docs", "broken link", "redundant"]
+      file_patterns: ["docs/**/*.md", ".github/**/*.md"]
+
+  # Onboarding Layer
+  repository-onboarding:
+    category: automation
+    role: bootstrap-specialist
+    scope: [".github/**", "new repositories"]
+    capabilities: [create_structure, generate_instructions, create_agents, configure_validation]
+    tools: [bash, read, edit, create]
+    routing:
+      patterns: ["new repository", "bootstrap", "onboard", "set up agent intelligence"]
+
+  # Specification Layer
+  spec-manager:
+    category: specification
+    role: specification-engineer
+    scope: ["specs/**", ".github/specs/**"]
+    capabilities: [create_spec, generate_plan, derive_tasks, validate_spec]
+    tools: [bash, read, edit, grep, create]
+    routing:
+      patterns: ["spec", "specification", "feature plan", "task list", "SDD"]
+      file_patterns: ["specs/**/*.md", ".github/specs/**/*.md"]
+
+# Task Workflows (agent sequences for common tasks)
+workflows:
+  new_feature:
+    - spec-manager                 # 1. Specify → Plan → Tasks (SDD)
+
+  documentation_quality:
+    - documentation-manager-agent  # 1. Validate structure, links, metadata
+
+  agent_quality:
+    - agent-evolution-agent        # Full quality workflow
+
+  new_repository:
+    - repository-onboarding        # 1. Bootstrap agent intelligence system
+
+# Conflict Resolution
+conflict_resolution:
+  code_and_docs:
+    parallel: true
+
+# Priority Levels
+priorities:
+  critical: ["Breaking spec changes", "Agent system structure changes"]
+  high: ["New business workflows", "New specifications"]
+  medium: ["Documentation updates", "Agent improvements"]
+  low: ["Validation", "Metrics tracking", "Audits"]

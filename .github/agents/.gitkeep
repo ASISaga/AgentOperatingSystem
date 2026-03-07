@@ -1,0 +1,2 @@
+# This file ensures the .github/agents/ directory is tracked by Git
+# even when it contains no other files.

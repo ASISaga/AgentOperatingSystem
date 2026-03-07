@@ -1,0 +1,105 @@
+# Agent Handoff Protocols
+#
+# Defines how agents coordinate and hand off work to each other in multi-step
+# workflows. Ensures smooth transitions and proper context passing.
+#
+# Version: 2.0.0
+# Last Updated: 2026-03-07
+# Access: Protected - Meta-intelligence layer only
+
+# Handoff Protocols
+protocols:
+  # SDD Spec Workflow Handoffs
+  spec_create_to_plan:
+    from: spec-manager (spec-create workflow)
+    to: spec-manager (spec-plan workflow)
+    trigger: spec_md_created_with_no_clarifications
+    context_passed:
+      - specs/NNN-slug/spec.md (complete, no [NEEDS CLARIFICATION])
+      - User stories and acceptance criteria
+      - NFRs and out-of-scope boundaries
+    validation:
+      - No [NEEDS CLARIFICATION] markers remain
+      - All user stories follow As a/I want/so that format
+      - Acceptance criteria are measurable
+    handoff_checklist:
+      - "[ ] spec.md created in specs/NNN-slug/"
+      - "[ ] All ambiguities resolved"
+      - "[ ] validate-spec.sh passes"
+
+  spec_plan_to_tasks:
+    from: spec-manager (spec-plan workflow)
+    to: spec-manager (spec-tasks workflow)
+    trigger: plan_md_created
+    context_passed:
+      - specs/NNN-slug/plan.md
+      - specs/NNN-slug/research.md (if created)
+      - specs/NNN-slug/data-model.md (if created)
+      - specs/NNN-slug/contracts/ (if created)
+    validation:
+      - plan.md exists
+      - Constitutional gates (Articles III, VII, VIII, IX) passed
+    handoff_checklist:
+      - "[ ] plan.md created"
+      - "[ ] Constitutional gates checked"
+      - "[ ] validate-spec.sh passes"
+
+  # Agent Quality Handoffs
+  agent_evolution_to_documentation:
+    from: agent-evolution-agent
+    to: documentation-manager-agent
+    trigger: documentation_quality_issue_detected
+    context_passed:
+      - Audit report from audit-agent-quality.sh
+      - List of docs with broken references or redundancy
+    validation:
+      - Issue description is specific
+      - File path is identified
+    handoff_checklist:
+      - "[ ] Specific issue identified"
+      - "[ ] Target file(s) specified"
+
+  # Documentation Handoffs
+  code_to_docs:
+    from: developer / coding agent
+    to: documentation-manager-agent
+    trigger: implementation_complete
+    context_passed:
+      - Changed files list
+      - Summary of what changed and why
+    validation:
+      - Related documentation files identified
+      - Docs are up to date or update is planned
+    handoff_checklist:
+      - "[ ] Related docs identified"
+      - "[ ] validate-doc-structure.sh passes"
+      - "[ ] No new broken links introduced"
+
+# Error Recovery Protocols
+error_recovery:
+  spec_validation_fail:
+    trigger: validate-spec.sh returns non-zero
+    action: return to spec-create workflow to resolve [NEEDS CLARIFICATION]
+    escalation: human developer for ambiguities that need business decisions
+
+  test_failure:
+    trigger: pytest tests/ -v fails
+    action: fix implementation before proceeding
+    escalation: human developer if tests appear incorrect
+
+  agent_quality_below_threshold:
+    trigger: audit-agent-quality.sh reports score below quality-thresholds.yml
+    action: invoke agent-evolution-agent with recommend-improvements.sh output
+    escalation: human developer for systemic issues
+
+# Success Criteria
+success_criteria:
+  per_handoff:
+    - Receiving agent can proceed without requesting missing context
+    - All checklist items completed
+    - Validation scripts pass
+
+  overall:
+    - spec.md → plan.md → tasks.md flow is smooth
+    - Agent quality metrics meet quality-thresholds.yml
+    - Zero broken references in .github/
