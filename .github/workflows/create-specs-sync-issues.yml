@@ -1,0 +1,33 @@
+name: Create Specs Sync Issues
+
+on:
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "Comma-separated list of target repos to create issues in (leave blank for all 6)"
+        required: false
+        default: "leadership-agent,ceo-agent,cfo-agent,cto-agent,cso-agent,cmo-agent"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  create-issues:
+    name: Create specs sync issues in target repos
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout meta-repository
+        uses: actions/checkout@v4
+
+      - name: Create issues in target repos
+        env:
+          # GH_TOKEN is the env var the gh CLI authenticates with.
+          # GH_PAT is the repository secret storing a personal access token
+          # with issues:write permission on the 6 target repos.
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          bash .github/scripts/create-specs-sync-issues.sh \
+            "${{ github.event.inputs.repos }}"

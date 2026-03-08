@@ -1,8 +1,14 @@
-# Specs Synchronization — PR Tracking Document
+# Specs Synchronization — Issue Tracking Document
 
 **Created**: 2026-03-08  
 **Status**: Pending  
 **Scope**: `.github/specs/repository.md` corrections for 6 repositories
+
+## Approach — Repository Sovereignty
+
+Each repository in the ASISaga organisation is an independent **Neuron** in the distributed intelligence system. To respect the sovereignty of each Neuron, changes to its own files are proposed via **GitHub Issues opened in that repository** — not via PRs opened from the meta-repo. This allows each repo's maintainers to review, discuss, and apply the change on their own schedule.
+
+Issues are created automatically by the [Create Specs Sync Issues](../../.github/workflows/create-specs-sync-issues.yml) workflow in this meta-repository (requires a `GH_PAT` secret with `issues: write` permission on the target repos).
 
 ## Summary
 
@@ -19,7 +25,7 @@ The only discrepancy is in `.github/specs/repository.md`. Six repositories conta
 | `cso-agent` | BusinessInfinity spec (wrong) | `cso-agent` spec |
 | `cmo-agent` | BusinessInfinity spec (wrong) | `cmo-agent` spec |
 
-## Repositories That Are Correct (No PR Needed)
+## Repositories That Are Correct (No Issue Needed)
 
 | Repository | `repository.md` SHA | Status |
 |-----------|-------------------|--------|
@@ -34,136 +40,143 @@ The only discrepancy is in `.github/specs/repository.md`. Six repositories conta
 | `mcp` | `f8e5306907f48f957c0f852dc7e535010e47d241` | ✅ Correct |
 | `business-infinity` | `a4aa2be7ae3caf206d21e8473e28c9c1065adae9` | ✅ Correct |
 
-## Required PRs
+## Required Issues
+
+Each of the following repositories needs a GitHub Issue opened in it. Run the workflow to create all 6 issues at once:
+
+```
+Actions → Create Specs Sync Issues → Run workflow
+```
+
+Or create each issue manually using the titles and bodies below.
+
+---
 
 ### 1. `ASISaga/leadership-agent`
 
-**PR Title**: `docs: fix repository.md — replace BusinessInfinity spec with correct leadership-agent spec`
+**Issue Title**: `docs: fix .github/specs/repository.md — replace incorrect BusinessInfinity spec with correct leadership-agent spec`
 
-**PR Description**:
+**Issue Body**:
 
-> The `.github/specs/repository.md` currently contains the `BusinessInfinity` repository specification, which was incorrectly deployed to this repository.
->
-> This PR replaces it with the correct `leadership-agent` repository specification describing:
-> - `LeadershipAgent` — the second level of the AOS agent inheritance hierarchy
+> **Problem**: `.github/specs/repository.md` currently contains the BusinessInfinity spec (wrong).  
+> **Fix**: Replace with the `leadership-agent` spec covering:
+> - `LeadershipAgent` — second level of the AOS agent inheritance hierarchy
 > - Generic boardroom orchestration tools (`enroll_specialist_tools`, `get_specialist_tools`, `get_orchestration_instructions`)
 > - Library-only nature (not deployed; consumed by C-suite agent repos)
 > - Testing workflow and related repositories
-
-**File to replace**: `.github/specs/repository.md`  
-**New content**: See [`docs/specs-sync/leadership-agent-repository.md`](leadership-agent-repository.md) in this meta-repo
+>
+> See full replacement content: [`leadership-agent-repository.md`](leadership-agent-repository.md)
 
 ---
 
 ### 2. `ASISaga/ceo-agent`
 
-**PR Title**: `docs: fix repository.md — replace BusinessInfinity spec with correct ceo-agent spec`
+**Issue Title**: `docs: fix .github/specs/repository.md — replace incorrect BusinessInfinity spec with correct ceo-agent spec`
 
-**PR Description**:
+**Issue Body**:
 
-> The `.github/specs/repository.md` currently contains the `BusinessInfinity` repository specification, which was incorrectly deployed to this repository.
->
-> This PR replaces it with the correct `ceo-agent` repository specification describing:
-> - `CEOAgent` — the Chief Executive Officer agent extending `LeadershipAgent`
-> - Boardroom orchestration coordinator role (`enroll_boardroom_tools`, `get_boardroom_tools`, `get_boardroom_instructions`)
+> **Problem**: `.github/specs/repository.md` currently contains the BusinessInfinity spec (wrong).  
+> **Fix**: Replace with the `ceo-agent` spec covering:
+> - `CEOAgent` — Chief Executive Officer agent extending `LeadershipAgent`
+> - Boardroom orchestration coordinator (`enroll_boardroom_tools`, `get_boardroom_tools`, `get_boardroom_instructions`)
 > - Deployed as Azure Functions app registered with Foundry Agent Service
 > - Testing workflow and related repositories
-
-**File to replace**: `.github/specs/repository.md`  
-**New content**: See [`docs/specs-sync/ceo-agent-repository.md`](ceo-agent-repository.md) in this meta-repo
+>
+> See full replacement content: [`ceo-agent-repository.md`](ceo-agent-repository.md)
 
 ---
 
 ### 3. `ASISaga/cfo-agent`
 
-**PR Title**: `docs: fix repository.md — replace BusinessInfinity spec with correct cfo-agent spec`
+**Issue Title**: `docs: fix .github/specs/repository.md — replace incorrect BusinessInfinity spec with correct cfo-agent spec`
 
-**PR Description**:
+**Issue Body**:
 
-> The `.github/specs/repository.md` currently contains the `BusinessInfinity` repository specification, which was incorrectly deployed to this repository.
->
-> This PR replaces it with the correct `cfo-agent` repository specification describing:
-> - `CFOAgent` — the Chief Financial Officer agent extending `LeadershipAgent`
+> **Problem**: `.github/specs/repository.md` currently contains the BusinessInfinity spec (wrong).  
+> **Fix**: Replace with the `cfo-agent` spec covering:
+> - `CFOAgent` — Chief Financial Officer agent extending `LeadershipAgent`
 > - Finance domain boardroom specialist using the `finance` LoRA adapter
 > - Deployed as Azure Functions app registered with Foundry Agent Service
 > - Testing workflow and related repositories
-
-**File to replace**: `.github/specs/repository.md`  
-**New content**: See [`docs/specs-sync/cfo-agent-repository.md`](cfo-agent-repository.md) in this meta-repo
+>
+> See full replacement content: [`cfo-agent-repository.md`](cfo-agent-repository.md)
 
 ---
 
 ### 4. `ASISaga/cto-agent`
 
-**PR Title**: `docs: fix repository.md — replace BusinessInfinity spec with correct cto-agent spec`
+**Issue Title**: `docs: fix .github/specs/repository.md — replace incorrect BusinessInfinity spec with correct cto-agent spec`
 
-**PR Description**:
+**Issue Body**:
 
-> The `.github/specs/repository.md` currently contains the `BusinessInfinity` repository specification, which was incorrectly deployed to this repository.
->
-> This PR replaces it with the correct `cto-agent` repository specification describing:
-> - `CTOAgent` — the Chief Technology Officer agent extending `LeadershipAgent`
+> **Problem**: `.github/specs/repository.md` currently contains the BusinessInfinity spec (wrong).  
+> **Fix**: Replace with the `cto-agent` spec covering:
+> - `CTOAgent` — Chief Technology Officer agent extending `LeadershipAgent`
 > - Technology domain boardroom specialist using the `technology` LoRA adapter
 > - Deployed as Azure Functions app registered with Foundry Agent Service
 > - Testing workflow and related repositories
-
-**File to replace**: `.github/specs/repository.md`  
-**New content**: See [`docs/specs-sync/cto-agent-repository.md`](cto-agent-repository.md) in this meta-repo
+>
+> See full replacement content: [`cto-agent-repository.md`](cto-agent-repository.md)
 
 ---
 
 ### 5. `ASISaga/cso-agent`
 
-**PR Title**: `docs: fix repository.md — replace BusinessInfinity spec with correct cso-agent spec`
+**Issue Title**: `docs: fix .github/specs/repository.md — replace incorrect BusinessInfinity spec with correct cso-agent spec`
 
-**PR Description**:
+**Issue Body**:
 
-> The `.github/specs/repository.md` currently contains the `BusinessInfinity` repository specification, which was incorrectly deployed to this repository.
->
-> This PR replaces it with the correct `cso-agent` repository specification describing:
-> - `CSOAgent` — the Chief Security Officer agent extending `LeadershipAgent`
+> **Problem**: `.github/specs/repository.md` currently contains the BusinessInfinity spec (wrong).  
+> **Fix**: Replace with the `cso-agent` spec covering:
+> - `CSOAgent` — Chief Security Officer agent extending `LeadershipAgent`
 > - Security domain boardroom specialist using the `security` LoRA adapter
 > - Deployed as Azure Functions app registered with Foundry Agent Service
 > - Testing workflow and related repositories
-
-**File to replace**: `.github/specs/repository.md`  
-**New content**: See [`docs/specs-sync/cso-agent-repository.md`](cso-agent-repository.md) in this meta-repo
+>
+> See full replacement content: [`cso-agent-repository.md`](cso-agent-repository.md)
 
 ---
 
 ### 6. `ASISaga/cmo-agent`
 
-**PR Title**: `docs: fix repository.md — replace BusinessInfinity spec with correct cmo-agent spec`
+**Issue Title**: `docs: fix .github/specs/repository.md — replace incorrect BusinessInfinity spec with correct cmo-agent spec`
 
-**PR Description**:
+**Issue Body**:
 
-> The `.github/specs/repository.md` currently contains the `BusinessInfinity` repository specification, which was incorrectly deployed to this repository.
->
-> This PR replaces it with the correct `cmo-agent` repository specification describing:
-> - `CMOAgent` — the Chief Marketing Officer agent extending `LeadershipAgent`
+> **Problem**: `.github/specs/repository.md` currently contains the BusinessInfinity spec (wrong).  
+> **Fix**: Replace with the `cmo-agent` spec covering:
+> - `CMOAgent` — Chief Marketing Officer agent extending `LeadershipAgent`
 > - Marketing domain boardroom specialist using the `marketing` LoRA adapter
 > - Deployed as Azure Functions app registered with Foundry Agent Service
 > - Testing workflow and related repositories
-
-**File to replace**: `.github/specs/repository.md`  
-**New content**: See [`docs/specs-sync/cmo-agent-repository.md`](cmo-agent-repository.md) in this meta-repo
+>
+> See full replacement content: [`cmo-agent-repository.md`](cmo-agent-repository.md)
 
 ---
 
-## How to Apply
+## How to Trigger Issue Creation
 
-For each repository above:
+### Automatic (recommended)
+
+1. Navigate to **Actions → Create Specs Sync Issues** in this meta-repository
+2. Click **Run workflow**
+3. Optionally narrow the target repos (default: all 6)
+4. Click **Run workflow**
+
+> **Prerequisite**: A `GH_PAT` secret must be configured in this repository. The PAT requires `issues: write` permission on each of the 6 target repositories.
+
+### Manual
+
+For each repository listed above:
 
 1. Open the target repository on GitHub
-2. Navigate to `.github/specs/repository.md`
-3. Click **Edit** (pencil icon)
-4. Replace the entire file content with the content from the corresponding file in `docs/specs-sync/` in this meta-repo
-5. Use the PR title and description provided above
-6. Create a PR and request review from repository maintainers
+2. Click **Issues → New issue**
+3. Paste the **Issue Title** and **Issue Body** from this document
+4. Submit the issue
 
 ## Verification
 
-After each PR is merged, verify the fix by checking the SHA of the updated `repository.md` is no longer `a4aa2be7ae3caf206d21e8473e28c9c1065adae9` (the BusinessInfinity spec SHA).
+After each issue is addressed and the fix is merged, verify the `repository.md` SHA in the target repo is no longer `a4aa2be7ae3caf206d21e8473e28c9c1065adae9` (the BusinessInfinity spec SHA).
 
 ## Shared Specs Sync Status
 
