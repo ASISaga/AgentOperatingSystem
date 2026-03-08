@@ -40,6 +40,10 @@ This repository uses a structured GitHub Copilot Coding agent meta-intelligence 
 3. **Context Efficiency** — Reference specs/docs, eliminate redundancy
 4. **Ouroboros Pattern** — Agents evolve themselves through continuous use
 
+## Federated Intelligence
+
+Every repository in the ecosystem functions as an individual Neuron. Use the GitHub MCP server as a Synapse to dynamically fetch .github/specs/repository.md (the Neural Blueprint) from peer repositories. This is a universal standard to ensure active architectural coupling and synchronized reasoning across the entire collective.
+
 ## Tools & Validation
 
 → **Repository tools & commands**: `.github/specs/repository.md`  
