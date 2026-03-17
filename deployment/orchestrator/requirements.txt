@@ -1,7 +1,0 @@
-# Bicep Deployment Orchestrator Requirements
-# These are the core dependencies for the orchestration layer
-
-# No external Python dependencies required - uses only standard library
-# External dependencies:
-# - Azure CLI (az) - must be installed separately
-# - Bicep CLI (az bicep) - installed via Azure CLI
