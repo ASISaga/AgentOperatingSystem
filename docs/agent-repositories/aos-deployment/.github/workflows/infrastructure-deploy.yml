@@ -1,0 +1,484 @@
+name: Infrastructure Deployment Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment (dev, staging, prod)'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      resource_group:
+        description: 'Azure resource group name (auto-generated from environment if empty)'
+        required: false
+        type: string
+      location:
+        description: 'Primary Azure region (auto-selected if empty)'
+        required: false
+        type: string
+        default: ''
+      geography:
+        description: 'Geographic preference for auto-region selection (used when location is empty)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - americas
+          - europe
+          - asia
+        default: ''
+      template:
+        description: 'Bicep template file path'
+        required: false
+        type: string
+        default: 'deployment/main-modular.bicep'
+      skip_health_checks:
+        description: 'Skip post-deployment health checks'
+        required: false
+        type: boolean
+        default: false
+  
+  pull_request:
+    types: [labeled]
+    paths:
+      - 'deployment/**/*.bicep'
+      - 'deployment/**/*.bicepparam'
+      - 'deployment/deploy.py'
+      - 'deployment/orchestrator/**'
+  
+  issue_comment:
+    types: [created]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Pre-flight checks and environment setup
+  setup:
+    name: Setup and Validation
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      environment: ${{ steps.check.outputs.environment }}
+      resource_group: ${{ steps.check.outputs.resource_group }}
+      location: ${{ steps.check.outputs.location }}
+      geography: ${{ steps.check.outputs.geography }}
+      template: ${{ steps.check.outputs.template }}
+      parameters_file: ${{ steps.check.outputs.parameters_file }}
+      is_dry_run: ${{ steps.check.outputs.is_dry_run }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Check deployment trigger and intent
+        id: check
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          INPUT_ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+          INPUT_RESOURCE_GROUP: ${{ github.event.inputs.resource_group }}
+          INPUT_LOCATION: ${{ github.event.inputs.location }}
+          INPUT_GEOGRAPHY: ${{ github.event.inputs.geography }}
+          INPUT_TEMPLATE: ${{ github.event.inputs.template || 'deployment/main-modular.bicep' }}
+          INPUT_SKIP_HEALTH_CHECKS: ${{ github.event.inputs.skip_health_checks }}
+          PR_LABEL_DEPLOY_DEV: ${{ contains(github.event.pull_request.labels.*.name, 'deploy:dev') }}
+          PR_LABEL_DEPLOY_STAGING: ${{ contains(github.event.pull_request.labels.*.name, 'deploy:staging') }}
+          PR_LABEL_STATUS_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'status:approved') }}
+          PR_LABEL_ACTION_DEPLOY: ${{ contains(github.event.pull_request.labels.*.name, 'action:deploy') }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          python3 deployment/orchestrator/cli/workflow_helper.py check-trigger
+
+  # Agent Layer: Orchestrate the deployment
+  deploy:
+    name: Deploy Infrastructure (Agent Layer)
+    needs: setup
+    if: needs.setup.outputs.should_deploy == 'true' || needs.setup.outputs.is_dry_run == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Post deployment start comment
+        if: github.event_name == 'pull_request' || github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isDryRun = '${{ needs.setup.outputs.is_dry_run }}' === 'true';
+            const environment = '${{ needs.setup.outputs.environment }}';
+            const mode = isDryRun ? 'Plan/Analysis' : 'Deployment';
+            
+            const body = `## 🚀 Infrastructure ${mode} Started
+            
+            **Environment**: \`${environment}\`
+            **Resource Group**: \`${{ needs.setup.outputs.resource_group }}\`
+            **Region**: auto-selecting optimal region(s) for each service…
+            **Template**: \`${{ needs.setup.outputs.template }}\`
+            
+            ${isDryRun ? '📊 Running in **plan mode** - no actual changes will be made.' : '⚙️  Running **live deployment** - infrastructure will be modified.'}
+            
+            The agent is now analyzing the deployment...
+            `;
+            
+            if (context.eventName === 'pull_request') {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        run: |
+          echo "📦 Installing Python dependencies..."
+          cd deployment
+          pip install -r orchestrator/requirements.txt
+          pip install --upgrade azure-cli
+      
+      - name: Verify Azure CLI
+        run: az version
+      
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Verify Azure authentication
+        run: |
+          az account show
+          az account list --output table
+      
+      - name: Auto-Select Deployment Regions
+        id: region_select
+        run: |
+          python3 deployment/orchestrator/cli/workflow_helper.py select-regions \
+            --environment "${{ needs.setup.outputs.environment }}" \
+            --location "${{ needs.setup.outputs.location }}" \
+            --geography "${{ needs.setup.outputs.geography }}"
+      
+      - name: Regional Capability Validation
+        id: regional_validation
+        run: |
+          echo "🌍 Validating regional capabilities..."
+          
+          PRIMARY_REGION="${{ steps.region_select.outputs.primary_region }}"
+          ML_REGION="${{ steps.region_select.outputs.ml_region }}"
+          ENVIRONMENT="${{ needs.setup.outputs.environment }}"
+          
+          # Core services required for all environments
+          CORE_SERVICES="storage keyvault functions servicebus appinsights loganalytics identity"
+          if [[ "$ENVIRONMENT" == "prod" ]]; then
+            CORE_SERVICES="$CORE_SERVICES functions-premium servicebus-premium"
+          elif [[ "$ENVIRONMENT" == "staging" ]]; then
+            CORE_SERVICES="$CORE_SERVICES functions-premium"
+          fi
+          
+          echo "Primary Region : $PRIMARY_REGION"
+          echo "ML Region      : $ML_REGION"
+          echo "Environment    : $ENVIRONMENT"
+          
+          echo "--- Primary region validation ---"
+          python3 deployment/orchestrator/cli/regional_tool.py validate \
+            "$PRIMARY_REGION" $CORE_SERVICES > validation-output.txt 2>&1
+          VALIDATION_EXIT=$?
+          cat validation-output.txt
+
+          if [[ "$ENVIRONMENT" != "dev" ]]; then
+            echo "--- ML region validation ($ML_REGION) ---"
+            python3 deployment/orchestrator/cli/regional_tool.py validate \
+              "$ML_REGION" azureml acr > ml-validation-output.txt 2>&1
+            cat ml-validation-output.txt
+          fi
+
+          if [[ $VALIDATION_EXIT -ne 0 ]]; then
+            echo "ℹ️  Some services have warnings in primary region – auto-selection already handled fallback."
+          else
+            echo "✅ Primary region $PRIMARY_REGION supports all required core services"
+          fi
+
+          echo "validation_exit=$VALIDATION_EXIT" >> $GITHUB_OUTPUT
+
+          echo "📊 Deployment Summary for $PRIMARY_REGION:"
+          python3 deployment/orchestrator/cli/regional_tool.py summary \
+            "$PRIMARY_REGION" $CORE_SERVICES
+      
+      - name: Execute Python Orchestrator (Logic Layer)
+        id: orchestrator
+        continue-on-error: true
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          echo "🐍 Executing Python orchestration layer..."
+          
+          PRIMARY_REGION="${{ steps.region_select.outputs.primary_region }}"
+          ML_REGION="${{ steps.region_select.outputs.ml_region }}"
+          PARAMETERS_FILE="${{ needs.setup.outputs.parameters_file }}"
+          
+          # Build argument list without shell evaluation
+          ARGS=(
+            --resource-group "${{ needs.setup.outputs.resource_group }}"
+            --location "$PRIMARY_REGION"
+            --location-ml "$ML_REGION"
+            --environment "${{ needs.setup.outputs.environment }}"
+            --template "${{ needs.setup.outputs.template }}"
+            --allow-warnings
+            --git-sha "${{ github.sha }}"
+          )
+          
+          if [[ -n "$PARAMETERS_FILE" && -f "$PARAMETERS_FILE" ]]; then
+            ARGS+=(--parameters "$PARAMETERS_FILE")
+          fi
+          
+          if [[ "${{ github.event.inputs.skip_health_checks }}" == "true" ]]; then
+            ARGS+=(--skip-health)
+          fi
+          
+          if [[ "${{ needs.setup.outputs.is_dry_run }}" == "true" ]]; then
+            echo "📋 Running in PLAN mode (dry-run)"
+            ARGS+=(--no-confirm-deletes)
+          fi
+          
+          set +e
+          python3 deployment/deploy.py "${ARGS[@]}" 2>&1 | tee orchestrator-output.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          
+          echo "exit_code=${EXIT_CODE}" >> $GITHUB_OUTPUT
+          echo "output_file=orchestrator-output.log" >> $GITHUB_OUTPUT
+          exit ${EXIT_CODE}
+      
+      - name: Analyze orchestrator output (Agent Intelligence)
+        id: analyze
+        if: always()
+        run: |
+          python3 deployment/orchestrator/cli/workflow_helper.py analyze-output \
+            --log-file "${{ steps.orchestrator.outputs.output_file }}" \
+            --exit-code "${{ steps.orchestrator.outputs.exit_code }}"
+      
+      - name: Autonomous logic error fixing
+        id: fix_logic_error
+        if: steps.analyze.outputs.failure_type == 'logic'
+        continue-on-error: true
+        run: |
+          echo "🤖 Autonomous error fixing: Attempting to fix logic error..."
+          
+          ERROR_FILE="${{ steps.analyze.outputs.error_file }}"
+          
+          if [[ ! -f "$ERROR_FILE" ]]; then
+            echo "❌ Error file not found: $ERROR_FILE"
+            echo "fix_success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          set +e
+          python3 .github/skills/deployment-error-fixer/scripts/fix_error.py \
+            --error-file "$ERROR_FILE" \
+            --deployment-dir deployment/ \
+            --auto-fix \
+            2>&1 | tee fix-output.log
+          FIX_EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          
+          if [[ $FIX_EXIT_CODE -eq 0 ]]; then
+            echo "✅ Error fixed autonomously!"
+            echo "fix_success=true" >> $GITHUB_OUTPUT
+            
+            echo "🔄 Retrying deployment after autonomous fix..."
+            
+            PRIMARY_REGION="${{ steps.region_select.outputs.primary_region }}"
+            ML_REGION="${{ steps.region_select.outputs.ml_region }}"
+            PARAMETERS_FILE="${{ needs.setup.outputs.parameters_file }}"
+            
+            ARGS=(
+              --resource-group "${{ needs.setup.outputs.resource_group }}"
+              --location "$PRIMARY_REGION"
+              --location-ml "$ML_REGION"
+              --environment "${{ needs.setup.outputs.environment }}"
+              --template "${{ needs.setup.outputs.template }}"
+              --allow-warnings
+              --git-sha "${{ github.sha }}"
+            )
+            
+            if [[ -n "$PARAMETERS_FILE" && -f "$PARAMETERS_FILE" ]]; then
+              ARGS+=(--parameters "$PARAMETERS_FILE")
+            fi
+            
+            set +e
+            python3 deployment/deploy.py "${ARGS[@]}" 2>&1 | tee orchestrator-retry-after-fix.log
+            RETRY_EXIT_CODE=${PIPESTATUS[0]}
+            set -e
+            
+            if [[ $RETRY_EXIT_CODE -eq 0 ]]; then
+              echo "✅ Deployment succeeded after autonomous fix!"
+              echo "retry_success=true" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Deployment still failed after fix"
+              echo "retry_success=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          else
+            echo "❌ Could not auto-fix error"
+            echo "fix_success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Self-healing retry (Environmental failures only)
+        id: retry
+        if: steps.analyze.outputs.should_retry == 'true' && steps.analyze.outputs.is_transient == 'true'
+        continue-on-error: true
+        run: |
+          python3 deployment/orchestrator/cli/workflow_helper.py retry \
+            --resource-group "${{ needs.setup.outputs.resource_group }}" \
+            --location "${{ steps.region_select.outputs.primary_region }}" \
+            --location-ml "${{ steps.region_select.outputs.ml_region }}" \
+            --environment "${{ needs.setup.outputs.environment }}" \
+            --template "${{ needs.setup.outputs.template }}" \
+            --parameters "${{ needs.setup.outputs.parameters_file }}" \
+            --git-sha "${{ github.sha }}" \
+            --max-retries 3
+      
+      - name: Extract deployment summary
+        id: summary
+        if: always()
+        run: |
+          python3 deployment/orchestrator/cli/workflow_helper.py extract-summary \
+            --audit-dir deployment/audit
+      
+      - name: Post deployment result comment
+        if: always() && (github.event_name == 'pull_request' || github.event_name == 'issue_comment')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ steps.analyze.outputs.status }}';
+            const failureType = '${{ steps.analyze.outputs.failure_type }}';
+            const retrySuccess = '${{ steps.retry.outputs.retry_success }}';
+            const retryCount = '${{ steps.retry.outputs.retry_count }}';
+            const fixSuccess = '${{ steps.fix_logic_error.outputs.fix_success }}';
+            const fixRetrySuccess = '${{ steps.fix_logic_error.outputs.retry_success }}';
+            const environment = '${{ needs.setup.outputs.environment }}';
+            const isDryRun = '${{ needs.setup.outputs.is_dry_run }}' === 'true';
+            
+            let emoji = '❓';
+            let statusText = 'Unknown';
+            let details = '';
+            
+            if (status === 'success' || retrySuccess === 'true' || fixRetrySuccess === 'true') {
+              emoji = '✅';
+              statusText = 'Successful';
+              
+              if (retrySuccess === 'true') {
+                details = `\n\n**Self-Healing**: The deployment initially failed with a transient error, but succeeded after ${retryCount} retry attempt(s). 🔄✨`;
+              }
+              
+              if (fixRetrySuccess === 'true') {
+                details = `\n\n**Autonomous Fix**: The deployment initially failed with a logic error, but the agent autonomously fixed the issue and deployment succeeded! 🤖✨`;
+              }
+              
+              const deployedResources = '${{ steps.summary.outputs.deployed_resources }}';
+              const duration = '${{ steps.summary.outputs.duration }}';
+              
+              if (deployedResources && deployedResources !== '0') {
+                details += `\n\n**Deployed Resources**: ${deployedResources}`;
+              }
+              if (duration && duration !== 'N/A') {
+                details += `\n**Duration**: ${duration} seconds`;
+              }
+            } else if (status === 'failed') {
+              emoji = '❌';
+              statusText = 'Failed';
+              
+              if (failureType === 'logic') {
+                if (fixSuccess === 'false') {
+                  details = `\n\n**Failure Type**: Logic Error (Code/Template)\n**Autonomous Fix**: Attempted but failed\n**Action Required**: The agent could not automatically fix this error. Please review the logs and fix manually.\n\n⚠️ This is a code error that requires manual intervention.`;
+                } else {
+                  details = `\n\n**Failure Type**: Logic Error (Code/Template)\n**Action Required**: Please fix the Bicep template or parameters and try again.\n\n⚠️ **No retry attempted** - this is a code error that requires manual intervention.`;
+                }
+              } else if (failureType === 'environmental') {
+                if (retrySuccess === 'false') {
+                  details = `\n\n**Failure Type**: Environmental (Transient Azure Issue)\n**Retries Attempted**: ${retryCount || 'N/A'}\n\n⚠️ The issue persisted after retry attempts. This may require:\n- Checking Azure service health\n- Trying again later\n- Adjusting resource configurations`;
+                } else {
+                  details = `\n\n**Failure Type**: Environmental (Transient Azure Issue)\n**Retries**: In progress...`;
+                }
+              } else {
+                details = `\n\n**Failure Type**: Unknown\n**Action Required**: Please check the workflow logs for details.`;
+              }
+            }
+            
+            const mode = isDryRun ? 'Plan/Analysis' : 'Deployment';
+            
+            const body = `## ${emoji} Infrastructure ${mode} ${statusText}
+            
+            **Environment**: \`${environment}\`
+            **Resource Group**: \`${{ needs.setup.outputs.resource_group }}\`
+            **Primary Region**: \`${{ steps.region_select.outputs.primary_region }}\`
+            **Azure ML Region**: \`${{ steps.region_select.outputs.ml_region }}\`
+            **Status**: ${statusText}
+            ${details}
+            
+            ${isDryRun ? '📊 This was a **plan/dry-run** - no actual infrastructure changes were made.' : ''}
+            
+            [View workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+            
+            if (context.eventName === 'pull_request') {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }
+      
+      - name: Upload audit logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-audit-${{ github.run_id }}
+          path: |
+            deployment/audit/*.json
+            orchestrator-*.log
+            error-message.txt
+          retention-days: 90
+          if-no-files-found: ignore
+      
+      - name: Final status check
+        if: always()
+        run: |
+          STATUS="${{ steps.analyze.outputs.status }}"
+          RETRY_SUCCESS="${{ steps.retry.outputs.retry_success }}"
+          FIX_RETRY_SUCCESS="${{ steps.fix_logic_error.outputs.retry_success }}"
+          
+          if [[ "$STATUS" == "success" ]] || [[ "$RETRY_SUCCESS" == "true" ]] || [[ "$FIX_RETRY_SUCCESS" == "true" ]]; then
+            echo "✅ Deployment workflow completed successfully"
+            exit 0
+          elif [[ "${{ needs.setup.outputs.is_dry_run }}" == "true" ]]; then
+            echo "📊 Plan/dry-run completed"
+            exit 0
+          else
+            echo "❌ Deployment workflow failed"
+            exit 1
+          fi

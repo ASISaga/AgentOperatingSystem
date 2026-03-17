@@ -1,0 +1,4 @@
+{
+    "_comment": "Copy from monorepo or define MCP server configurations. Defines MCP server instances for config-driven deployment.",
+    "mcp_servers": []
+}

@@ -1,0 +1,5 @@
+# Copy from monorepo requirements or generate from pyproject.toml
+# Core dependencies for RealmOfAgents function app
+aos-kernel[azure]>=3.0.0
+azure-functions>=1.21.0
+agent-framework>=1.0.0rc1

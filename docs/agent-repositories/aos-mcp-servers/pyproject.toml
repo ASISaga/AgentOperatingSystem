@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=75.0.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "aos-mcp-servers"
+version = "3.0.0"
+description = "Config-driven MCP server deployment Azure Function app for AOS"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+
+dependencies = [
+    "aos-kernel[azure]>=3.0.0",
+    "azure-functions>=1.21.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pylint>=3.0.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

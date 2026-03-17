@@ -1,0 +1,43 @@
+{
+  "domain_mcp_servers": {
+    "erp": {
+      "uri": "wss://erpnext-mcp-server.example.com",
+      "api_key_env": "ERP_MCP_APIKEY",
+      "repository": {
+        "owner": "ASISaga",
+        "name": "ERPNext-MCP",
+        "coding_agent": "github-coding-agent"
+      }
+    },
+    "crm": {
+      "uri": "wss://crm-mcp-server.example.com", 
+      "api_key_env": "CRM_MCP_APIKEY",
+      "repository": {
+        "owner": "ASISaga",
+        "name": "CRM-MCP",
+        "coding_agent": "github-coding-agent"
+      }
+    },
+    "finance": {
+      "uri": "wss://finance-mcp-server.example.com",
+      "api_key_env": "FINANCE_MCP_APIKEY",
+      "repository": {
+        "owner": "ASISaga", 
+        "name": "Finance-MCP",
+        "coding_agent": "github-coding-agent"
+      }
+    }
+  },
+  "github_mcp_server": {
+    "uri": "wss://github-mcp-server.example.com",
+    "api_key_env": "GITHUB_MCP_APIKEY"
+  },
+  "self_learning": {
+    "check_interval_seconds": 300,
+    "max_pending_implementations": 50,
+    "issue_template": {
+      "labels": ["enhancement", "auto-generated", "mcp-function"],
+      "milestone": "Self-Learning Implementations"
+    }
+  }
+}
