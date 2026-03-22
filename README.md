@@ -106,11 +106,11 @@ This meta-repository coordinates **15 focused repositories** under the [ASISaga]
 
 ### Service Repositories (AOS Infrastructure)
 
-| Repository | Description | Deployment |
-|-----------|-------------|------------|
-| [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) | Orchestration API — submit, monitor, retrieve orchestrations | Azure Functions |
-| [realm-of-agents](https://github.com/ASISaga/realm-of-agents) | Agent catalog — browse and select agents | Azure Functions |
-| [mcp](https://github.com/ASISaga/mcp) | MCP server deployment | Azure Functions |
+| Repository | Description | Deployment | Custom Domain |
+|-----------|-------------|------------|---------------|
+| [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) | Orchestration API — submit, monitor, retrieve orchestrations | Azure Functions | `aos-dispatcher.asisaga.com` |
+| [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) | Agent catalog — browse and select agents | Azure Functions | `aos-realm-of-agents.asisaga.com` |
+| [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) | MCP server deployment & management | Azure Functions | `aos-mcp-servers.asisaga.com` |
 
 ### Client Repositories
 
@@ -134,16 +134,16 @@ This meta-repository coordinates **15 focused repositories** under the [ASISaga]
                     ┌──┴──┐              azure-ai-projects, azure-ai-agents
           aos-intelligence  │
                     │       │
-          aos-dispatcher  realm-of-agents  mcp
+          aos-dispatcher  aos-realm-of-agents  aos-mcp-servers
                     ▲          (Foundry registration)
                     │
               aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
                     ▲                   Foundry is internal to AOS
                     │
             business-infinity ◄──────── lean client app (business logic only)
-                                         function_app.py = 7 lines
+                                         function_app.py = 2 lines
 
-          aos-infrastructure (standalone — Bicep: AI Hub, Project, Services, Gateway, A2A Connections)
+          aos-infrastructure (standalone — 13 Bicep modules, 16 custom *.asisaga.com domains)
 ```
 
 ## Quick Start
@@ -199,7 +199,12 @@ pip install cmo-agent
 ## Architecture
 
 For detailed architecture documentation, see:
-- [Repository Split Plan](docs/REPOSITORY_SPLIT_PLAN.md) — Completed multi-repo architecture plan
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System architecture, dependency graph, infrastructure
+- [docs/REPOSITORY_SPLIT_PLAN.md](docs/REPOSITORY_SPLIT_PLAN.md) — Completed multi-repo architecture plan
+- [docs/API-REFERENCE.md](docs/API-REFERENCE.md) — Dispatcher API endpoint reference
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Azure deployment guide
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — Developer guide
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) — Environment variables & configuration
 - Each repository's own `docs/` for module-specific architecture
 
 ## Git Submodules
@@ -226,20 +231,22 @@ git submodule add https://github.com/ASISaga/aos-kernel.git
 git submodule add https://github.com/ASISaga/aos-infrastructure.git
 git submodule add https://github.com/ASISaga/aos-intelligence.git
 git submodule add https://github.com/ASISaga/aos-dispatcher.git
-git submodule add https://github.com/ASISaga/realm-of-agents.git
-git submodule add https://github.com/ASISaga/mcp.git
+git submodule add https://github.com/ASISaga/aos-realm-of-agents.git
+git submodule add https://github.com/ASISaga/aos-mcp-servers.git
 git submodule add https://github.com/ASISaga/aos-client-sdk.git
 git submodule add https://github.com/ASISaga/business-infinity.git
 ```
 
-Required GitHub configuration per deployed repo
-Type |	Name |	Value
-Secret	| AZURE_CLIENT_ID	| Per-app User-Assigned MI clientId (from Bicep output)
-Secret	| AZURE_TENANT_ID	| Azure tenant ID
-Secret	| AZURE_SUBSCRIPTION_ID	| Azure subscription ID
-Secret	| AZURE_AI_PROJECT_ID	| Azure AI Foundry project resource ID
-Variable	| AZURE_ENV_NAME	| Existing azd environment name (e.g. aos-prod)
-Variable	| AZURE_LOCATION	| Primary Azure region (e.g. eastus)
+Required GitHub configuration per deployed repo:
+
+| Type | Name | Value |
+|------|------|-------|
+| Secret | `AZURE_CLIENT_ID` | Per-app User-Assigned MI clientId (from Bicep output) |
+| Secret | `AZURE_TENANT_ID` | Azure tenant ID |
+| Secret | `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+| Secret | `AZURE_AI_PROJECT_ID` | Azure AI Foundry project resource ID |
+| Variable | `AZURE_ENV_NAME` | Existing azd environment name (e.g. `aos-prod`) |
+| Variable | `AZURE_LOCATION` | Primary Azure region (e.g. `eastus`) |
 
 ## License
 

@@ -37,7 +37,7 @@ jobs:
               "aos-dispatcher", "aos-client-sdk",
               "purpose-driven-agent", "leadership-agent",
               "ceo-agent", "cfo-agent", "cto-agent", "cso-agent", "cmo-agent",
-              "realm-of-agents", "mcp", "business-infinity",
+              "aos-realm-of-agents", "aos-mcp-servers", "business-infinity",
           }
           missing = expected - set(paths)
           if missing:
