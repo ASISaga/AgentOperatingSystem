@@ -72,8 +72,8 @@ agent-operating-system/         ← meta-repo (this repo)
 ├── cso-agent/                  ← https://github.com/ASISaga/cso-agent
 ├── cmo-agent/                  ← https://github.com/ASISaga/cmo-agent
 │
-├── realm-of-agents/            ← https://github.com/ASISaga/realm-of-agents
-├── mcp/                        ← https://github.com/ASISaga/mcp
+├── aos-realm-of-agents/        ← https://github.com/ASISaga/aos-realm-of-agents
+├── aos-mcp-servers/            ← https://github.com/ASISaga/aos-mcp-servers
 └── business-infinity/          ← https://github.com/ASISaga/business-infinity
 ```
 

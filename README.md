@@ -106,11 +106,11 @@ This meta-repository coordinates **15 focused repositories** under the [ASISaga]
 
 ### Service Repositories (AOS Infrastructure)
 
-| Repository | Description | Deployment |
-|-----------|-------------|------------|
-| [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) | Orchestration API — submit, monitor, retrieve orchestrations | Azure Functions |
-| [realm-of-agents](https://github.com/ASISaga/realm-of-agents) | Agent catalog — browse and select agents | Azure Functions |
-| [mcp](https://github.com/ASISaga/mcp) | MCP server deployment | Azure Functions |
+| Repository | Description | Deployment | Custom Domain |
+|-----------|-------------|------------|---------------|
+| [aos-dispatcher](https://github.com/ASISaga/aos-dispatcher) | Orchestration API — submit, monitor, retrieve orchestrations | Azure Functions | `aos-dispatcher.asisaga.com` |
+| [aos-realm-of-agents](https://github.com/ASISaga/aos-realm-of-agents) | Agent catalog — browse and select agents | Azure Functions | `aos-realm-of-agents.asisaga.com` |
+| [aos-mcp-servers](https://github.com/ASISaga/aos-mcp-servers) | MCP server deployment & management | Azure Functions | `aos-mcp-servers.asisaga.com` |
 
 ### Client Repositories
 
@@ -134,16 +134,16 @@ This meta-repository coordinates **15 focused repositories** under the [ASISaga]
                     ┌──┴──┐              azure-ai-projects, azure-ai-agents
           aos-intelligence  │
                     │       │
-          aos-dispatcher  realm-of-agents  mcp
+          aos-dispatcher  aos-realm-of-agents  aos-mcp-servers
                     ▲          (Foundry registration)
                     │
               aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
                     ▲                   Foundry is internal to AOS
                     │
             business-infinity ◄──────── lean client app (business logic only)
-                                         function_app.py = 7 lines
+                                         function_app.py = 2 lines
 
-          aos-infrastructure (standalone — Bicep: AI Hub, Project, Services, Gateway, A2A Connections)
+          aos-infrastructure (standalone — 13 Bicep modules, 16 custom *.asisaga.com domains)
 ```
 
 ## Quick Start
@@ -231,8 +231,8 @@ git submodule add https://github.com/ASISaga/aos-kernel.git
 git submodule add https://github.com/ASISaga/aos-infrastructure.git
 git submodule add https://github.com/ASISaga/aos-intelligence.git
 git submodule add https://github.com/ASISaga/aos-dispatcher.git
-git submodule add https://github.com/ASISaga/realm-of-agents.git
-git submodule add https://github.com/ASISaga/mcp.git
+git submodule add https://github.com/ASISaga/aos-realm-of-agents.git
+git submodule add https://github.com/ASISaga/aos-mcp-servers.git
 git submodule add https://github.com/ASISaga/aos-client-sdk.git
 git submodule add https://github.com/ASISaga/business-infinity.git
 ```

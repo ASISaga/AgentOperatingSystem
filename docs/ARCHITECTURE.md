@@ -16,7 +16,7 @@ Multi-agent orchestration is managed by the **Azure AI Foundry Agent Service**. 
 ┌─────────────────────────────────────────────────────────┐
 │  Client Application  (e.g. BusinessInfinity)            │
 │  business logic only · @app.workflow decorators         │
-│  function_app.py = 7 lines                              │
+│  function_app.py = 2 lines                              │
 └───────────────────────────┬─────────────────────────────┘
                             │ HTTPS / Azure Service Bus
 ┌───────────────────────────▼─────────────────────────────┐
@@ -43,7 +43,7 @@ Multi-agent orchestration is managed by the **Azure AI Foundry Agent Service**. 
 │  └────────────────────────────────────────────────────┘  │
 │                                                          │
 │  ┌──────────────────┐  ┌───────────────────────────┐    │
-│  │  AI Gateway       │  │  realm-of-agents           │    │
+│  │  AI Gateway       │  │  aos-realm-of-agents           │    │
 │  │  (APIM)           │  │  Agent catalog & registry  │    │
 │  │  Rate limiting    │  │  Browse & select agents    │    │
 │  │  JWT auth         │  └───────────────────────────┘    │
@@ -75,7 +75,7 @@ CEO CFO CTO CSO CMO        (each deployed as Azure Functions)
        ┌──┴──┐
 aos-intelligence │          (LoRA, DPO, self-learning, RAG)
        │       │
-aos-dispatcher  realm-of-agents  mcp
+aos-dispatcher  aos-realm-of-agents  aos-mcp-servers
        ▲                (Foundry registration)
        │
  aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
@@ -105,42 +105,46 @@ This meta-repository coordinates **15 focused repositories** via Git submodules.
 
 ### Platform Repositories
 
-| Submodule | Description |
-|-----------|-------------|
-| `aos-kernel/` | OS kernel — orchestration, messaging, storage, auth, MCP, monitoring |
-| `aos-intelligence/` | ML/AI — LoRA, DPO, self-learning, knowledge, RAG, Foundry integration |
-| `aos-infrastructure/` | Infrastructure — Bicep (AI Hub, Project, Services, Gateway), deployment orchestrator |
+| Submodule | Description | Version |
+|-----------|-------------|---------|
+| `aos-kernel/` | OS kernel — orchestration, messaging, storage, auth, MCP, monitoring | v6.0.0 |
+| `aos-intelligence/` | ML/AI — LoRA/LoRAx, DPO, self-learning, knowledge, RAG, Foundry integration | v2.0.0 |
+| `aos-infrastructure/` | Infrastructure — 13 Bicep modules, deployment orchestrator (3 pillars), 16 custom domains | v5.0.0+ |
 
 ### Service Repositories
 
-| Submodule | Description | Deployment |
-|-----------|-------------|------------|
-| `aos-dispatcher/` | Orchestration API — submit, monitor, retrieve orchestrations | Azure Functions |
-| `realm-of-agents/` | Agent catalog — browse and select agents | Azure Functions |
-| `mcp/` | MCP server deployment & management | Azure Functions |
+| Submodule | Description | Deployment | Custom Domain |
+|-----------|-------------|------------|---------------|
+| `aos-dispatcher/` | Orchestration API — submit, monitor, retrieve orchestrations | Azure Functions | `aos-dispatcher.asisaga.com` |
+| `aos-realm-of-agents/` | Agent catalog — browse and select agents (`/api/realm/agents`) | Azure Functions | `aos-realm-of-agents.asisaga.com` |
+| `aos-mcp-servers/` | MCP server deployment & management | Azure Functions | `aos-mcp-servers.asisaga.com` |
 
 ### Client Repositories
 
-| Submodule | Description |
-|-----------|-------------|
-| `aos-client-sdk/` | App framework & SDK — Azure Functions scaffolding, Service Bus, auth, deployment |
-| `business-infinity/` | Example client app — C-suite orchestrations via AOS |
+| Submodule | Description | Version |
+|-----------|-------------|---------|
+| `aos-client-sdk/` | App framework & SDK — AOSApp, AOSClient, AOSAuth, AOSServiceBus, AOSRegistration, AOSDeployer, MockAOSClient | v7.0.0 |
+| `business-infinity/` | Example client app — C-suite orchestrations via AOS (boardroom/ + src/) | — |
 
 ---
 
 ## Azure Infrastructure
 
-AOS provisions the following Azure resources via Bicep (managed by `aos-infrastructure`):
+AOS provisions the following Azure resources via Bicep (managed by `aos-infrastructure`, 13 modules):
 
 | Resource | Azure Type | Purpose |
 |----------|-----------|---------|
 | AI Services | `Microsoft.CognitiveServices/accounts` | Foundation AI/ML endpoint (GPT-4o, etc.) |
 | AI Foundry Hub | `Microsoft.MachineLearningServices/workspaces` (Hub) | Central governance; connections to AI Services |
-| AI Foundry Project | `Microsoft.MachineLearningServices/workspaces` (Project) | Isolated workspace for agent registration |
+| AI Foundry Project | `Microsoft.MachineLearningServices/workspaces` (Project) | Isolated workspace for agent registration; Cognitive Services User RBAC to Project MI |
 | AI Gateway | `Microsoft.ApiManagement/service` | Rate limiting, JWT validation, centralized routing |
 | Service Bus | `Microsoft.ServiceBus/namespaces` | Async messaging between client apps and AOS |
-| Function Apps | `Microsoft.Web/sites` | Runtime for dispatcher, agents, realm-of-agents, mcp |
+| Function Apps | `Microsoft.Web/sites` | Runtime for dispatcher, agents, aos-realm-of-agents, aos-mcp-servers (16 apps) |
 | Managed Identities | `Microsoft.ManagedIdentity/userAssignedIdentities` | Per-app identity for RBAC |
+| LoRA Inference Endpoint | Managed Online Endpoint | Llama-3.3-70B-Instruct Multi-LoRA serving |
+| Model Registry | Azure ML Registry | LoRA adapter versioning and management |
+| Policy + Budget | `Microsoft.Authorization/policyAssignments` + `Microsoft.Consumption/budgets` | Governance: location, HTTPS, cost controls |
+| DNS + TLS | Custom hostname bindings + Managed Certificates | 16 `*.asisaga.com` hostnames with SNI TLS |
 
 ---
 
@@ -204,7 +208,7 @@ Client App  →  POST /api/mcp/servers/{server}/tools/{tool}
            Result returned to client / injected into agent context
 ```
 
-MCP servers are managed by the `mcp/` submodule and registered with the Foundry Agent Service so that agents can invoke tools during their reasoning.
+MCP servers are managed by the `aos-mcp-servers/` submodule and registered with the Foundry Agent Service so that agents can invoke tools during their reasoning.
 
 ---
 

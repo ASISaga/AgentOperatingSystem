@@ -11,6 +11,27 @@
 - Python >= 3.11
 - Git with submodule support
 
+### DNS Prerequisites (Production)
+
+All 16 production Function Apps use custom `*.asisaga.com` hostnames. **CNAME records must exist in your DNS provider before deployment with custom domains** — the hostname-binding Bicep step fails if the CNAME is absent.
+
+| Hostname | Points to |
+|----------|-----------|
+| `aos-dispatcher.asisaga.com` | `<dispatcher-funcapp>.azurewebsites.net` |
+| `aos-realm-of-agents.asisaga.com` | `<realm-funcapp>.azurewebsites.net` |
+| `aos-mcp-servers.asisaga.com` | `<mcp-funcapp>.azurewebsites.net` |
+| `aos-kernel.asisaga.com` | `<kernel-funcapp>.azurewebsites.net` |
+| `aos-intelligence.asisaga.com` | `<intelligence-funcapp>.azurewebsites.net` |
+| `aos-client-sdk.asisaga.com` | `<sdk-funcapp>.azurewebsites.net` |
+| `business-infinity.asisaga.com` | `<bi-funcapp>.azurewebsites.net` |
+| `ceo-agent.asisaga.com` | `<ceo-funcapp>.azurewebsites.net` |
+| `cfo-agent.asisaga.com` | `<cfo-funcapp>.azurewebsites.net` |
+| `cto-agent.asisaga.com` | `<cto-funcapp>.azurewebsites.net` |
+| `cso-agent.asisaga.com` | `<cso-funcapp>.azurewebsites.net` |
+| `cmo-agent.asisaga.com` | `<cmo-funcapp>.azurewebsites.net` |
+
+See `aos-infrastructure/docs/dns-setup.md` for the full list of MCP server submodule domains and the recommended two-phase deployment procedure.
+
 ---
 
 ## Step 1: Provision Infrastructure
@@ -44,7 +65,7 @@ After provisioning, note the outputs:
 
 ## Step 2: Register GitHub Secrets
 
-For each deployed repository (dispatcher + 5 C-suite agents + realm-of-agents + mcp), configure the following GitHub secrets and variables:
+For each deployed repository (dispatcher + 5 C-suite agents + aos-realm-of-agents + aos-mcp-servers), configure the following GitHub secrets and variables:
 
 | Type | Name | Value |
 |------|------|-------|
@@ -95,13 +116,13 @@ The `deploy.yml` in each agent repo handles CI/CD automatically.
 ### Deploy Supporting Services
 
 ```bash
-# Deploy realm-of-agents (agent catalog)
-git clone https://github.com/ASISaga/realm-of-agents.git
-cd realm-of-agents && azd deploy
+# Deploy aos-realm-of-agents (agent catalog)
+git clone https://github.com/ASISaga/aos-realm-of-agents.git
+cd aos-realm-of-agents && azd deploy
 
 # Deploy MCP servers
-git clone https://github.com/ASISaga/mcp.git
-cd mcp && azd deploy
+git clone https://github.com/ASISaga/aos-mcp-servers.git
+cd aos-mcp-servers && azd deploy
 ```
 
 ---
@@ -112,8 +133,8 @@ The dispatcher proxies some requests to `aos-mcp-servers` and `aos-realm-of-agen
 
 | Setting | Value |
 |---------|-------|
-| `MCP_SERVERS_BASE_URL` | Base URL of the `mcp` function app |
-| `REALM_OF_AGENTS_BASE_URL` | Base URL of the `realm-of-agents` function app |
+| `MCP_SERVERS_BASE_URL` | Base URL of the `aos-mcp-servers` function app |
+| `REALM_OF_AGENTS_BASE_URL` | Base URL of the `aos-realm-of-agents` function app |
 
 If these variables are not set, the dispatcher returns stub responses (useful for local development).
 
@@ -207,7 +228,7 @@ GitHub Actions workflows (`.github/workflows/`):
 ### MCP tools returning stub responses
 
 - Set `MCP_SERVERS_BASE_URL` in the dispatcher function app's application settings.
-- Verify that the `mcp` function app is deployed and healthy (`GET /api/health`).
+- Verify that the `aos-mcp-servers` function app is deployed and healthy (`GET /api/health`).
 
 ### Service Bus connection errors
 

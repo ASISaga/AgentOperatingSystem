@@ -47,7 +47,7 @@ async for update in request.client.stream_orchestration(orchestration_id):
 
 **Status**: Proposed  
 **Priority**: Medium  
-**Target**: `aos-kernel`, `realm-of-agents`, `aos-client-sdk`
+**Target**: `aos-kernel`, `aos-realm-of-agents`, `aos-client-sdk`
 
 ### Problem
 

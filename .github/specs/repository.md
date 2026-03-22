@@ -35,8 +35,8 @@ The AgentOperatingSystem provides **agent orchestrations as an infrastructure se
 | Submodule | GitHub URL | Description |
 |-----------|-----------|-------------|
 | `aos-dispatcher/` | https://github.com/ASISaga/aos-dispatcher | Orchestration API — submit, monitor, retrieve orchestrations (Azure Functions) |
-| `realm-of-agents/` | https://github.com/ASISaga/realm-of-agents | Agent catalog — browse and select agents (Azure Functions) |
-| `mcp/` | https://github.com/ASISaga/mcp | MCP server deployment (Azure Functions) |
+| `aos-realm-of-agents/` | https://github.com/ASISaga/aos-realm-of-agents | Agent catalog — browse and select agents (`/api/realm/agents`, Azure Functions) |
+| `aos-mcp-servers/` | https://github.com/ASISaga/aos-mcp-servers | MCP server deployment & management (Azure Functions) |
 
 ### Client Repositories
 
@@ -54,7 +54,7 @@ The AgentOperatingSystem provides **agent orchestrations as an infrastructure se
 │  Client Application                   │  ← Your app (e.g. business-infinity)
 │  (business logic only)                │     pip install aos-client-sdk[azure]
 │  @app.workflow decorators             │
-│  function_app.py = 7 lines            │
+│  function_app.py = 2 lines            │
 └───────────────────────────────────────┘
                  │ HTTPS / Azure Service Bus
 ┌────────────────▼────────────────────────────────────────────┐
@@ -92,7 +92,7 @@ CEO CFO CTO CSO CMO        (each deployed as Azure Functions)
        ┌──┴──┐
 aos-intelligence │          (LoRA, DPO, self-learning, RAG)
        │       │
-aos-dispatcher  realm-of-agents  mcp
+aos-dispatcher  aos-realm-of-agents  aos-mcp-servers
        ▲                (Foundry registration)
        │
  aos-client-sdk ◄──────── app framework + HTTP/Service Bus SDK
@@ -154,7 +154,7 @@ agent_framework.Agent (Microsoft)
 ### Infrastructure
 
 - All Bicep templates are in `aos-infrastructure/deployment/`
-- 12 deployed app modules (CEO, CFO, CTO, CSO, CMO agents + dispatcher + realm-of-agents + mcp-servers + infrastructure services)
+- 12 deployed app modules (CEO, CFO, CTO, CSO, CMO agents + dispatcher + aos-realm-of-agents + aos-mcp-servers + infrastructure services)
 - Deployment uses `azd` CLI + `azure-ai-agents` extension
 - Agent repos use `azd ai agent init`; function repos do not
 
@@ -215,7 +215,7 @@ All repositories live under the **[ASISaga](https://github.com/ASISaga)** GitHub
 - https://github.com/ASISaga/aos-intelligence
 - https://github.com/ASISaga/aos-infrastructure
 - https://github.com/ASISaga/aos-dispatcher
-- https://github.com/ASISaga/realm-of-agents
-- https://github.com/ASISaga/mcp
+- https://github.com/ASISaga/aos-realm-of-agents
+- https://github.com/ASISaga/aos-mcp-servers
 - https://github.com/ASISaga/aos-client-sdk
 - https://github.com/ASISaga/business-infinity

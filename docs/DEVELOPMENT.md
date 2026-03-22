@@ -77,7 +77,7 @@ When modifying the agent hierarchy:
 
 ## Python Coding Conventions
 
-- All packages use `pyproject.toml` with `[build-system]` set to `hatchling`
+- All packages use `pyproject.toml`; build system is either `hatchling` (e.g. `aos-intelligence`) or `setuptools` (e.g. `aos-dispatcher`, `aos-kernel`, `aos-client-sdk`)
 - Package names: **kebab-case** (e.g., `aos-kernel`, `purpose-driven-agent`)
 - Module names: **snake_case** (e.g., `aos_kernel`, `purpose_driven_agent`)
 - Target **Python 3.11+**
@@ -162,6 +162,17 @@ C-suite agent tests use `--rootdir` to avoid pytest namespace conflicts:
 ```bash
 cd ceo-agent
 pytest tests/ -v --rootdir=.
+```
+
+### Testing Client Apps with MockAOSClient
+
+`aos-client-sdk` v7.0.0 provides `MockAOSClient` for local testing without a running AOS instance:
+
+```python
+from aos_client.testing import MockAOSClient
+
+mock_client = MockAOSClient()
+# configure mock responses, then inject into workflows
 ```
 
 Full test suite across all repos: ~387 tests.

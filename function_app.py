@@ -18,8 +18,8 @@ the standard orchestration endpoints.
 
 AOS Function Apps (3 total — each is a separate Azure Functions deployment):
     aos-dispatcher       This function app — central HTTP/Service Bus dispatcher
-    aos-mcp-servers      MCP server deployment & management (ASISaga/mcp)
-    aos-realm-of-agents  Agent catalog & registry (ASISaga/realm-of-agents)
+    aos-mcp-servers      MCP server deployment & management (ASISaga/aos-mcp-servers)
+    aos-realm-of-agents  Agent catalog & registry (ASISaga/aos-realm-of-agents)
 
     The dispatcher proxies MCP and agent-catalog requests to the dedicated
     function apps via the environment variables MCP_SERVERS_BASE_URL and
@@ -527,7 +527,7 @@ async def get_mcp_server_status(req: func.HttpRequest) -> func.HttpResponse:
 
 # ── Agent Catalog Endpoints ───────────────────────────────────────────────────
 # GET /api/agents and GET /api/agents/{id} proxy to *aos-realm-of-agents*
-# (ASISaga/realm-of-agents).  Configure REALM_OF_AGENTS_BASE_URL in App Settings.
+# (ASISaga/aos-realm-of-agents).  Configure REALM_OF_AGENTS_BASE_URL in App Settings.
 
 
 @app.function_name("list_agents")

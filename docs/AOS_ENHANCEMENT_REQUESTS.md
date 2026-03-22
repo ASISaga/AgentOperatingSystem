@@ -9,6 +9,8 @@
 
 BusinessInfinity is the reference client application for AOS. As it evolves, feature gaps and friction points in the SDK are identified here. Each request describes the pain point, the proposed API change, and the target repository.
 
+**SDK version at time of writing**: `aos-client-sdk` v7.0.0
+
 ---
 
 ## ENH-001: `AOSApp.on_orchestration_update` decorator
@@ -73,7 +75,7 @@ The `@app.mcp_tool(tool_name)` decorator registers an async function as an MCP t
 
 ## ENH-003: `workflow_template` decorator
 
-**Status**: Proposed  
+**Status**: ✅ Implemented in `aos-client-sdk` v7.0.0  
 **Priority**: High  
 **Target**: `aos-client-sdk`
 
@@ -120,7 +122,7 @@ async def strategic_review(request: WorkflowRequest):
 
 ## ENH-004: `OrchestrationRequest` with MCP server assignment
 
-**Status**: Proposed  
+**Status**: ✅ Implemented in `aos-client-sdk` v7.0.0 (`OrchestrationRequest`, `OrchestrationPurpose`, `MCPServerConfig` all exported)  
 **Priority**: Medium  
 **Target**: `aos-client-sdk`
 
