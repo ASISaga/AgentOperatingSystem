@@ -184,9 +184,18 @@ When making changes that span multiple repositories:
 |------|---------|
 | `README.md` | Architecture overview, repository map, quick-start guides |
 | `.gitmodules` | Submodule definitions — all 15 sub-repositories |
+| `function_app.py` | Azure Functions entry point for aos-dispatcher (thin HTTP/Service Bus wrapper) |
+| `docs/ARCHITECTURE.md` | System architecture, dependency graph, Azure infrastructure |
+| `docs/API-REFERENCE.md` | Complete dispatcher API endpoint reference |
+| `docs/DEPLOYMENT.md` | Azure deployment guide (infra provisioning, secrets, CI/CD) |
+| `docs/DEVELOPMENT.md` | Developer guide (submodules, conventions, adding agents/endpoints) |
+| `docs/CONFIGURATION.md` | Environment variables, host.json, APIM, Service Bus configuration |
 | `docs/REPOSITORY_SPLIT_PLAN.md` | The completed multi-repo architecture plan |
 | `docs/AOS_ENHANCEMENT_REQUESTS.md` | Enhancement requests from BusinessInfinity to aos-client-sdk |
-| `docs/AOS_FURTHER_ENHANCEMENTS.md` | Further enhancement requests for the SDK |
+| `docs/AOS_FURTHER_ENHANCEMENTS.md` | Further enhancement requests for the SDK and platform |
+| `spec/design.md` | Design document for the monolith-to-submodule migration |
+| `spec/requirements.md` | EARS requirements for the migration |
+| `spec/tasks.md` | Task tracking for the migration (all tasks complete) |
 
 ---
 

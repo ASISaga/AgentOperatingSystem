@@ -562,7 +562,7 @@ async def ask_agent(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.function_name("send_to_agent")
 @app.route(route="agents/{agent_id}/send", methods=["POST"])
-async def send_to_agent(req: func.HttpRequest) -> func.HttpResponse:  # noqa: ARG001
+async def send_to_agent(req: func.HttpRequest) -> func.HttpResponse:
     """Fire-and-forget message to an agent."""
     agent_id = req.route_params.get("agent_id", "")
     return _make_response(dispatcher.send_to_agent(agent_id))

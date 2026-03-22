@@ -199,7 +199,12 @@ pip install cmo-agent
 ## Architecture
 
 For detailed architecture documentation, see:
-- [Repository Split Plan](docs/REPOSITORY_SPLIT_PLAN.md) — Completed multi-repo architecture plan
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System architecture, dependency graph, infrastructure
+- [docs/REPOSITORY_SPLIT_PLAN.md](docs/REPOSITORY_SPLIT_PLAN.md) — Completed multi-repo architecture plan
+- [docs/API-REFERENCE.md](docs/API-REFERENCE.md) — Dispatcher API endpoint reference
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Azure deployment guide
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — Developer guide
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) — Environment variables & configuration
 - Each repository's own `docs/` for module-specific architecture
 
 ## Git Submodules
@@ -232,14 +237,16 @@ git submodule add https://github.com/ASISaga/aos-client-sdk.git
 git submodule add https://github.com/ASISaga/business-infinity.git
 ```
 
-Required GitHub configuration per deployed repo
-Type |	Name |	Value
-Secret	| AZURE_CLIENT_ID	| Per-app User-Assigned MI clientId (from Bicep output)
-Secret	| AZURE_TENANT_ID	| Azure tenant ID
-Secret	| AZURE_SUBSCRIPTION_ID	| Azure subscription ID
-Secret	| AZURE_AI_PROJECT_ID	| Azure AI Foundry project resource ID
-Variable	| AZURE_ENV_NAME	| Existing azd environment name (e.g. aos-prod)
-Variable	| AZURE_LOCATION	| Primary Azure region (e.g. eastus)
+Required GitHub configuration per deployed repo:
+
+| Type | Name | Value |
+|------|------|-------|
+| Secret | `AZURE_CLIENT_ID` | Per-app User-Assigned MI clientId (from Bicep output) |
+| Secret | `AZURE_TENANT_ID` | Azure tenant ID |
+| Secret | `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+| Secret | `AZURE_AI_PROJECT_ID` | Azure AI Foundry project resource ID |
+| Variable | `AZURE_ENV_NAME` | Existing azd environment name (e.g. `aos-prod`) |
+| Variable | `AZURE_LOCATION` | Primary Azure region (e.g. `eastus`) |
 
 ## License
 
