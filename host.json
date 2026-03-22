@@ -1,0 +1,3 @@
+{
+    "_comment": "This is a placeholder. When deploying the azure_functions/ directory to the agent-operating-system repository, copy the host.json from the monorepo root (or populate it with the standard Azure Functions v4 host configuration)."
+}
